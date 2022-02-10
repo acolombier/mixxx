@@ -1,36 +1,44 @@
-#version 120
+#version 450
 
-uniform vec2 framebufferSize;
-uniform vec4 axesColor;
-uniform vec4 lowColor;
-uniform vec4 midColor;
-uniform vec4 highColor;
+layout(location = 0) in vec2 qt_TexCoord0;
+layout(location = 0) out vec4 fragColor;
 
-uniform int waveformLength;
-uniform int textureSize;
-uniform int textureStride;
+layout(std140, binding = 0) uniform buf {
+    mat4 qt_Matrix;
+    float qt_Opacity;
 
-uniform float allGain;
-uniform float lowGain;
-uniform float midGain;
-uniform float highGain;
-uniform float firstVisualIndex;
-uniform float lastVisualIndex;
+    vec2 framebufferSize;
+    vec4 axesColor;
+    vec4 lowColor;
+    vec4 midColor;
+    vec4 highColor;
 
-uniform sampler2D waveformTexture;
-varying highp vec2 qt_TexCoord0;
+    int waveformLength;
+    int textureSize;
+    int textureStride;
+
+    float allGain;
+    float lowGain;
+    float midGain;
+    float highGain;
+    float firstVisualIndex;
+    float lastVisualIndex;
+};
+
+layout(binding = 1) uniform sampler2D waveformTexture;
 
 vec4 getWaveformData(float index) {
     vec2 uv_data;
     uv_data.y = floor(index / float(textureStride));
     uv_data.x = floor(index - uv_data.y * float(textureStride));
     // Divide again to convert to normalized UV coordinates.
-    return texture2D(waveformTexture, uv_data / float(textureStride));
+    return texture(waveformTexture, uv_data / float(textureStride));
 }
 
 void main(void) {
     vec2 uv = qt_TexCoord0.st;
     vec4 pixel = gl_FragCoord;
+    fragColor = vec4(1, 0, 0, 1);
 
     float new_currentIndex =
             floor(firstVisualIndex +
@@ -132,5 +140,5 @@ void main(void) {
         outputColor.xyz = mix(outputColor.xyz, showingColor.xyz, alpha);
         outputColor.w = 1.0;
     }
-    gl_FragColor = outputColor;
+    fragColor = outputColor;
 }
