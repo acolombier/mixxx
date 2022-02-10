@@ -13,9 +13,9 @@ ShaderEffect {
     property real firstVisualIndex: 1
     property real lastVisualIndex: root.deckPlayer.waveformLength / 2
     property color axesColor: "#FFFFFF"
-    property color highColor: "#FF0000"
+    property color highColor: "#0000FF"
     property color midColor: "#00FF00"
-    property color lowColor: "#0000FF"
+    property color lowColor: "#FF0000"
     property real highGain: filterWaveformEnableControl.value ? (filterHighKillControl.value ? 0 : filterHighControl.value) : 1
     property real midGain: filterWaveformEnableControl.value ? (filterMidKillControl.value ? 0 : filterMidControl.value) : 1
     property real lowGain: filterWaveformEnableControl.value ? (filterLowKillControl.value ? 0 : filterLowControl.value) : 1
