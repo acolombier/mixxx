@@ -147,7 +147,7 @@ repos:
         files: ^.*\.qml$
       - id: qmllint
         name: qmllint
-        entry: qmllint
+        entry: qmllint -I build-main/qml/Mixxx/ -i build-main/qml/Mixxx/qmldir
         pass_filenames: true
         require_serial: true
         language: system

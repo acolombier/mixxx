@@ -1078,6 +1078,7 @@ if(QT6)
     src/qml/qmllibrarytracklistmodel.cpp
     src/qml/qmlplayermanagerproxy.cpp
     src/qml/qmlplayerproxy.cpp
+    src/qml/qmlrendertest.cpp
     src/qml/qmlvisibleeffectsmodel.cpp
     src/qml/qmlwaveformoverview.cpp
   )
