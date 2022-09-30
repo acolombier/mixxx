@@ -8,27 +8,35 @@
 
 #include "track/track.h"
 #include "util/performancetimer.h"
+#include "waveform/isynctimeprovider.h"
+
+class WaveformDisplayRange;
 
 namespace mixxx {
 namespace qml {
 
 class QmlPlayerProxy;
 
-class QmlWaveformDisplay : public QQuickItem {
+class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider {
     Q_OBJECT
     Q_PROPERTY(mixxx::qml::QmlPlayerProxy* player READ getPlayer WRITE setPlayer
                     NOTIFY playerChanged REQUIRED)
+    Q_PROPERTY(QString group READ getGroup WRITE setGroup NOTIFY groupChanged REQUIRED)
     QML_NAMED_ELEMENT(WaveformDisplay)
 
   public:
     QmlWaveformDisplay(QQuickItem* parent = nullptr);
-    ~QmlWaveformDisplay() override = default;
+    ~QmlWaveformDisplay() override;
 
     void setPlayer(QmlPlayerProxy* player);
     QmlPlayerProxy* getPlayer() const;
 
+    void setGroup(const QString& group);
+    const QString& getGroup() const;
+
     QSGNode* updatePaintNode(QSGNode* old, QQuickItem::UpdatePaintNodeData*) override;
 
+    int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
   private slots:
     void slotTrackLoaded(TrackPointer pLoadedTrack);
     void slotTrackLoading(TrackPointer pNewTrack, TrackPointer pOldTrack);
@@ -38,7 +46,8 @@ class QmlWaveformDisplay : public QQuickItem {
     void slotFrameSwapped();
     void slotWindowChanged(QQuickWindow* window);
   signals:
-    void playerChanged();
+    void playerChanged(QmlPlayerProxy* player);
+    void groupChanged(const QString& group);
 
   private:
     void setCurrentTrack(TrackPointer pTrack);
@@ -46,8 +55,10 @@ class QmlWaveformDisplay : public QQuickItem {
     QPointer<QmlPlayerProxy> m_pPlayer;
     TrackPointer m_pCurrentTrack;
 
-    int m_phase{};
     PerformanceTimer m_timer;
+
+    QString m_group;
+    WaveformDisplayRange* m_pWaveformDisplayRange{};
 };
 
 } // namespace qml

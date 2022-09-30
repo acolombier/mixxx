@@ -100,12 +100,12 @@ ApplicationWindow {
 
         Skin.WaveformDisplay {
             width: parent.width
-            height: 100
+            height: 200
             group: "[Channel1]"
         }
         Skin.WaveformDisplay {
             width: parent.width
-            height: 100
+            height: 200
             group: "[Channel2]"
         }
 

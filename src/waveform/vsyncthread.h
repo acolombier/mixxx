@@ -8,7 +8,7 @@
 
 #include "util/performancetimer.h"
 
-class VSyncThread : public QThread {
+class VSyncThread : public QThread, public ISyncTimeProvider {
     Q_OBJECT
   public:
     enum VSyncMode {
@@ -32,7 +32,9 @@ class VSyncThread : public QThread {
     void setVSyncType(int mode);
     int droppedFrames();
     void setSwapWait(int sw);
-    int fromTimerToNextSyncMicros(const PerformanceTimer& timer);
+
+    // ISyncTimerProvider
+    int fromTimerToNextSyncMicros(const PerformanceTimer& timer) override;
     void vsyncSlotFinished();
     void getAvailableVSyncTypes(QList<QPair<int, QString>>* list);
     void setupSync(QGLWidget* glw, int index);

@@ -4,7 +4,6 @@
 #include <QSGSimpleRectNode>
 #include <QSGVertexColorMaterial>
 #include <cmath>
-#include <iostream>
 
 using namespace mixxx::qml;
 

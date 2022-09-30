@@ -1082,6 +1082,7 @@ if(QT6)
     src/qml/qmlvisibleeffectsmodel.cpp
     src/qml/qmlwaveformdisplay.cpp
     src/qml/qmlwaveformoverview.cpp
+    src/waveform/renderers/waveformdisplayrange.cpp
   )
 else()
   target_sources(mixxx-lib PRIVATE
