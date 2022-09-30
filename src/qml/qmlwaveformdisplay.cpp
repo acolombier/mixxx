@@ -40,7 +40,6 @@ int QmlWaveformDisplay::fromTimerToNextSyncMicros(const PerformanceTimer& timer)
 
 void QmlWaveformDisplay::slotFrameSwapped() {
     auto interval = m_timer.restart();
-    std::cout << "INTERVAL " << interval.toIntegerMicros() << std::endl;
 }
 
 inline float pow2(float x) {
