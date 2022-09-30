@@ -1080,6 +1080,7 @@ if(QT6)
     src/qml/qmlplayerproxy.cpp
     src/qml/qmlrendertest.cpp
     src/qml/qmlvisibleeffectsmodel.cpp
+    src/qml/qmlwaveformdisplay.cpp
     src/qml/qmlwaveformoverview.cpp
   )
 else()
@@ -2271,6 +2272,7 @@ if(QT6)
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
       res/qml/Mixxx/Controls/WaveformOverview.qml
+      res/qml/Mixxx/Controls/WaveformDisplay.qml
   )
   target_link_libraries(mixxx-lib PRIVATE mixxx-qml-mixxxcontrolsplugin)
 

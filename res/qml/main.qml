@@ -98,6 +98,17 @@ ApplicationWindow {
             }
         }
 
+        Skin.WaveformDisplay {
+            width: parent.width
+            height: 100
+            group: "[Channel1]"
+        }
+        Skin.WaveformDisplay {
+            width: parent.width
+            height: 100
+            group: "[Channel2]"
+        }
+
         Skin.DeckRow {
             id: decks12
 
