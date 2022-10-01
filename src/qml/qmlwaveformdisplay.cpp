@@ -1,6 +1,7 @@
 #include "qml/qmlwaveformdisplay.h"
 
 #include <QQuickWindow>
+#include <QSGFlatColorMaterial>
 #include <QSGSimpleRectNode>
 #include <QSGVertexColorMaterial>
 #include <cmath>
@@ -9,12 +10,66 @@
 #include "qml/qmlplayerproxy.h"
 #include "waveform/renderers/waveformdisplayrange.h"
 
+namespace {
+
+// float to fixed point with 8 fractional bits, clipped at 4.0
+uint32_t toFrac8(float x) {
+    return std::min<uint32_t>(static_cast<uint32_t>(std::max(x, 0.f) * 256.f), 4 * 256);
+}
+
+constexpr size_t frac16sqrtTableSize{(3 * 4 * 255 * 256) / 16 + 1};
+
+// scaled sqrt lookable table to convert maxAll and maxAllNext as calculated
+// in updatePaintNode back to y coordinates
+class Frac16SqrtTableSingleton {
+  public:
+    static Frac16SqrtTableSingleton& getInstance() {
+        static Frac16SqrtTableSingleton instance;
+        return instance;
+    }
+
+    inline float get(uint32_t x) const {
+        // The maximum value of fact16x can be (as uint32_t) 3 * 4 * 255 * 256,
+        // which would be exessive for the table size. We divide by 16 in order
+        // to get a more reasonable size.
+        return m_table[x >> 4];
+    }
+
+  private:
+    float* m_table;
+    Frac16SqrtTableSingleton()
+            : m_table(new float[frac16sqrtTableSize]) {
+        // In the original implementation, the result of sqrt(maxAll) is divided
+        // by sqrt(3 * 255 * 255);
+        // We get rid of that division and bake it into this table.
+        // Additionally, we divide the index for the lookup by 16 (see get(...)),
+        // so we need to invert that here.
+        const float f = (3.f * 255.f * 255.f / 16.f);
+        for (uint32_t i = 0; i < frac16sqrtTableSize; i++) {
+            m_table[i] = std::sqrt(static_cast<float>(i) / f);
+        }
+    }
+    ~Frac16SqrtTableSingleton() {
+        delete[] m_table;
+    }
+    Frac16SqrtTableSingleton(const Frac16SqrtTableSingleton&) = delete;
+    Frac16SqrtTableSingleton& operator=(const Frac16SqrtTableSingleton&) = delete;
+};
+
+inline float frac16_sqrt(uint32_t x) {
+    return Frac16SqrtTableSingleton::getInstance().get(x);
+}
+
+} // namespace
+
 namespace mixxx {
 namespace qml {
 
 QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
         : QQuickItem(parent),
           m_pPlayer(nullptr) {
+    Frac16SqrtTableSingleton::getInstance(); // initializes table
+
     setFlag(QQuickItem::ItemHasContents, true);
 
     connect(this, &QmlWaveformDisplay::windowChanged, this, &QmlWaveformDisplay::slotWindowChanged);
@@ -42,14 +97,13 @@ void QmlWaveformDisplay::slotFrameSwapped() {
     m_timer.restart();
 }
 
-inline uint32_t fixedpoint_pow2(uint32_t x) {
+inline uint32_t frac8Pow2ToFrac16(uint32_t x) {
     // x is the result of multiplying two fixedpoint values with 8 fraction bits,
     // thus x has 16 fraction bits, which is also what we want to return for this
-    // function. We could return (x * x) >> 16, but x * x would overflow the 32
-    // bits for values > 1.f. We lose some precision by shifting first but for
-    // this use case we don't care.
+    // function. We would naively return (x * x) >> 16, but x * x would overflow
+    // the 32 bits for values > 1, so we shift before multiplying.
     x >>= 8;
-    return x * x;
+    return (x * x);
 }
 
 inline uint32_t math_max_u32(uint32_t a, uint32_t b, uint32_t c) {
@@ -68,29 +122,29 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
     uint32_t m_rgbMidColor_b = 0;
     uint32_t m_rgbHighColor_b = 255;
 
-    auto* bgNode = dynamic_cast<QSGSimpleRectNode*>(old);
+    auto* clipNode = dynamic_cast<QSGClipNode*>(old);
 
     if (m_pWaveformDisplayRange == nullptr) {
-        return bgNode;
+        return clipNode;
     }
 
     if (!m_pCurrentTrack) {
-        return bgNode;
+        return clipNode;
     }
 
     ConstWaveformPointer waveform = m_pCurrentTrack->getWaveform();
     if (waveform.isNull()) {
-        return bgNode;
+        return clipNode;
     }
 
     const int dataSize = waveform->getDataSize();
     if (dataSize <= 1) {
-        return bgNode;
+        return clipNode;
     }
 
     const WaveformData* data = waveform->data();
     if (data == nullptr) {
-        return bgNode;
+        return clipNode;
     }
 
     m_pWaveformDisplayRange->resize(static_cast<int>(width() * window()->devicePixelRatio()),
@@ -101,27 +155,33 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
 
     QSGGeometry* geometry;
     QSGGeometryNode* geometryNode;
-    QSGVertexColorMaterial* material;
-    if (!bgNode) {
-        bgNode = new QSGSimpleRectNode();
+    QSGSimpleRectNode* bgNode;
+    if (!clipNode) {
+        clipNode = new QSGClipNode();
         geometryNode = new QSGGeometryNode();
 
+        auto material = new QSGVertexColorMaterial();
         geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0);
         geometry->setDrawingMode(QSGGeometry::DrawLines);
+        geometryNode->setOpaqueMaterial(material);
+        geometryNode->setFlag(QSGNode::OwnsOpaqueMaterial);
         geometryNode->setGeometry(geometry);
         geometryNode->setFlag(QSGNode::OwnsGeometry);
 
-        material = new QSGVertexColorMaterial();
-        geometryNode->setMaterial(material);
-        geometryNode->setFlag(QSGNode::OwnsMaterial);
+        bgNode = new QSGSimpleRectNode();
         bgNode->appendChildNode(geometryNode);
+        // TODO @m0dB make property
+        bgNode->setColor(Qt::black);
+
+        clipNode->appendChildNode(bgNode);
     } else {
+        bgNode = dynamic_cast<QSGSimpleRectNode*>(clipNode->childAtIndex(0));
         geometryNode = dynamic_cast<QSGGeometryNode*>(bgNode->childAtIndex(0));
-        material = dynamic_cast<QSGVertexColorMaterial*>(geometryNode->material());
         geometry = geometryNode->geometry();
     }
-    bgNode->setRect(QRect(0, 0, static_cast<int>(width()), static_cast<int>(height())));
-    bgNode->setColor(QColor(0, 0, 0));
+    bgNode->setRect(boundingRect());
+    clipNode->setClipRect(boundingRect());
+    clipNode->setIsRectangular(true);
 
     const float devicePixelRatio = m_pWaveformDisplayRange->getDevicePixelRatio();
     const float invDevicePixelRatio = 1.f / devicePixelRatio;
@@ -143,16 +203,17 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
     float allGain(1.0), lowGain(1.0), midGain(1.0), highGain(1.0);
     //getGains(&allGain, &lowGain, &midGain, &highGain);
 
-    const uint32_t iLowGain(static_cast<uint32_t>(lowGain * 255));
-    const uint32_t iMidGain(static_cast<uint32_t>(midGain * 255));
-    const uint32_t iHighGain(static_cast<uint32_t>(highGain * 255));
+    // gains in 8 bit fractional fixed point
+    const uint32_t frac8LowGain(toFrac8(lowGain));
+    const uint32_t frac8MidGain(toFrac8(midGain));
+    const uint32_t frac8HighGain(toFrac8(highGain));
 
     const float breadth =
             static_cast<float>(m_pWaveformDisplayRange->getBreadth()) /
             devicePixelRatio;
     const float halfBreadth = breadth / 2.0f;
 
-    const float heightFactor = allGain * halfBreadth / std::sqrt(255.f * 255.f * 3.f);
+    const float heightFactor = allGain * halfBreadth;
 
     // Effective visual index of x
     double xVisualSampleIndex = firstVisualIndex;
@@ -219,22 +280,22 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
                     waveformData.filtered.high,
                     waveformDataNext.filtered.high);
 
-            uint32_t all = fixedpoint_pow2(waveformData.filtered.low * iLowGain) +
-                    fixedpoint_pow2(waveformData.filtered.mid * iMidGain) +
-                    fixedpoint_pow2(waveformData.filtered.high * iHighGain);
+            uint32_t all = frac8Pow2ToFrac16(waveformData.filtered.low * frac8LowGain) +
+                    frac8Pow2ToFrac16(waveformData.filtered.mid * frac8MidGain) +
+                    frac8Pow2ToFrac16(waveformData.filtered.high * frac8HighGain);
             maxAll = math_max(maxAll, all);
 
-            uint32_t allNext = fixedpoint_pow2(waveformDataNext.filtered.low * iLowGain) +
-                    fixedpoint_pow2(waveformDataNext.filtered.mid * iMidGain) +
-                    fixedpoint_pow2(waveformDataNext.filtered.high * iHighGain);
+            uint32_t allNext = frac8Pow2ToFrac16(waveformDataNext.filtered.low * frac8LowGain) +
+                    frac8Pow2ToFrac16(waveformDataNext.filtered.mid * frac8MidGain) +
+                    frac8Pow2ToFrac16(waveformDataNext.filtered.high * frac8HighGain);
             maxAllNext = math_max(maxAllNext, allNext);
         }
 
         // We can do these integer calculation safely, staying well within the
         // 32 bit range, and we will normalize below.
-        maxLow *= iLowGain;
-        maxMid *= iMidGain;
-        maxHigh *= iHighGain;
+        maxLow *= frac8LowGain;
+        maxMid *= frac8MidGain;
+        maxHigh *= frac8HighGain;
         uint32_t red = maxLow * m_rgbLowColor_r + maxMid * m_rgbMidColor_r +
                 maxHigh * m_rgbHighColor_r;
         uint32_t green = maxLow * m_rgbLowColor_g + maxMid * m_rgbMidColor_g +
@@ -243,7 +304,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
                 maxHigh * m_rgbHighColor_b;
 
         // Normalize red, green, blue to 0..255, using the maximum of the three and
-        // some fixed point trick:
+        // this fixed point arithmetic trick:
         // max / ((max>>8)+1) = 0..255
         uint32_t max = math_max_u32(red, green, blue);
         max >>= 8;
@@ -254,7 +315,8 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
             green = 0;
             blue = 0;
         } else {
-            max++;
+            max++; // important, otherwise we normalize to 256
+
             red /= max;
             green /= max;
             blue /= max;
@@ -262,13 +324,13 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
 
         const float fx = static_cast<float>(x) * invDevicePixelRatio;
         vertices[vertexIndex++].set(fx,
-                halfBreadth - heightFactor * std::sqrt(maxAll),
+                halfBreadth - heightFactor * frac16_sqrt(maxAll),
                 red,
                 green,
                 blue,
                 255);
         vertices[vertexIndex++].set(fx,
-                halfBreadth + heightFactor * std::sqrt(maxAllNext),
+                halfBreadth + heightFactor * frac16_sqrt(maxAllNext),
                 red,
                 green,
                 blue,
@@ -277,11 +339,10 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
         xVisualSampleIndex += gain;
     }
 
-    bgNode->markDirty(QSGNode::DirtyGeometry);
     geometryNode->markDirty(QSGNode::DirtyGeometry);
     update();
 
-    return bgNode;
+    return clipNode;
 }
 
 QmlPlayerProxy* QmlWaveformDisplay::getPlayer() const {
