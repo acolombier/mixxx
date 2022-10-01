@@ -43,7 +43,13 @@ void QmlWaveformDisplay::slotFrameSwapped() {
 }
 
 inline uint32_t fixedpoint_pow2(uint32_t x) {
-    return (x * x) >> 16;
+    // x is the result of multiplying two fixedpoint values with 8 fraction bits,
+    // thus x has 16 fraction bits, which is also what we want to return for this
+    // function. We could return (x * x) >> 16, but x * x would overflow the 32
+    // bits for values > 1.f. We lose some precision by shifting first but for
+    // this use case we don't care.
+    x >>= 8;
+    return x * x;
 }
 
 inline uint32_t math_max_u32(uint32_t a, uint32_t b, uint32_t c) {
@@ -51,7 +57,7 @@ inline uint32_t math_max_u32(uint32_t a, uint32_t b, uint32_t c) {
 }
 
 QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePaintNodeData*) {
-    // TODO
+    // TODO @m0dB make members and property
     uint32_t m_rgbLowColor_r = 255;
     uint32_t m_rgbMidColor_r = 0;
     uint32_t m_rgbHighColor_r = 0;
@@ -120,9 +126,10 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
     const float devicePixelRatio = m_pWaveformDisplayRange->getDevicePixelRatio();
     const float invDevicePixelRatio = 1.f / devicePixelRatio;
 
-    int n = static_cast<int>(static_cast<float>(m_pWaveformDisplayRange->getLength()));
+    const int n = static_cast<int>(static_cast<float>(m_pWaveformDisplayRange->getLength()));
 
-    geometry->allocate(n * 2);
+    // n waveform lines, 1 reference line, 2 points per line
+    geometry->allocate((n + 1) * 2);
 
     QSGGeometry::ColoredPoint2D* vertices = geometry->vertexDataAsColoredPoint2D();
 
@@ -136,9 +143,9 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
     float allGain(1.0), lowGain(1.0), midGain(1.0), highGain(1.0);
     //getGains(&allGain, &lowGain, &midGain, &highGain);
 
-    uint32_t iLowGain(static_cast<uint32_t>(lowGain * 255));
-    uint32_t iMidGain(static_cast<uint32_t>(midGain * 255));
-    uint32_t iHighGain(static_cast<uint32_t>(highGain * 255));
+    const uint32_t iLowGain(static_cast<uint32_t>(lowGain * 255));
+    const uint32_t iMidGain(static_cast<uint32_t>(midGain * 255));
+    const uint32_t iHighGain(static_cast<uint32_t>(highGain * 255));
 
     const float breadth =
             static_cast<float>(m_pWaveformDisplayRange->getBreadth()) /
@@ -147,14 +154,26 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
 
     const float heightFactor = allGain * halfBreadth / std::sqrt(255.f * 255.f * 3.f);
 
-    // Draw reference line
-    //painter->setPen(m_pColors->getAxesColor());
-    //painter->drawLine(QLineF(0, halfBreadth, n, halfBreadth));
-
     // Effective visual index of x
     double xVisualSampleIndex = firstVisualIndex;
 
-    int j = 0;
+    int vertexIndex = 0;
+
+    // Add reference line
+    QColor referenceLineColor(255, 255, 255, 255); // TODO @m0dB
+    vertices[vertexIndex++].set(0.f,
+            halfBreadth,
+            referenceLineColor.red(),
+            referenceLineColor.green(),
+            referenceLineColor.blue(),
+            referenceLineColor.alpha());
+    vertices[vertexIndex++].set(static_cast<float>(n) * invDevicePixelRatio,
+            halfBreadth,
+            referenceLineColor.red(),
+            referenceLineColor.green(),
+            referenceLineColor.blue(),
+            referenceLineColor.alpha());
+
     for (int x = 0; x < n; ++x) {
         // Our current pixel (x) corresponds to a number of visual samples
         // (visualSamplerPerPixel) in our waveform object. We take the max of
@@ -211,28 +230,26 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
             maxAllNext = math_max(maxAllNext, allNext);
         }
 
+        // We can do these integer calculation safely, staying well within the
+        // 32 bit range, and we will normalize below.
         maxLow *= iLowGain;
         maxMid *= iMidGain;
         maxHigh *= iHighGain;
-        // these values are * 256
-
         uint32_t red = maxLow * m_rgbLowColor_r + maxMid * m_rgbMidColor_r +
                 maxHigh * m_rgbHighColor_r;
         uint32_t green = maxLow * m_rgbLowColor_g + maxMid * m_rgbMidColor_g +
                 maxHigh * m_rgbHighColor_g;
         uint32_t blue = maxLow * m_rgbLowColor_b + maxMid * m_rgbMidColor_b +
                 maxHigh * m_rgbHighColor_b;
-        // at this pint red, green, blue are * 65536
 
-        // Compute maximum (needed for value normalization)
-        uint32_t max = math_max3(red, green, blue);
-
-        // A fixed point trick:
-        //   max / (max>>8) == 256
-        //   max / ((maxx>>8) + 1) = 255
+        // Normalize red, green, blue to 0..255, using the maximum of the three and
+        // some fixed point trick:
+        // max / ((max>>8)+1) = 0..255
+        uint32_t max = math_max_u32(red, green, blue);
         max >>= 8;
 
         if (max == 0) {
+            // avoid division by 0
             red = 0;
             green = 0;
             blue = 0;
@@ -243,14 +260,14 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* old, QQuickItem::UpdatePai
             blue /= max;
         }
 
-        float fx = x * invDevicePixelRatio;
-        vertices[j++].set(fx,
+        const float fx = static_cast<float>(x) * invDevicePixelRatio;
+        vertices[vertexIndex++].set(fx,
                 halfBreadth - heightFactor * std::sqrt(maxAll),
                 red,
                 green,
                 blue,
                 255);
-        vertices[j++].set(fx,
+        vertices[vertexIndex++].set(fx,
                 halfBreadth + heightFactor * std::sqrt(maxAllNext),
                 red,
                 green,
