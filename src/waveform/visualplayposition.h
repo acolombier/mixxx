@@ -75,6 +75,18 @@ class VisualPlayPosition : public QObject {
     bool m_valid;
     QString m_key;
 
+    class Smoother {
+      public: // TODO @m0dB make private
+        double m_a, m_b, m_y, m_threshold;
+
+      public:
+        Smoother(double responseTime, double rate);
+        double process(double x);
+        void setThreshold(double threshold);
+    };
+
+    Smoother m_smoother;
+
     static QMap<QString, QWeakPointer<VisualPlayPosition>> m_listVisualPlayPosition;
     // Time info from the Sound device, updated just after audio callback is called
     static double m_dCallbackEntryToDacSecs;

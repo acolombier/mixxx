@@ -24,7 +24,9 @@ double VisualPlayPosition::m_dCallbackEntryToDacSecs = 0;
 
 VisualPlayPosition::VisualPlayPosition(const QString& key)
         : m_valid(false),
-          m_key(key) {
+          m_key(key),
+          m_smoother(0.1, 60.0) // TODO @m0dB framerate should not be hardcoded
+{
     m_audioBufferSize = new ControlProxy(
             "[Master]", "audio_buffer_size", this);
     m_audioBufferSize->connectValueChanged(this, &VisualPlayPosition::slotAudioBufferSizeChanged);
@@ -46,6 +48,11 @@ void VisualPlayPosition::set(double playPos, double rate, double positionStep,
     data.m_slipPosition = slipPosition;
     data.m_tempoTrackSeconds = tempoTrackSeconds;
 
+    // when the play pos jump more than twice the amount of normal playback, we change immediately,
+    // without smoothing
+    // TODO m0dB don't use hardcoded framerate of 60
+    m_smoother.setThreshold(2. * (1. / 60.) / tempoTrackSeconds);
+
     // Atomic write
     m_data.setValue(data);
     m_valid = true;
@@ -65,8 +72,9 @@ double VisualPlayPosition::getAtNextVSync(ISyncTimeProvider* syncTimeProvider) {
         // add the offset for the position of the sample that will be transferred to the DAC
         // When the next display frame is displayed
         playPos += data.m_positionStep * offset * data.m_rate / m_audioBufferMicros;
+
         //qDebug() << "playPos" << playPos << offset;
-        return playPos;
+        return m_smoother.process(playPos);
     }
     return -1;
 }
@@ -131,4 +139,24 @@ void VisualPlayPosition::setCallbackEntryToDacSecs(double secs, const Performanc
     // later correction
     m_timeInfoTime = time;
     m_dCallbackEntryToDacSecs = secs;
+}
+
+VisualPlayPosition::Smoother::Smoother(double responseTime, double rate)
+        : m_a{std::exp(-(M_PI * 2.0) / (responseTime * rate))},
+          m_b{1.0 - m_a},
+          m_y{0.0},
+          m_threshold{0.0} {
+}
+
+void VisualPlayPosition::Smoother::setThreshold(double threshold) {
+    m_threshold = threshold;
+}
+
+double VisualPlayPosition::Smoother::process(double x) {
+    if (std::abs(x - m_y) > m_threshold) {
+        m_y = x;
+    } else {
+        m_y = (x * m_b) + (m_y * m_a);
+    }
+    return m_y;
 }
