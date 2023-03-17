@@ -18,6 +18,10 @@ class QmlApplication : public QObject {
             std::shared_ptr<CoreServices> pCoreServices);
     ~QmlApplication() override = default;
 
+    std::shared_ptr<QQmlApplicationEngine> appEngine() const {
+        return m_pAppEngine;
+    }
+
   public slots:
     void loadQml(const QString& path);
 
@@ -26,7 +30,7 @@ class QmlApplication : public QObject {
 
     QString m_mainFilePath;
 
-    std::unique_ptr<QQmlApplicationEngine> m_pAppEngine;
+    std::shared_ptr<QQmlApplicationEngine> m_pAppEngine;
     QFileSystemWatcher m_fileWatcher;
     std::shared_ptr<DlgPreferences> m_pDlgPreferences;
 };

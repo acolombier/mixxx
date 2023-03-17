@@ -43,7 +43,7 @@ PortMidiController::~PortMidiController() {
     }
 }
 
-int PortMidiController::open() {
+int PortMidiController::open(std::shared_ptr<ControllerRuntimeData>) {
     if (isOpen()) {
         qCWarning(m_logBase) << "PortMIDI device" << getName() << "already open";
         return -1;

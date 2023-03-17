@@ -1,8 +1,11 @@
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 
+#include <QLabel>
+
 #include "control/controlobject.h"
 #include "controllers/controller.h"
 #include "controllers/scripting/colormapperjsproxy.h"
+#include "controllers/scripting/legacy/controllerscreenrendering.h"
 #include "controllers/scripting/legacy/controllerscriptinterfacelegacy.h"
 #include "errordialoghandler.h"
 #include "mixer/playermanager.h"
@@ -92,11 +95,18 @@ QJSValue ControllerScriptEngineLegacy::wrapFunctionCode(
 
 void ControllerScriptEngineLegacy::setScriptFiles(
         const QList<LegacyControllerMapping::ScriptFileInfo>& scripts) {
-    const QStringList paths = m_fileWatcher.files();
-    if (!paths.isEmpty()) {
-        m_fileWatcher.removePaths(paths);
+    for (const auto& script : qAsConst(m_scriptFiles)) {
+        m_fileWatcher.removePath(script.file.absoluteFilePath());
     }
     m_scriptFiles = scripts;
+}
+
+void ControllerScriptEngineLegacy::setQMLFiles(
+        const QList<LegacyControllerMapping::QMLFileInfo>& qmls) {
+    for (const auto& qml : qAsConst(m_qmlFiles)) {
+        m_fileWatcher.removePath(qml.file.absoluteFilePath());
+    }
+    m_qmlFiles = qmls;
 }
 
 bool ControllerScriptEngineLegacy::initialize() {
@@ -118,6 +128,14 @@ bool ControllerScriptEngineLegacy::initialize() {
             "        callback(new Uint8Array(arrayBuffer), arg2);"
             "    };"
             "})"));
+    m_makeRenderBufferWrapperFunction = m_pJSEngine->evaluate(QStringLiteral(
+            // arg2 is the timestamp for ControllerScriptModuleEngine.
+            // In ControllerScriptEngineLegacy it is the length of the array.
+            "(function(callback) {"
+            "    return function(identifier, id, arrayBuffer, arg2) {"
+            "        callback(identifier, id, new Uint8Array(arrayBuffer), arg2);"
+            "    };"
+            "})"));
 
     // Make this ControllerScriptHandler instance available to scripts as 'engine'.
     QJSValue engineGlobalObject = m_pJSEngine->globalObject();
@@ -125,6 +143,11 @@ bool ControllerScriptEngineLegacy::initialize() {
             new ControllerScriptInterfaceLegacy(this, m_logger);
     engineGlobalObject.setProperty(
             "engine", m_pJSEngine->newQObject(legacyScriptInterface));
+    // legacyScriptInterface =
+    //         new ControllerScriptInterfaceLegacy(this, m_logger);
+    // QJSValue qmlGlobalObject = m_pQMLEngine->globalObject();
+    // qmlGlobalObject.setProperty(
+    //         "engine", m_pQMLEngine->newQObject(legacyScriptInterface));
 
     for (const LegacyControllerMapping::ScriptFileInfo& script : std::as_const(m_scriptFiles)) {
         if (!evaluateScriptFile(script.file)) {
@@ -152,16 +175,71 @@ bool ControllerScriptEngineLegacy::initialize() {
                         wrapFunctionCode(functionName, 2)));
     }
 
+    for (QString functionName : std::as_const(m_scriptFunctionPrefixes)) {
+        if (functionName.isEmpty()) {
+            continue;
+        }
+        functionName.append(QStringLiteral(".renderingData"));
+        QJSValue callback = wrapRenderBufferCallback(
+                wrapFunctionCode(functionName, 4));
+        if (!callback.isCallable()) {
+            continue;
+        }
+        m_renderingDataFunctions.append(callback);
+    }
+
     // m_pController is nullptr in tests.
     const auto controllerName = m_pController ? m_pController->getName() : QString{};
     const auto args = QJSValueList{
             controllerName,
             m_logger().isDebugEnabled(),
     };
+
+    qWarning() << QThread::currentThread() << thread() << m_pJSEngine->thread();
+
     if (!callFunctionOnObjects(m_scriptFunctionPrefixes, "init", args, true)) {
         shutdown();
         return false;
     }
+
+    qDebug() << "About to init screens";
+    for (const LegacyControllerMapping::QMLFileInfo& qml : std::as_const(m_qmlFiles)) {
+        if (!m_fileWatcher.addPath(qml.file.absoluteFilePath())) {
+            qCWarning(m_logger) << "Failed to watch render file" << qml.file.absoluteFilePath();
+        }
+        for (uint8_t screenId = 0; screenId < qml.screen_count; screenId++) {
+            m_pScreenRendering.append(
+                    std::make_shared<ControllerScreenRendering>(
+                            m_pController, qml, m_logger, screenId));
+
+            // connect(m_pScreenRendering.last().get(),
+            // &ControllerScreenRendering::frameRendered, this, [=](const
+            // QImage& frame){
+            //     // qDebug() << "Received frame of " << frame.sizeInBytes() <<
+            //     "for screen" << qml.identifier;
+            //     handleRenderingData(qml.identifier, screenId,
+            //     QByteArray((const char *)frame.constBits(),
+            //     frame.sizeInBytes()));
+            // });
+        }
+    }
+
+    // if (screenCount == pRawWindowList.size()){
+    //     // for (auto* pRawWindow: pRawWindowList){
+    //     //     QQuickWindow* pWin = qobject_cast<QQuickWindow *>(pRawWindow);
+    //     //     // This function can only be called from the GUI thread
+    //     //     m_renderBindingList.append(connect(pWin,
+    //     &QQuickWindow::afterRendering, this, [=](){
+    //     //         QImage frame = pWin->grabWindow();
+    //     //         handleRenderingData(QByteArray((const char
+    //     *)frame.constBits(), frame.sizeInBytes()));
+    //     //     }));
+    //     // }
+    // } else {
+    //     qCritical() << "Expected rendering window aren't matching";
+    // }
+
+    // m_pJSEngine->moveToThread(QCoreApplication::instance()->thread());
 
     return true;
 }
@@ -169,10 +247,15 @@ bool ControllerScriptEngineLegacy::initialize() {
 void ControllerScriptEngineLegacy::shutdown() {
     // There is no js engine if the mapping was not loaded from a file but by
     // creating a new, empty mapping LegacyMidiControllerMapping with the wizard
+    for (auto rendering : m_pScreenRendering) {
+        rendering->stop();
+    }
+    m_pScreenRendering.clear();
     if (m_pJSEngine) {
         callFunctionOnObjects(m_scriptFunctionPrefixes, "shutdown");
     }
     m_scriptWrappedFunctionCache.clear();
+    m_renderingDataFunctions.clear();
     m_incomingDataFunctions.clear();
     m_scriptFunctionPrefixes.clear();
     if (m_pJSEngine) {
@@ -193,6 +276,28 @@ bool ControllerScriptEngineLegacy::handleIncomingData(const QByteArray& data) {
     };
 
     for (const QJSValue& function : std::as_const(m_incomingDataFunctions)) {
+        ControllerScriptEngineBase::executeFunction(function, args);
+    }
+
+    return true;
+}
+
+bool ControllerScriptEngineLegacy::handleRenderingData(
+        const QString& identifier, uint8_t screenId, const QByteArray& data) {
+    // This function is called from outside the controller engine, so we can't
+    // use VERIFY_OR_DEBUG_ASSERT here
+    if (!m_pJSEngine || m_renderingDataFunctions.empty()) {
+        return false;
+    }
+
+    const auto args = QJSValueList{
+            m_pJSEngine->toScriptValue(identifier),
+            m_pJSEngine->toScriptValue(screenId),
+            m_pJSEngine->toScriptValue(data),
+            static_cast<uint>(data.size()),
+    };
+
+    for (const QJSValue& function : std::as_const(m_renderingDataFunctions)) {
         ControllerScriptEngineBase::executeFunction(function, args);
     }
 
@@ -267,4 +372,8 @@ bool ControllerScriptEngineLegacy::evaluateScriptFile(const QFileInfo& scriptFil
 
 QJSValue ControllerScriptEngineLegacy::wrapArrayBufferCallback(const QJSValue& callback) {
     return m_makeArrayBufferWrapperFunction.call(QJSValueList{callback});
+}
+
+QJSValue ControllerScriptEngineLegacy::wrapRenderBufferCallback(const QJSValue& callback) {
+    return m_makeRenderBufferWrapperFunction.call(QJSValueList{callback});
 }

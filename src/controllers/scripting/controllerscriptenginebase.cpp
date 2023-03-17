@@ -1,11 +1,14 @@
 #include "controllers/scripting/controllerscriptenginebase.h"
 
+#include <QWindow>
+
 #include "control/controlobject.h"
 #include "controllers/controller.h"
 #include "controllers/scripting/colormapperjsproxy.h"
 #include "errordialoghandler.h"
 #include "mixer/playermanager.h"
 #include "moc_controllerscriptenginebase.cpp"
+#include "qml/qmlplayermanagerproxy.h"
 
 ControllerScriptEngineBase::ControllerScriptEngineBase(
         Controller* controller, const RuntimeLoggingCategory& logger)
@@ -49,12 +52,19 @@ bool ControllerScriptEngineBase::initialize() {
                 "midi", m_pJSEngine->newQObject(controllerProxy));
     }
 
+    // m_pQMLEngine = std::make_unique<QQmlApplicationEngine>(this);
+
     return true;
+}
+
+std::shared_ptr<ControllerRuntimeData> ControllerScriptEngineBase::getRuntimeData() const {
+    return m_pController->getRuntimeData();
 }
 
 void ControllerScriptEngineBase::shutdown() {
     DEBUG_ASSERT(m_pJSEngine.use_count() == 1);
     m_pJSEngine.reset();
+    // m_pQMLEngine.reset();
 }
 
 void ControllerScriptEngineBase::reload() {
@@ -105,11 +115,15 @@ void ControllerScriptEngineBase::showScriptExceptionDialog(
     QString line = evaluationResult.property("lineNumber").toString();
     QString backtrace = evaluationResult.property("stack").toString();
     QString filename = evaluationResult.property("fileName").toString();
+    QString name = evaluationResult.property("name").toString();
+    QString message = evaluationResult.property("message").toString();
 
     if (filename.isEmpty()) {
         filename = QStringLiteral("<passed code>");
     }
-    QString errorText = QString("Uncaught exception: %1:%2: %3").arg(filename, line, errorMessage);
+    QString errorText =
+            QString("Uncaught exception: %1:%2: %3 %4 %5")
+                    .arg(filename, line, errorMessage, name, message);
 
     // Do not include backtrace in dialog key because it might contain midi
     // slider values that will differ most of the time. This would break

@@ -51,7 +51,7 @@ bool HidController::matchMapping(const MappingInfo& mapping) {
     return false;
 }
 
-int HidController::open() {
+int HidController::open(std::shared_ptr<ControllerRuntimeData> runtimeData) {
     if (isOpen()) {
         qDebug() << "HID device" << getName() << "already open";
         return -1;
@@ -102,6 +102,8 @@ int HidController::open() {
         hid_close(pHidDevice);
         return -1;
     }
+
+    m_pRuntimeData = runtimeData;
 
     setOpen(true);
 
@@ -190,6 +192,8 @@ int HidController::close() {
         // After completion of all HID communication deconstruct m_pHidIoThread
         m_pHidIoThread.reset();
     }
+
+    m_pRuntimeData.reset();
 
     // Close device
     setOpen(false);

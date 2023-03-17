@@ -82,7 +82,7 @@ class FakeController : public Controller {
     }
 
   private slots:
-    int open() override {
+    int open(std::shared_ptr<ControllerRuntimeData>) override {
         return 0;
     }
 

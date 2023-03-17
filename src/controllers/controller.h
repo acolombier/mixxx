@@ -12,6 +12,7 @@
 #include "util/runtimeloggingcategory.h"
 
 class ControllerJSProxy;
+class ControllerRuntimeData;
 
 /// This is a base class representing a physical (or software) controller.  It
 /// must be inherited by a class that implements it on some API. Note that the
@@ -59,6 +60,14 @@ class Controller : public QObject {
 
     virtual bool matchMapping(const MappingInfo& mapping) = 0;
 
+    std::shared_ptr<ControllerRuntimeData> getRuntimeData() const {
+        return m_pRuntimeData;
+    }
+
+    // This must be reimplemented by sub-classes desiring to send raw bytes to a
+    // controller.
+    virtual void sendBytes(const QByteArray& data) = 0;
+
   signals:
     /// Emitted when the controller is opened or closed.
     void openChanged(bool bOpen);
@@ -74,6 +83,11 @@ class Controller : public QObject {
     // this if they have an alternate way of handling such data.)
     virtual void receive(const QByteArray& data, mixxx::Duration timestamp);
 
+    // Handles screen rendering data of raw bytes and passes them to an ".renderingData" script
+    // function that is assumed to exist. (Sub-classes may want to reimplement
+    // this if they have an alternate way of handling such data.)
+    virtual void render(const QByteArray& data, mixxx::Duration timestamp);
+
     virtual bool applyMapping();
 
     // Puts the controller in and out of learning mode.
@@ -81,6 +95,8 @@ class Controller : public QObject {
     void stopLearning();
 
   protected:
+    std::shared_ptr<ControllerRuntimeData> m_pRuntimeData;
+
     template<typename SpecificMappingType>
     std::shared_ptr<SpecificMappingType> downcastAndTakeOwnership(
             std::shared_ptr<LegacyControllerMapping>&& pMapping) {
@@ -101,10 +117,6 @@ class Controller : public QObject {
     // The length parameter is here for backwards compatibility for when scripts
     // were required to specify it.
     virtual void send(const QList<int>& data, unsigned int length = 0);
-
-    // This must be reimplemented by sub-classes desiring to send raw bytes to a
-    // controller.
-    virtual void sendBytes(const QByteArray& data) = 0;
 
     // To be called in sub-class' open() functions after opening the device but
     // before starting any input polling/processing.
@@ -140,8 +152,7 @@ class Controller : public QObject {
     const RuntimeLoggingCategory m_logOutput;
 
   private: // but used by ControllerManager
-
-    virtual int open() = 0;
+    virtual int open(std::shared_ptr<ControllerRuntimeData> runtimeData) = 0;
     virtual int close() = 0;
     // Requests that the device poll if it is a polling device. Returns true
     // if events were handled.

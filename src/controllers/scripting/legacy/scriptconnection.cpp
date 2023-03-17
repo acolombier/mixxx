@@ -1,6 +1,6 @@
 #include "controllers/scripting/legacy/scriptconnection.h"
 
-#include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
+#include "controllers/scripting/controllerscriptenginebase.h"
 #include "util/trace.h"
 
 void ScriptConnection::executeCallback(double value) const {

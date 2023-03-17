@@ -28,6 +28,27 @@ QFileInfo findScriptFile(std::shared_ptr<LegacyControllerMapping> mapping,
     return file;
 }
 
+/// Find script file in the mapping or system path.
+///
+/// @param mapping The controller mapping the script belongs to.
+/// @param filename The script filename.
+/// @param systemMappingsPath The system mappings path to use as fallback.
+/// @return Returns a QFileInfo object. If the script was not found in either
+/// of the search directories, the QFileInfo object might point to a
+/// non-existing file.
+QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
+        const QString& dirname,
+        const QDir& systemMappingsPath) {
+    // Always try to load script from the mapping's directory first
+    QFileInfo dir = QFileInfo(mapping->dirPath().absoluteFilePath(dirname));
+
+    // If the script does not exist, try to find it in the fallback dir
+    if (!dir.isDir()) {
+        dir = QFileInfo(systemMappingsPath.absoluteFilePath(dirname));
+    }
+    return dir;
+}
+
 } // namespace
 
 // static
@@ -141,6 +162,56 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
 
         mapping->addScriptFile(filename, functionPrefix, file);
         scriptFile = scriptFile.nextSiblingElement("file");
+    }
+
+    // Build a list of QML files to load
+    QDomElement screenDef = controller.firstChildElement("renderfiles")
+                                    .firstChildElement("screen");
+
+    // // Default currently required file
+    // mapping->addScriptFile(REQUIRED_SCRIPT_FILE,
+    //         "",
+    //         findScriptFile(mapping, REQUIRED_SCRIPT_FILE, systemMappingsPath),
+    //         true);
+
+    // Look for additional ones
+    while (!screenDef.isNull()) {
+        QString identifier = screenDef.attribute("filename", "");
+        uint8_t screenCount = screenDef.attribute("screenCount", "").toUInt();
+        uint8_t targetFps = screenDef.attribute("targetFps", "").toUInt();
+
+        uint8_t width = screenDef.attribute("width", "").toUInt();
+        uint8_t height = screenDef.attribute("height", "").toUInt();
+
+        QFileInfo file = findScriptFile(mapping, identifier, systemMappingsPath);
+        identifier = screenDef.attribute("identifier", identifier);
+
+        qDebug() << "System path is" << systemMappingsPath;
+
+        QList<QFileInfo> libPaths;
+        QDomElement qmlLibrary = screenDef.firstChildElement("library");
+
+        while (!qmlLibrary.isNull()) {
+            QString libFilename = qmlLibrary.attribute("path", "");
+            QFileInfo path = findLibraryPath(mapping, libFilename, systemMappingsPath);
+            if (path.isDir()) {
+                libPaths.append(path);
+            } else {
+                qWarning() << "Unable to add controller QML library path."
+                           << path.absolutePath()
+                           << "is not a directory or is missing";
+            }
+            qmlLibrary = qmlLibrary.nextSiblingElement("library");
+        }
+
+        qDebug() << "Adding screen render using file" << file << "and libpath" << libPaths;
+        mapping->addQMLFile(identifier,
+                QSize(width, height),
+                file,
+                libPaths,
+                screenCount,
+                targetFps);
+        screenDef = screenDef.nextSiblingElement("screen");
     }
 }
 
