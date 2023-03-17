@@ -8,6 +8,8 @@
 #include "controllers/hid/legacyhidcontrollermapping.h"
 #include "util/duration.h"
 
+class ControllerRuntimeData;
+
 /// HID controller backend
 class HidController final : public Controller {
     Q_OBJECT
@@ -33,7 +35,7 @@ class HidController final : public Controller {
     bool matchMapping(const MappingInfo& mapping) override;
 
   private slots:
-    int open() override;
+    int open(std::shared_ptr<ControllerRuntimeData> runtimeData) override;
     int close() override;
 
   private:

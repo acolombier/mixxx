@@ -11,6 +11,7 @@
 struct libusb_device_handle;
 struct libusb_context;
 struct libusb_device_descriptor;
+struct ControllerRuntimeData;
 
 /// USB Bulk controller backend
 class BulkReader : public QThread {
@@ -60,7 +61,7 @@ class BulkController : public Controller {
     void send(const QList<int>& data, unsigned int length) override;
 
   private slots:
-    int open() override;
+    int open(std::shared_ptr<ControllerRuntimeData> runtimeData) override;
     int close() override;
 
   private:

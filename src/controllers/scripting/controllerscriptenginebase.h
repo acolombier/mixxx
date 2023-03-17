@@ -2,6 +2,7 @@
 
 #include <QFileSystemWatcher>
 #include <QJSEngine>
+#include <QQmlApplicationEngine>
 #include <QJSValue>
 #include <QMessageBox>
 #include <memory>
@@ -12,6 +13,7 @@
 
 class Controller;
 class EvaluationException;
+class ControllerRuntimeData;
 
 /// ControllerScriptEngineBase manages the JavaScript engine for controller scripts.
 /// ControllerScriptModuleEngine implements the current system using JS modules.
@@ -39,11 +41,15 @@ class ControllerScriptEngineBase : public QObject {
     bool isTesting() const {
         return m_bTesting;
     }
+    virtual QJSEngine* jsEngine() const =0;
+
+    std::shared_ptr<ControllerRuntimeData> getRuntimeData() const;
+    
+    void scriptErrorDialog(const QString& detailedError, const QString& key, bool bFatal = false);
 
   protected:
     virtual void shutdown();
 
-    void scriptErrorDialog(const QString& detailedError, const QString& key, bool bFatal = false);
 
     bool m_bDisplayingExceptionDialog;
     std::shared_ptr<QJSEngine> m_pJSEngine;

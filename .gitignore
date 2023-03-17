@@ -27,6 +27,7 @@ compile_commands.json
 
 # Build and distribution directories for various build configurations
 /build*
+/cbuild*
 /install
 
 # Exclude unneeded files from GoogleTest library when updating our bundled

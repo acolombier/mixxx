@@ -397,6 +397,19 @@ QString DlgPrefController::mappingFileLinks(
 
         linkList << scriptFileLink;
     }
+
+    for (const auto& qml : pMapping->getQMLFiles()) {
+        QString scriptFileLink = coloredLinkString(
+                m_pLinkColor,
+                qml.identifier,
+                qml.file.absoluteFilePath());
+        if (!qml.file.exists()) {
+            scriptFileLink +=
+                    QStringLiteral(" (") + tr("missing") + QStringLiteral(")");
+        } 
+
+        linkList << scriptFileLink;
+    }
     return linkList.join("<br/>");
 }
 

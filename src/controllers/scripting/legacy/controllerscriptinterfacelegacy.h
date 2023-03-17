@@ -7,7 +7,7 @@
 #include "util/alphabetafilter.h"
 #include "util/runtimeloggingcategory.h"
 
-class ControllerScriptEngineLegacy;
+class ControllerScriptEngineBase;
 class ControlObjectScript;
 class ScriptConnection;
 class ConfigKey;
@@ -17,13 +17,18 @@ class ConfigKey;
 class ControllerScriptInterfaceLegacy : public QObject {
     Q_OBJECT
   public:
-    ControllerScriptInterfaceLegacy(ControllerScriptEngineLegacy* m_pEngine,
+    ControllerScriptInterfaceLegacy(ControllerScriptEngineBase* m_pEngine,
             const RuntimeLoggingCategory& logger);
 
     virtual ~ControllerScriptInterfaceLegacy();
 
     Q_INVOKABLE double getValue(const QString& group, const QString& name);
     Q_INVOKABLE void setValue(const QString& group, const QString& name, double newValue);
+
+    Q_INVOKABLE QJSValue getRuntimeData();
+    Q_INVOKABLE void setRuntimeData(const QJSValue& value);
+    Q_INVOKABLE QJSValue onRuntimeDataUpdate(const QJSValue& callback);
+
     Q_INVOKABLE double getParameter(const QString& group, const QString& name);
     Q_INVOKABLE void setParameter(const QString& group, const QString& name, double newValue);
     Q_INVOKABLE double getParameterForValue(
@@ -105,6 +110,6 @@ class ControllerScriptInterfaceLegacy : public QObject {
     bool isTrackLoaded(const QString& group);
     double getDeckRate(const QString& group);
 
-    ControllerScriptEngineLegacy* m_pScriptEngineLegacy;
+    ControllerScriptEngineBase* m_pScriptEngineLegacy;
     const RuntimeLoggingCategory m_logger;
 };

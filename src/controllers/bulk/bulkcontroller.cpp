@@ -134,7 +134,7 @@ bool BulkController::matchProductInfo(const ProductInfo& product) {
     return true;
 }
 
-int BulkController::open() {
+int BulkController::open(std::shared_ptr<ControllerRuntimeData> runtimeData) {
     if (isOpen()) {
         qCWarning(m_logBase) << "USB Bulk device" << getName() << "already open";
         return -1;
@@ -167,12 +167,13 @@ int BulkController::open() {
         return -1;
     }
 
+    m_pRuntimeData = runtimeData;
     setOpen(true);
     startEngine();
 
     if (m_pReader != nullptr) {
         qCWarning(m_logBase) << "BulkReader already present for" << getName();
-    } else {
+    } else if (in_epaddr) {
         m_pReader = new BulkReader(m_phandle, in_epaddr);
         m_pReader->setObjectName(QString("BulkReader %1").arg(getName()));
 
@@ -181,6 +182,8 @@ int BulkController::open() {
         // Controller input needs to be prioritized since it can affect the
         // audio directly, like when scratching
         m_pReader->start(QThread::HighPriority);
+    } else {
+        qDebug() << "No BulkReader required for" << getName();
     }
 
     return 0;
@@ -230,6 +233,8 @@ void BulkController::send(const QList<int>& data, unsigned int length) {
 }
 
 void BulkController::sendBytes(const QByteArray& data) {
+    auto startOfBulkWrite = mixxx::Time::elapsed();
+
     int ret;
     int transferred;
 
@@ -241,7 +246,8 @@ void BulkController::sendBytes(const QByteArray& data) {
         qCWarning(m_logOutput) << "Unable to send data to" << getName()
                                << "serial #" << m_sUID;
     } else {
-        qCDebug(m_logOutput) << ret << "bytes sent to" << getName()
-                             << "serial #" << m_sUID;
+        qCDebug(m_logOutput) << data.size() << "bytes sent to" << getName()
+                             << "serial #" << m_sUID << "- Needed: "
+                       << (mixxx::Time::elapsed() - startOfBulkWrite).formatMicrosWithUnit();;
     }
 }

@@ -11,6 +11,7 @@
 #include "test/mixxxtest.h"
 #include "util/time.h"
 
+class ControllerRuntimeData;
 class MockMidiController : public MidiController {
   public:
     explicit MockMidiController()
@@ -18,7 +19,7 @@ class MockMidiController : public MidiController {
     }
     ~MockMidiController() override { }
 
-    MOCK_METHOD0(open, int());
+    MOCK_METHOD1(open, int(std::shared_ptr<ControllerRuntimeData>));
     MOCK_METHOD0(close, int());
     MOCK_METHOD3(sendShortMsg, void(unsigned char status,
                                     unsigned char byte1,

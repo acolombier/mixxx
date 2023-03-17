@@ -6,6 +6,7 @@
 #include "controllers/controllerlearningeventfilter.h"
 #include "controllers/defs_controllers.h"
 #include "controllers/midi/portmidienumerator.h"
+#include "controllers/controllerruntimedata.h"
 #include "moc_controllermanager.cpp"
 #include "util/cmdlineargs.h"
 #include "util/compatibility/qmutex.h"
@@ -87,6 +88,7 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
           // its own event loop.
           m_pControllerLearningEventFilter(new ControllerLearningEventFilter()),
           m_pollTimer(this),
+          m_pRuntimeData(std::make_shared<ControllerRuntimeData>(this)),
           m_skipPoll(false) {
     qRegisterMetaType<std::shared_ptr<LegacyControllerMapping>>(
             "std::shared_ptr<LegacyControllerMapping>");
@@ -160,9 +162,9 @@ void ControllerManager::slotInitialize() {
 
 void ControllerManager::slotShutdown() {
     stopPolling();
-
     // Clear m_enumerators before deleting the enumerators to prevent other code
     // paths from accessing them.
+
     auto locker = lockMutex(&m_mutex);
     QList<ControllerEnumerator*> enumerators = m_enumerators;
     m_enumerators.clear();
@@ -286,7 +288,7 @@ void ControllerManager::slotSetUpDevices() {
 
         qDebug() << "Opening controller:" << name;
 
-        int value = pController->open();
+        int value = pController->open(m_pRuntimeData);
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
             continue;
@@ -377,7 +379,7 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
-    int result = pController->open();
+    int result = pController->open(m_pRuntimeData);
     pollIfAnyControllersOpen();
 
     // If successfully opened the device, apply the mapping and save the

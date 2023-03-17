@@ -24,6 +24,8 @@ static bool is_interesting(struct libusb_device_descriptor *desc) {
         if ((bulk_supported[i].vendor_id == desc->idVendor) &&
             (bulk_supported[i].product_id == desc->idProduct)) {
             return true;
+        } else {
+            qDebug() << "Not interested in" << desc->idVendor << desc->idProduct << ". Looking for " << bulk_supported[i].vendor_id << bulk_supported[i].product_id;
         }
     }
     return false;

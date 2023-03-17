@@ -56,7 +56,7 @@ class PortMidiController : public MidiController {
     ~PortMidiController() override;
 
   private slots:
-    int open() override;
+    int open(std::shared_ptr<ControllerRuntimeData> runtimeData) override;
     int close() override;
     bool poll() override;
 
