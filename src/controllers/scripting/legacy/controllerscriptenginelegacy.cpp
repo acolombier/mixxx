@@ -210,10 +210,10 @@ bool ControllerScriptEngineLegacy::initialize() {
         for (uint8_t screenId = 0; screenId < qml.screen_count; screenId++){
             m_pScreenRendering.append(std::make_shared<ControllerScreenRendering>(m_pController, qml, m_logger, screenId));
 
-            connect(m_pScreenRendering.last().get(), &ControllerScreenRendering::frameRendered, this, [=](const QImage& frame){
-                // qDebug() << "Received frame of " << frame.sizeInBytes() << "for screen" << qml.identifier;
-                handleRenderingData(qml.identifier, screenId, QByteArray((const char *)frame.constBits(), frame.sizeInBytes()));
-            });        
+            // connect(m_pScreenRendering.last().get(), &ControllerScreenRendering::frameRendered, this, [=](const QImage& frame){
+            //     // qDebug() << "Received frame of " << frame.sizeInBytes() << "for screen" << qml.identifier;
+            //     handleRenderingData(qml.identifier, screenId, QByteArray((const char *)frame.constBits(), frame.sizeInBytes()));
+            // });        
         }        
     }
 

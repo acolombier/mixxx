@@ -14,6 +14,7 @@
 #include "controllers/legacycontrollermapping.h"
 #include "controllers/scripting/controllerscriptenginebase.h"
 #include "util/runtimeloggingcategory.h"
+#include "util/time.h"
 
 class ControllerScriptInterfaceLegacy;
 
@@ -26,17 +27,12 @@ class ControllerScreenRendering: public ControllerScriptEngineBase {
 
     bool event(QEvent *event) override;
 
-    QJSEngine* jsEngine() const override { return m_qmlEngine; }
+    QJSEngine* jsEngine() const override { return m_qmlEngine.get(); }
 
     bool stop() { m_pThread->requestInterruption();
-      VERIFY_OR_DEBUG_ASSERT(m_pThread->wait(1000)){
-          qCritical() << "Unable to terminate thread gracefully. Killing it now.";
-          m_pThread->terminate();
-          VERIFY_OR_DEBUG_ASSERT(m_pThread->wait()){
-              qCritical() << "Unable to kill thread. What the hell is going on?";
-              return false;
-          }
-      }; 
+      if (QThread::currentThread() != m_pThread.get()){
+        m_pThread->wait();
+      }
       return true;
     }
 
@@ -45,7 +41,6 @@ private slots:
     void cleanup();
 
     void createFbo();
-    void destroyFbo();
     bool load(const QString &qmlFile, const QSize &size);
 
     void renderNext();
@@ -55,23 +50,28 @@ private slots:
 
   private:
     uint8_t m_screenId;
-    QThread* m_pThread;
-    QTimer* m_pTimer;
-
-    ControllerScriptInterfaceLegacy* m_pScrintInterface;
+    // QTimer* m_pTimer;
+    mixxx::Duration m_nextFrameStart;
 
     LegacyControllerMapping::QMLFileInfo m_renderingInfo;
-
-    QOpenGLContext *m_context;
-    QOffscreenSurface *m_offscreenSurface;
-    QQuickRenderControl *m_renderControl;
-    QQuickWindow *m_quickWindow;
-    QQmlEngine *m_qmlEngine;
-    QQmlComponent *m_qmlComponent;
-    QQuickItem *m_rootItem;
-    QOpenGLFramebufferObject *m_fbo;
     QSize m_size;
 
-    QLabel* m_pDebugWindow;
+    QJSValue m_tranformFunction;
+
+    std::unique_ptr<QThread> m_pThread;
+
+    std::unique_ptr<ControllerScriptInterfaceLegacy> m_pScrintInterface;
+
+    std::unique_ptr<QOpenGLContext> m_context;
+    std::unique_ptr<QOffscreenSurface> m_offscreenSurface;
+    std::unique_ptr<QQuickRenderControl> m_renderControl;
+    std::unique_ptr<QQuickWindow> m_quickWindow;
+    std::unique_ptr<QQmlEngine> m_qmlEngine;
+    std::unique_ptr<QQmlComponent> m_qmlComponent;
+    std::unique_ptr<QOpenGLFramebufferObject> m_fbo;
+
+    std::unique_ptr<QLabel> m_pDebugWindow;
+
+    std::unique_ptr<QQuickItem> m_rootItem;
     
 };

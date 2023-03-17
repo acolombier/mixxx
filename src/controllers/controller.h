@@ -63,6 +63,10 @@ class Controller : public QObject {
     std::shared_ptr<ControllerRuntimeData> getRuntimeData() const  {
         return m_pRuntimeData;
     }
+
+    // This must be reimplemented by sub-classes desiring to send raw bytes to a
+    // controller.
+    virtual void sendBytes(const QByteArray& data) = 0;
     
   signals:
     /// Emitted when the controller is opened or closed.
@@ -113,10 +117,6 @@ class Controller : public QObject {
     // The length parameter is here for backwards compatibility for when scripts
     // were required to specify it.
     virtual void send(const QList<int>& data, unsigned int length = 0);
-
-    // This must be reimplemented by sub-classes desiring to send raw bytes to a
-    // controller.
-    virtual void sendBytes(const QByteArray& data) = 0;
 
     // To be called in sub-class' open() functions after opening the device but
     // before starting any input polling/processing.
