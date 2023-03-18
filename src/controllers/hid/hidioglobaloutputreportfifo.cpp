@@ -109,21 +109,21 @@ bool HidIoGlobalOutputReportFifo::sendNextReportDataset(QMutex* pHidDeviceAndPol
 
     hidDeviceLock.unlock();
 
-    if (result != -1) {
-        qCDebug(logOutput) << "t:" << startOfHidWrite.formatMillisWithUnit()
-                           << " " << result << "bytes (including ReportID of"
-                           << static_cast<quint8>(dataToSend[0])
-                           << ") sent from non-skipping FIFO ("
-                           << (indexOfLastCachedReport > indexOfLastSentReport
-                                              ? indexOfLastCachedReport -
-                                                      indexOfLastSentReport
-                                              : kSizeOfFifoInReports -
-                                                      indexOfLastSentReport +
-                                                      indexOfLastCachedReport)
-                           << "/" << kSizeOfFifoInReports << "used) - Needed: "
-                           << (mixxx::Time::elapsed() - startOfHidWrite)
-                                      .formatMicrosWithUnit();
-    }
+    // if (result != -1) {
+    //     qCDebug(logOutput) << "t:" << startOfHidWrite.formatMillisWithUnit()
+    //                        << " " << result << "bytes (including ReportID of"
+    //                        << static_cast<quint8>(dataToSend[0])
+    //                        << ") sent from non-skipping FIFO ("
+    //                        << (indexOfLastCachedReport > indexOfLastSentReport
+    //                                           ? indexOfLastCachedReport -
+    //                                                   indexOfLastSentReport
+    //                                           : kSizeOfFifoInReports -
+    //                                                   indexOfLastSentReport +
+    //                                                   indexOfLastCachedReport)
+    //                        << "/" << kSizeOfFifoInReports << "used) - Needed: "
+    //                        << (mixxx::Time::elapsed() - startOfHidWrite)
+    //                                   .formatMicrosWithUnit();
+    // }
 
     // Return with true, to signal the caller, that the time consuming hid_write
     // operation was executed

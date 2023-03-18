@@ -186,8 +186,6 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
         QFileInfo file = findScriptFile(mapping, identifier, systemMappingsPath);
         identifier = screenDef.attribute("identifier", identifier);
 
-        qDebug() << "System path is" << systemMappingsPath;
-
         QList<QFileInfo> libPaths;
         QDomElement qmlLibrary = screenDef.firstChildElement("library");
 

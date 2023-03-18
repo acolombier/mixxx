@@ -95,21 +95,6 @@ QmlApplication::QmlApplication(
             &QFileSystemWatcher::fileChanged,
             this,
             &QmlApplication::loadQml);
-
-    // connect(m_pCoreServices->getControllerManager().get(),
-    // &ControllerManager::mappingOpened, this,
-    // [=](std::shared_ptr<LegacyControllerMapping> mapping){
-    //     if (!m_pAppEngine.get()){
-    //         qCritical() << "QML engine not ready";
-    //         return;
-    //     }
-    //     for (const auto& qml: qAsConst(mapping->getQMLFiles())){
-    //         for (const auto& path: qml.libraries){
-    //             m_pAppEngine->addImportPath(path.absolutePath());
-    //         }
-    //         m_pAppEngine->load(qml.file.absolutePath());
-    //     }
-    // });
 }
 
 void QmlApplication::loadQml(const QString& path) {

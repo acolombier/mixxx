@@ -77,5 +77,7 @@ class ControllerScreenRendering : public ControllerScriptEngineBase {
 
     std::unique_ptr<QLabel> m_pDebugWindow;
 
+    QByteArray m_screenBuffer;
+
     std::unique_ptr<QQuickItem> m_rootItem;
 };

@@ -175,19 +175,6 @@ bool ControllerScriptEngineLegacy::initialize() {
                         wrapFunctionCode(functionName, 2)));
     }
 
-    for (QString functionName : std::as_const(m_scriptFunctionPrefixes)) {
-        if (functionName.isEmpty()) {
-            continue;
-        }
-        functionName.append(QStringLiteral(".renderingData"));
-        QJSValue callback = wrapRenderBufferCallback(
-                wrapFunctionCode(functionName, 4));
-        if (!callback.isCallable()) {
-            continue;
-        }
-        m_renderingDataFunctions.append(callback);
-    }
-
     // m_pController is nullptr in tests.
     const auto controllerName = m_pController ? m_pController->getName() : QString{};
     const auto args = QJSValueList{
@@ -211,35 +198,8 @@ bool ControllerScriptEngineLegacy::initialize() {
             m_pScreenRendering.append(
                     std::make_shared<ControllerScreenRendering>(
                             m_pController, qml, m_logger, screenId));
-
-            // connect(m_pScreenRendering.last().get(),
-            // &ControllerScreenRendering::frameRendered, this, [=](const
-            // QImage& frame){
-            //     // qDebug() << "Received frame of " << frame.sizeInBytes() <<
-            //     "for screen" << qml.identifier;
-            //     handleRenderingData(qml.identifier, screenId,
-            //     QByteArray((const char *)frame.constBits(),
-            //     frame.sizeInBytes()));
-            // });
         }
     }
-
-    // if (screenCount == pRawWindowList.size()){
-    //     // for (auto* pRawWindow: pRawWindowList){
-    //     //     QQuickWindow* pWin = qobject_cast<QQuickWindow *>(pRawWindow);
-    //     //     // This function can only be called from the GUI thread
-    //     //     m_renderBindingList.append(connect(pWin,
-    //     &QQuickWindow::afterRendering, this, [=](){
-    //     //         QImage frame = pWin->grabWindow();
-    //     //         handleRenderingData(QByteArray((const char
-    //     *)frame.constBits(), frame.sizeInBytes()));
-    //     //     }));
-    //     // }
-    // } else {
-    //     qCritical() << "Expected rendering window aren't matching";
-    // }
-
-    // m_pJSEngine->moveToThread(QCoreApplication::instance()->thread());
 
     return true;
 }
@@ -255,7 +215,6 @@ void ControllerScriptEngineLegacy::shutdown() {
         callFunctionOnObjects(m_scriptFunctionPrefixes, "shutdown");
     }
     m_scriptWrappedFunctionCache.clear();
-    m_renderingDataFunctions.clear();
     m_incomingDataFunctions.clear();
     m_scriptFunctionPrefixes.clear();
     if (m_pJSEngine) {
@@ -276,28 +235,6 @@ bool ControllerScriptEngineLegacy::handleIncomingData(const QByteArray& data) {
     };
 
     for (const QJSValue& function : std::as_const(m_incomingDataFunctions)) {
-        ControllerScriptEngineBase::executeFunction(function, args);
-    }
-
-    return true;
-}
-
-bool ControllerScriptEngineLegacy::handleRenderingData(
-        const QString& identifier, uint8_t screenId, const QByteArray& data) {
-    // This function is called from outside the controller engine, so we can't
-    // use VERIFY_OR_DEBUG_ASSERT here
-    if (!m_pJSEngine || m_renderingDataFunctions.empty()) {
-        return false;
-    }
-
-    const auto args = QJSValueList{
-            m_pJSEngine->toScriptValue(identifier),
-            m_pJSEngine->toScriptValue(screenId),
-            m_pJSEngine->toScriptValue(data),
-            static_cast<uint>(data.size()),
-    };
-
-    for (const QJSValue& function : std::as_const(m_renderingDataFunctions)) {
         ControllerScriptEngineBase::executeFunction(function, args);
     }
 

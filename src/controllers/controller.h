@@ -83,11 +83,6 @@ class Controller : public QObject {
     // this if they have an alternate way of handling such data.)
     virtual void receive(const QByteArray& data, mixxx::Duration timestamp);
 
-    // Handles screen rendering data of raw bytes and passes them to an ".renderingData" script
-    // function that is assumed to exist. (Sub-classes may want to reimplement
-    // this if they have an alternate way of handling such data.)
-    virtual void render(const QByteArray& data, mixxx::Duration timestamp);
-
     virtual bool applyMapping();
 
     // Puts the controller in and out of learning mode.

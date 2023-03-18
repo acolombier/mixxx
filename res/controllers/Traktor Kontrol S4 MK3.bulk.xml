@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<MixxxControllerPreset mixxxVersion="2.4+" schemaVersion="1">
+    <info>
+        <name>Traktor Kontrol S4 MK3 - Screen control</name>
+        <author>A. Colombier</author>
+        <description>HID Mapping for screens on Traktor Kontrol S4 MK3</description>
+        <manual>native_instruments_traktor_kontrol_s4_mk3</manual>
+        <devices>
+            <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" />
+        </devices>
+    </info>
+    <controller id="TraktorScreen">
+        <scriptfiles>
+            <file filename="Traktor-Kontrol-S4-MK3-Screens.js" functionprefix="TraktorS4MK3Screens"/>
+        </scriptfiles>
+        <renderfiles>
+            <screen filename="Traktor-Kontrol-S4-MK3-Screens.qml" identifier="deck" width="320" height="240" screenCount="2" targetFps="30">
+                <library path="Traktor-Kontrol-S4-MK3-Screens" />
+            </screen>
+        </renderfiles>
+    </controller>
+</MixxxControllerPreset>
