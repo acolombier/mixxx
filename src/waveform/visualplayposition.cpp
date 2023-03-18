@@ -6,9 +6,7 @@
 #include "control/controlproxy.h"
 #include "moc_visualplayposition.cpp"
 #include "util/math.h"
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include "waveform/vsyncthread.h"
-#endif
+#include "waveform/isynctimeprovider.h"
 
 //static
 QMap<QString, QWeakPointer<VisualPlayPosition>> VisualPlayPosition::m_listVisualPlayPosition;
@@ -17,7 +15,9 @@ double VisualPlayPosition::m_dCallbackEntryToDacSecs = 0;
 
 VisualPlayPosition::VisualPlayPosition(const QString& key)
         : m_valid(false),
-          m_key(key) {
+          m_key(key),
+          m_smoother(0.1, 60.0) // TODO @m0dB framerate should not be hardcoded
+{
 }
 
 VisualPlayPosition::~VisualPlayPosition() {
@@ -41,23 +41,22 @@ void VisualPlayPosition::set(
     data.m_tempoTrackSeconds = tempoTrackSeconds;
     data.m_audioBufferMicroS = audioBufferMicroS;
 
+    // when the play pos jump more than twice the amount of normal playback, we change immediately,
+    // without smoothing
+    // TODO m0dB don't use hardcoded framerate of 60
+    m_smoother.setThreshold(2. * (1. / 60.) / tempoTrackSeconds);
+
     // Atomic write
     m_data.setValue(data);
     m_valid = true;
 }
 
 double VisualPlayPosition::calcPosAtNextVSync(
-        VSyncThread* pVSyncThread, const VisualPlayPositionData& data) {
+        ISyncTimeProvider* pVSyncThread, const VisualPlayPositionData& data) {
     double playPos = data.m_enginePlayPos; // load playPos for the first sample in Buffer
     if (data.m_audioBufferMicroS != 0.0) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        Q_UNUSED(pVSyncThread);
-        int refToVSync = 0;
-        int syncIntervalTimeMicros = 0;
-#else
         int refToVSync = pVSyncThread->fromTimerToNextSyncMicros(data.m_referenceTime);
         int syncIntervalTimeMicros = pVSyncThread->getSyncIntervalTimeMicros();
-#endif
         int offset = refToVSync - data.m_callbackEntrytoDac;
         // The offset is limited to the audio buffer + waveform sync interval
         // This should be sufficient to compensate jitter, but does not continue
@@ -68,24 +67,25 @@ double VisualPlayPosition::calcPosAtNextVSync(
         // When the next display frame is displayed
         playPos += data.m_positionStep * offset * data.m_rate / data.m_audioBufferMicroS;
     }
+
     // qDebug() << "playPos" << playPos << offset;
-    return playPos;
+    return m_smoother.process(playPos);
 }
 
-double VisualPlayPosition::getAtNextVSync(VSyncThread* pVSyncThread) {
+double VisualPlayPosition::getAtNextVSync(ISyncTimeProvider* pSyncTimeProvider) {
     if (m_valid) {
         VisualPlayPositionData data = m_data.getValue();
-        return calcPosAtNextVSync(pVSyncThread, data);
+        return calcPosAtNextVSync(pSyncTimeProvider, data);
     }
     return -1;
 }
 
-void VisualPlayPosition::getPlaySlipAtNextVSync(VSyncThread* pVSyncThread,
+void VisualPlayPosition::getPlaySlipAtNextVSync(ISyncTimeProvider* pSyncTimeProvider,
         double* pPlayPosition,
         double* pSlipPosition) {
     if (m_valid) {
         VisualPlayPositionData data = m_data.getValue();
-        *pPlayPosition = calcPosAtNextVSync(pVSyncThread, data);
+        *pPlayPosition = calcPosAtNextVSync(pSyncTimeProvider, data);
         *pSlipPosition = data.m_slipPosition;
     }
 }
@@ -126,4 +126,24 @@ void VisualPlayPosition::setCallbackEntryToDacSecs(double secs, const Performanc
     // later correction
     m_timeInfoTime = time;
     m_dCallbackEntryToDacSecs = secs;
+}
+
+VisualPlayPosition::Smoother::Smoother(double responseTime, double rate)
+        : m_a{std::exp(-(M_PI * 2.0) / (responseTime * rate))},
+          m_b{1.0 - m_a},
+          m_y{0.0},
+          m_threshold{0.0} {
+}
+
+void VisualPlayPosition::Smoother::setThreshold(double threshold) {
+    m_threshold = threshold;
+}
+
+double VisualPlayPosition::Smoother::process(double x) {
+    if (std::abs(x - m_y) > m_threshold) {
+        m_y = x;
+    } else {
+        m_y = (x * m_b) + (m_y * m_a);
+    }
+    return m_y;
 }

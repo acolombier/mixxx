@@ -98,6 +98,17 @@ ApplicationWindow {
             }
         }
 
+        Skin.WaveformDisplay {
+            width: parent.width
+            height: 200
+            group: "[Channel1]"
+        }
+        Skin.WaveformDisplay {
+            width: parent.width
+            height: 200
+            group: "[Channel2]"
+        }
+
         Skin.DeckRow {
             id: decks12
 
@@ -114,7 +125,7 @@ ApplicationWindow {
             width: parent.width
             visible: !root.maximizeLibrary
 
-            Skin.FadeBehavior on visible {
+            Skin.FadeBehavior on visible  {
                 fadeTarget: crossfader
             }
         }
@@ -128,7 +139,7 @@ ApplicationWindow {
             minimized: root.maximizeLibrary
             visible: root.show4decks
 
-            Skin.FadeBehavior on visible {
+            Skin.FadeBehavior on visible  {
                 fadeTarget: decks34
             }
         }
@@ -139,7 +150,7 @@ ApplicationWindow {
             width: parent.width
             visible: root.showSamplers
 
-            Skin.FadeBehavior on visible {
+            Skin.FadeBehavior on visible  {
                 fadeTarget: samplers
             }
         }
@@ -150,7 +161,7 @@ ApplicationWindow {
             width: parent.width
             visible: root.showEffects
 
-            Skin.FadeBehavior on visible {
+            Skin.FadeBehavior on visible  {
                 fadeTarget: effects
             }
         }

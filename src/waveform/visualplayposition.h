@@ -8,11 +8,7 @@
 #include "control/controlvalue.h"
 
 class ControlProxy;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-typedef void VSyncThread;
-#else
-class VSyncThread;
-#endif
+class ISyncTimeProvider;
 
 // This class is for synchronizing the sound device DAC time with the waveforms, displayed on the
 // graphic device, using the CPU time
@@ -56,9 +52,8 @@ class VisualPlayPosition : public QObject {
             double slipPosition,
             double tempoTrackSeconds,
             double audioBufferMicroS);
-
-    double getAtNextVSync(VSyncThread* pVSyncThread);
-    void getPlaySlipAtNextVSync(VSyncThread* pVSyncThread,
+    double getAtNextVSync(ISyncTimeProvider* syncTimeProvider);
+    void getPlaySlipAtNextVSync(ISyncTimeProvider* syncTimeProvider,
             double* playPosition,
             double* slipPosition);
     double getEnginePlayPos();
@@ -77,10 +72,22 @@ class VisualPlayPosition : public QObject {
     }
 
   private:
-    double calcPosAtNextVSync(VSyncThread* pVSyncThread, const VisualPlayPositionData& data);
+    double calcPosAtNextVSync(ISyncTimeProvider* pVSyncThread, const VisualPlayPositionData& data);
     ControlValueAtomic<VisualPlayPositionData> m_data;
     bool m_valid;
     QString m_key;
+
+    class Smoother {
+      public: // TODO @m0dB make private
+        double m_a, m_b, m_y, m_threshold;
+
+      public:
+        Smoother(double responseTime, double rate);
+        double process(double x);
+        void setThreshold(double threshold);
+    };
+
+    Smoother m_smoother;
 
     static QMap<QString, QWeakPointer<VisualPlayPosition>> m_listVisualPlayPosition;
     // Time info from the Sound device, updated just after audio callback is called
