@@ -23,8 +23,6 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
 
     bool handleIncomingData(const QByteArray& data);
 
-    bool handleRenderingData(const QString& identifier, uint8_t screenId, const QByteArray& data);
-
     /// Wrap a string of JS code in an anonymous function. This allows any JS
     /// string that evaluates to a function to be used in MIDI mapping XML files
     /// and ensures the function is executed with the correct 'this' object.
@@ -49,7 +47,6 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
     QJSValue m_makeRenderBufferWrapperFunction;
     QList<QString> m_scriptFunctionPrefixes;
     QList<QJSValue> m_incomingDataFunctions;
-    QList<QJSValue> m_renderingDataFunctions;
     QHash<QString, QJSValue> m_scriptWrappedFunctionCache;
     QList<LegacyControllerMapping::ScriptFileInfo> m_scriptFiles;
     QList<LegacyControllerMapping::QMLFileInfo> m_qmlFiles;

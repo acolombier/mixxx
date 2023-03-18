@@ -157,38 +157,3 @@ void Controller::receive(const QByteArray& data, mixxx::Duration timestamp) {
 
     m_pScriptEngineLegacy->handleIncomingData(data);
 }
-void Controller::render(const QByteArray& data, mixxx::Duration timestamp) {
-    if (!m_pScriptEngineLegacy) {
-        // qWarning() << "Controller::receive called with no active engine!";
-        //  Don't complain, since this will always show after closing a device as
-        //   queued signals flush out
-        return;
-    }
-
-    int length = data.size();
-    // if (m_logInput().isDebugEnabled()) {
-    //     // Formatted packet display
-    //     QString message = QString("t:%2, %3 bytes:\n")
-    //                               .arg(timestamp.formatMillisWithUnit(),
-    //                                       QString::number(length));
-    //     for (int i = 0; i < length; i++) {
-    //         QString spacer;
-    //         if ((i + 1) % 16 == 0) {
-    //             spacer = QStringLiteral("\n");
-    //         } else if ((i + 1) % 4 == 0) {
-    //             spacer = QStringLiteral("  ");
-    //         } else {
-    //             spacer = QStringLiteral(" ");
-    //         }
-    //         // cast to quint8 to avoid that negative chars are for instance
-    //         displayed as ffffffff instead of the desired ff message +=
-    //         QString::number(static_cast<quint8>(data.at(i)), 16)
-    //                            .toUpper()
-    //                            .rightJustified(2, QChar('0')) +
-    //                 spacer;
-    //     }
-    //     qCDebug(m_logInput).noquote() << message;
-    // }
-
-    // m_pScriptEngineLegacy->handleRenderingData(data);
-}

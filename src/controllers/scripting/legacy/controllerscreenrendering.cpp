@@ -59,6 +59,17 @@ void ControllerScreenRendering::start() {
     format.setDepthBufferSize(16);
     format.setStencilBufferSize(8);
 
+    m_screenBuffer = QByteArray(320 * 240 * 2 + 20, 0);
+
+    // OpenGL version
+    // m_screenBuffer[0] = 0x84;
+    // m_screenBuffer[3] = 0x21;
+    // m_screenBuffer[12] = 0x1;
+    // m_screenBuffer[13] = 0x40;
+    // m_screenBuffer[15] = 0xf0;
+    // m_screenBuffer[320*240*2 + 16] = 0x40;
+    // m_screenBuffer[2] = screen_id;
+
     m_context = std::make_unique<QOpenGLContext>();
     m_context->setFormat(format);
     RELEASE_ASSERT(m_context->create());
@@ -254,6 +265,7 @@ void ControllerScreenRendering::renderNext() {
 
     m_context->functions()->glFlush();
 
+    // JS Version
     const QImage frame = m_fbo->toImage();
     RELEASE_ASSERT(!frame.isNull());
 
@@ -261,6 +273,7 @@ void ControllerScreenRendering::renderNext() {
 
     // emit frameRendered(frame);
 
+    // JS Callback version
     QByteArray input((const char*)frame.constBits(), frame.sizeInBytes());
     QJSValue dataToSend = m_transformFunction.call(
             QJSValueList{m_qmlEngine->toScriptValue(input), m_screenId});
@@ -271,17 +284,31 @@ void ControllerScreenRendering::renderNext() {
         return;
     }
 
-    QByteArray output;
-
+    int byteIndex = 0;
     if (dataToSend.isArray()) {
         int length = dataToSend.property("length").toInt();
         for (int i = 0; i < length; i++) {
             int value = dataToSend.property(i).toInt();
-            output.append(static_cast<char>(value));
+            m_screenBuffer[byteIndex++] = static_cast<char>(value);
         }
     }
+
+    // Open GL version
+    // m_fbo->bind();
+    // glReadPixels(0, 0, m_fbo->width(), m_fbo->height(), GL_RGB565,
+    // GL_UNSIGNED_BYTE, m_screenBuffer.data() + 16); m_fbo->release();
+    // m_screenBuffer[2] = m_screenId;
+
+    // m_screenBuffer[0] = 0x84;
+    // m_screenBuffer[3] = 0x21;
+    // m_screenBuffer[12] = 0x1;
+    // m_screenBuffer[13] = 0x40;
+    // m_screenBuffer[15] = 0xf0;
+    // m_screenBuffer[320*240*2 + 16] = 0x40;
+
     auto endOfTransform = mixxx::Time::elapsed();
-    m_pController->sendBytes(output);
+    m_pController->sendBytes(m_screenBuffer);
+
     auto endOfRender = mixxx::Time::elapsed();
     qDebug() << "Fame took "
              << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
@@ -289,16 +316,15 @@ void ControllerScreenRendering::renderNext() {
              << (startOfTransform - m_nextFrameStart).formatMillisWithUnit()
              << "/ Transform: "
              << (endOfTransform - startOfTransform).formatMillisWithUnit()
-             << ") and buffer has" << output.size() << "bytes. Had error?"
-             << dataToSend.isError();
+             << ") and buffer has" << m_screenBuffer.size() << "bytes.";
 
     m_nextFrameStart += mixxx::Duration::fromMillis(1000 / m_renderingInfo.target_fps);
 
     m_context->doneCurrent();
 
-    if (m_pDebugWindow) {
-        m_pDebugWindow->setPixmap(QPixmap::fromImage(frame));
-    }
+    // if (m_pDebugWindow) {
+    //     m_pDebugWindow->setPixmap(QPixmap::fromImage(frame));
+    // }
 
     if (!m_pThread->isInterruptionRequested()) {
         // Schedule the next update
