@@ -109,7 +109,6 @@ ApplicationWindow {
             FadeBehavior on visible {
                 fadeTarget: deck3waveform
             }
-
         }
 
         WaveformRow {
@@ -123,7 +122,6 @@ ApplicationWindow {
             FadeBehavior on visible {
                 fadeTarget: deck1waveform
             }
-
         }
 
         WaveformRow {
@@ -137,7 +135,6 @@ ApplicationWindow {
             FadeBehavior on visible {
                 fadeTarget: deck2waveform
             }
-
         }
 
         WaveformRow {
@@ -151,7 +148,6 @@ ApplicationWindow {
             FadeBehavior on visible {
                 fadeTarget: deck4waveform
             }
-
         }
 
         Skin.DeckRow {

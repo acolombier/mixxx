@@ -1,4 +1,4 @@
-import Mixxx 0.1 as Mixxx
+import Mixxx 1.0 as Mixxx
 import QtQuick 2.12
 
 ShaderEffect {
@@ -19,7 +19,7 @@ ShaderEffect {
     property real highGain: filterWaveformEnableControl.value ? (filterHighKillControl.value ? 0 : filterHighControl.value) : 1
     property real midGain: filterWaveformEnableControl.value ? (filterMidKillControl.value ? 0 : filterMidControl.value) : 1
     property real lowGain: filterWaveformEnableControl.value ? (filterLowKillControl.value ? 0 : filterLowControl.value) : 1
-    property real allGain: pregainControl.value
+    property real allGain: Math.log2(1 + pregainControl.value) * 3.0
     property Image waveformTexture
 
     fragmentShader: "qrc:/shaders/rgbsignal_qml.frag.qsb"
@@ -85,5 +85,4 @@ ShaderEffect {
         layer.enabled: false
         source: root.deckPlayer.waveformTexture
     }
-
 }

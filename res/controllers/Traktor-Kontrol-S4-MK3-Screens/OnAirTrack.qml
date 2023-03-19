@@ -8,7 +8,7 @@ Item {
     id: root
 
     required property string group
-    required property var deckPlayer
+    property var deckPlayer: Mixxx.PlayerManager.getPlayer(root.group)
 
     enum TimerStatus {
         Forward,
@@ -18,6 +18,17 @@ Item {
 
     property string fullText
     property int index
+
+    Component.onCompleted: {
+        deckPlayer.artistChanged.connect(onAir.update)
+        deckPlayer.titleChanged.connect(onAir.update)
+        update()
+
+        onDeckPlayerChanged: () => {
+            deckPlayer.artistChanged.connect(onAir.update)
+            deckPlayer.titleChanged.connect(onAir.update)
+        }
+    }
 
     Rectangle {
         id: frame
@@ -44,7 +55,7 @@ Item {
         onValueChanged: (value) => {
             timer.stop()
             frame.x = 0
-            status = OnAirTrack.TimerStatus.Cooldown
+            timer.status = OnAirTrack.TimerStatus.Cooldown
             root.update()
         }
     }

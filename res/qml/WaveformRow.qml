@@ -1,4 +1,5 @@
-import Mixxx 0.1 as Mixxx
+import Mixxx 1.0 as Mixxx
+import Mixxx.Controls 1.0 as MixxxControls
 import QtQuick 2.14
 import QtQuick.Shapes 1.12
 import "Theme"
@@ -61,14 +62,14 @@ Item {
         Item {
             id: waveform
 
-            property real effectiveZoomFactor: rateRatioControl.value * zoomControl.value * 100
+            property real effectiveZoomFactor: rateRatioControl.value * zoomControl.value * 50
 
             width: waveformContainer.duration * effectiveZoomFactor
             height: parent.height
             x: 0.5 * waveformContainer.width - playPositionControl.value * width
             visible: root.deckPlayer.isLoaded
 
-            WaveformShader {
+            MixxxControls.WaveformShader {
                 group: root.group
                 anchors.fill: parent
             }
@@ -99,9 +100,7 @@ Item {
                             return p;
                         }
                     }
-
                 }
-
             }
 
             Shape {
@@ -130,9 +129,7 @@ Item {
                             return p;
                         }
                     }
-
                 }
-
             }
 
             Repeater {
@@ -144,11 +141,8 @@ Item {
                     x: (framePosition * 2 / samplesControl.value) * waveform.width
                     color: Theme.waveformBeatColor
                 }
-
             }
-
         }
-
     }
 
     Shape {
@@ -170,9 +164,7 @@ Item {
                 x: playMarkerPath.startX
                 y: playMarkerShape.height
             }
-
         }
-
     }
 
     Mixxx.ControlProxy {
@@ -223,8 +215,7 @@ Item {
         }
         onPositionChanged: {
             switch (mouseStatus) {
-            case WaveformRow.MouseStatus.Bending:
-                {
+                case WaveformRow.MouseStatus.Bending: {
                     const diff = mouse.x - mouseAnchor.x;
                     // Start at the middle of [0.0, 1.0], and emit values based on how far
                     // the mouse has traveled horizontally. Note, for legacy (MIDI) reasons,
@@ -234,23 +225,22 @@ Item {
                     wheelControl.parameter = Mixxx.MathUtils.clamp(v, 0, 1);
                     break;
                 };
-            case WaveformRow.MouseStatus.Scratching:
+                case WaveformRow.MouseStatus.Scratching:
                 // TODO: Calculate position properly
-                scratchPositionControl.value = -mouse.x * waveform.effectiveZoomFactor * 2;
-                break;
+                    scratchPositionControl.value = -mouse.x * waveform.effectiveZoomFactor * 2;
+                    break;
             }
         }
         onReleased: {
             switch (mouseStatus) {
-            case WaveformRow.MouseStatus.Bending:
-                wheelControl.parameter = 0.5;
-                break;
-            case WaveformRow.MouseStatus.Scratching:
-                scratchPositionEnableControl.value = 0;
-                break;
+                case WaveformRow.MouseStatus.Bending:
+                    wheelControl.parameter = 0.5;
+                    break;
+                case WaveformRow.MouseStatus.Scratching:
+                    scratchPositionEnableControl.value = 0;
+                    break;
             }
             mouseStatus = WaveformRow.MouseStatus.Normal;
         }
     }
-
 }

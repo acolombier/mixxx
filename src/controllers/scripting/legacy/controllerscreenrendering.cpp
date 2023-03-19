@@ -310,13 +310,13 @@ void ControllerScreenRendering::renderNext() {
     m_pController->sendBytes(m_screenBuffer);
 
     auto endOfRender = mixxx::Time::elapsed();
-    qDebug() << "Fame took "
-             << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
-             << "(Render: "
-             << (startOfTransform - m_nextFrameStart).formatMillisWithUnit()
-             << "/ Transform: "
-             << (endOfTransform - startOfTransform).formatMillisWithUnit()
-             << ") and buffer has" << m_screenBuffer.size() << "bytes.";
+    // qDebug() << "Fame took "
+    //          << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
+    //          << "(Render: "
+    //          << (startOfTransform - m_nextFrameStart).formatMillisWithUnit()
+    //          << "/ Transform: "
+    //          << (endOfTransform - startOfTransform).formatMillisWithUnit()
+    //          << ") and buffer has" << m_screenBuffer.size() << "bytes.";
 
     m_nextFrameStart += mixxx::Duration::fromMillis(1000 / m_renderingInfo.target_fps);
 

@@ -17,7 +17,7 @@ Item {
         group: root.group
         key: "playposition"
         onValueChanged: (value) => {
-            root.width = value * root.windowWidth;
+            root.width = value * (320 - 12);
         }
     }
 

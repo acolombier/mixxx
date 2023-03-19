@@ -2278,6 +2278,7 @@ if(QT6)
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
       res/qml/Mixxx/Controls/WaveformOverview.qml
+      res/qml/Mixxx/Controls/WaveformShader.qml
   )
   target_link_libraries(mixxx-lib PRIVATE mixxx-qml-mixxxcontrolsplugin)
 
