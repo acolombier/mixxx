@@ -36,6 +36,10 @@ QtObject {
     property color buttonNormalColor: midGray
     property color textColor: lightGray2
     property color toolbarActiveColor: white
+    property color waveformPrerollColor: midGray
+    property color waveformPostrollColor: midGray
+    property color waveformBeatColor: lightGray
+    property color waveformCursorColor: white
     property string fontFamily: "Open Sans"
     property int textFontPixelSize: 14
     property int buttonFontPixelSize: 10
