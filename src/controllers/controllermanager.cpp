@@ -1,5 +1,7 @@
 #include "controllers/controllermanager.h"
 
+#include <QHash>
+#include <QLabel>
 #include <QSet>
 #include <QThread>
 
@@ -79,6 +81,38 @@ bool controllerCompare(Controller *a,Controller *b) {
     return a->getName() < b->getName();
 }
 
+void DebugControllerScreens::addRenderer(
+        std::shared_ptr<ControllerRenderingEngine> renderer, uint8_t screenId) {
+    // TODO assert if exists AND
+    VERIFY_OR_DEBUG_ASSERT(renderer.get()) {
+        return;
+    }
+
+    auto screen = std::make_shared<QLabel>();
+
+    screen->setFixedSize(renderer->size());
+    screen->setAttribute(Qt::WA_QuitOnClose, false);
+    screen->show();
+
+    m_debugsScreens.insert(renderer.get(), screen);
+
+    connect(renderer.get(), &ControllerRenderingEngine::debugScreenRendered, [=](QImage frame) {
+        // TODO assert
+        auto screen = m_debugsScreens.value(renderer.get());
+        if (screen) {
+            screen->setText(mixxx::Time::elapsed().formatMillisWithUnit());
+            screen->setPixmap(QPixmap::fromImage(frame));
+        }
+    });
+}
+
+void DebugControllerScreens::removeRenderer(std::shared_ptr<ControllerRenderingEngine> renderer) {
+    VERIFY_OR_DEBUG_ASSERT(renderer.get()) {
+        return;
+    }
+    m_debugsScreens.take(renderer.get()).reset();
+}
+
 ControllerManager::ControllerManager(UserSettingsPointer pConfig)
         : QObject(),
           m_pConfig(pConfig),
@@ -100,6 +134,9 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
 
     m_pollTimer.setInterval(kPollInterval.toIntegerMillis());
     connect(&m_pollTimer, &QTimer::timeout, this, &ControllerManager::pollDevices);
+
+    // TODO if debug only
+    m_debugScreen = std::make_shared<DebugControllerScreens>();
 
     m_pThread = new QThread;
     m_pThread->setObjectName("Controller");
@@ -377,6 +414,9 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
+
+    pController->setScreenDebugController(m_debugScreen);
+
     int result = pController->open();
     pollIfAnyControllersOpen();
 
@@ -395,6 +435,7 @@ void ControllerManager::closeController(Controller* pController) {
     if (!pController) {
         return;
     }
+
     pController->close();
     pollIfAnyControllersOpen();
     // Update configuration to reflect controller is disabled.

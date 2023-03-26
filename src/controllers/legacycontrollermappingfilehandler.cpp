@@ -28,6 +28,28 @@ QFileInfo findScriptFile(std::shared_ptr<LegacyControllerMapping> mapping,
     return file;
 }
 
+// TOFO: update docstring
+/// Find script file in the mapping or system path.
+///
+/// @param mapping The controller mapping the script belongs to.
+/// @param filename The script filename.
+/// @param systemMappingsPath The system mappings path to use as fallback.
+/// @return Returns a QFileInfo object. If the script was not found in either
+/// of the search directories, the QFileInfo object might point to a
+/// non-existing file.
+QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
+        const QString& dirname,
+        const QDir& systemMappingsPath) {
+    // Always try to load script from the mapping's directory first
+    QFileInfo dir = QFileInfo(mapping->dirPath().absoluteFilePath(dirname));
+
+    // If the script does not exist, try to find it in the fallback dir
+    if (!dir.isDir()) {
+        dir = QFileInfo(systemMappingsPath.absoluteFilePath(dirname));
+    }
+    return dir;
+}
+
 } // namespace
 
 // static
@@ -141,6 +163,68 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
 
         mapping->addScriptFile(filename, functionPrefix, file);
         scriptFile = scriptFile.nextSiblingElement("file");
+    }
+
+    // Build a list of QML files to load
+    QDomElement screenDef = controller.firstChildElement("renderfiles")
+                                    .firstChildElement("screen");
+
+    // Look for additional ones
+    while (!screenDef.isNull()) {
+        QString identifier = screenDef.attribute("filename", "");
+        uint8_t screenCount = screenDef.attribute("screenCount", "1").toUInt();
+        uint8_t targetFps = screenDef.attribute("targetFps", "1").toUInt();
+
+        uint width = screenDef.attribute("width", "0").toUInt();
+        uint height = screenDef.attribute("height", "0").toUInt();
+
+        // TODO: Callback function
+
+        QFileInfo file = findScriptFile(mapping, identifier, systemMappingsPath);
+        identifier = screenDef.attribute("identifier", identifier);
+
+        QList<QFileInfo> libPaths;
+        QDomElement qmlLibrary = screenDef.firstChildElement("library");
+
+        while (!qmlLibrary.isNull()) {
+            QString libFilename = qmlLibrary.attribute("path", "");
+            QFileInfo path = findLibraryPath(mapping, libFilename, systemMappingsPath);
+            if (path.isDir()) {
+                libPaths.append(path);
+            } else {
+                qWarning() << "Unable to add controller QML library path."
+                           << path.absolutePath()
+                           << "is not a directory or is missing";
+            }
+            qmlLibrary = qmlLibrary.nextSiblingElement("library");
+        }
+
+        QDomElement transformElement = screenDef.firstChildElement("transformfunction");
+
+        QString transformPayload;
+        ControllerRenderingTransformFunctionType transformType =
+                ControllerRenderingTransformFunctionType::NONE;
+        if (!transformElement.isNull()) {
+            transformType = transformTypeFromString(transformElement.attribute("type", ""));
+
+            if (transformType == ControllerRenderingTransformFunctionType::UNSUPPORTED) {
+                qWarning() << "The screen transform function is unsupported. Ignoring";
+                transformType = ControllerRenderingTransformFunctionType::NONE;
+            } else {
+                transformPayload = transformElement.text();
+            }
+        }
+
+        qDebug() << "Adding screen render using file" << file << "and libpath" << libPaths;
+        mapping->addQMLFile(identifier,
+                QSize(width, height),
+                file,
+                libPaths,
+                transformPayload,
+                screenCount,
+                targetFps,
+                transformType);
+        screenDef = screenDef.nextSiblingElement("screen");
     }
 }
 

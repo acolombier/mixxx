@@ -15,11 +15,11 @@ struct ProductInfo {
     QString vendor_id;
     QString product_id;
 
-    // HID-specific
+    // Bulk-specific
     QString in_epaddr;
     QString out_epaddr;
 
-    // Bulk-specific
+    // HID-specific
     QString usage_page;
     QString usage;
     QString interface_number;

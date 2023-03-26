@@ -5,6 +5,7 @@
 #include <QRegularExpression>
 #include <algorithm>
 
+#include "controllers/controllermanager.h"
 #include "controllers/defs_controllers.h"
 #include "moc_controller.cpp"
 #include "util/screensaver.h"
@@ -56,6 +57,14 @@ void Controller::stopEngine() {
     }
     delete m_pScriptEngineLegacy;
     m_pScriptEngineLegacy = nullptr;
+
+    for (auto renderer : m_pRenderingEngines) {
+        if (m_screenDebugManager) {
+            m_screenDebugManager->removeRenderer(renderer);
+        }
+        renderer->stop();
+    }
+    m_pRenderingEngines.clear();
 }
 
 bool Controller::applyMapping() {
@@ -78,6 +87,30 @@ bool Controller::applyMapping() {
     }
 
     m_pScriptEngineLegacy->setScriptFiles(scriptFiles);
+
+    // TODO: is this function reentrant? Can there be multiple call once the controller is open?
+
+    QList<LegacyControllerMapping::QMLFileInfo> qmlFiles = pMapping->getQMLFiles();
+
+    for (const LegacyControllerMapping::QMLFileInfo& qml : std::as_const(qmlFiles)) {
+        for (uint8_t screenId = 0; screenId < qml.screen_count; screenId++) {
+            m_pRenderingEngines.append(
+                    std::make_shared<ControllerRenderingEngine>(
+                            this, qml, m_logBase, screenId));
+
+            // FIXME: this must use a direct connection to hold the rendering
+            // loop till the screen data has been sent!
+            if (m_screenDebugManager) {
+                m_screenDebugManager->addRenderer(m_pRenderingEngines.last(), screenId);
+            }
+            connect(m_pRenderingEngines.last().get(),
+                    &ControllerRenderingEngine::frameRendered,
+                    this,
+                    &Controller::sendBytes,
+                    Qt::DirectConnection);
+        }
+    }
+
     return m_pScriptEngineLegacy->initialize();
 }
 

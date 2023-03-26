@@ -67,19 +67,22 @@ QmlPlayerManagerProxy* QmlPlayerManagerProxy::create(QQmlEngine* pQmlEngine, QJS
     // that shows the replacement for `qmlRegisterSingletonInstance()` when
     // using `QML_SINGLETON`.
     // https://doc.qt.io/qt-6/qqmlengine.html#QML_SINGLETON
+    // FIXME: this pattern isn't compatible with multiple engines sparsed in
+    // multiple threads. What should we do?
 
     // The instance has to exist before it is used. We cannot replace it.
     DEBUG_ASSERT(s_pInstance);
 
     // The engine has to have the same thread affinity as the singleton.
-    DEBUG_ASSERT(pJsEngine->thread() == s_pInstance->thread());
 
-    // There can only be one engine accessing the singleton.
-    if (s_pJsEngine) {
-        DEBUG_ASSERT(pJsEngine == s_pJsEngine);
-    } else {
-        s_pJsEngine = pJsEngine;
-    }
+    // DEBUG_ASSERT(pJsEngine->thread() == s_pInstance->thread());
+
+    // // There can only be one engine accessing the singleton.
+    // if (s_pJsEngine) {
+    //     DEBUG_ASSERT(pJsEngine == s_pJsEngine);
+    // } else {
+    //     s_pJsEngine = pJsEngine;
+    // }
 
     // Explicitly specify C++ ownership so that the engine doesn't delete
     // the instance.

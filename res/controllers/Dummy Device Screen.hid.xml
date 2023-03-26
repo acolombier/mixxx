@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<MixxxControllerPreset mixxxVersion="2.4.0" schemaVersion="1">
+     <info>
+        <name>Dummy Device (Screens)</name>
+        <author>A. Colombier</author>
+        <description>Dummy device screens</description>
+        <devices>
+            <product protocol="hid" vendor_id="0xdead" product_id="0xbeaf" />
+        </devices>
+    </info>
+    <controller id="DummyDevice">
+        <renderfiles>
+            <screen filename="Dummy-Device-Default-Screen.qml" identifier="deck" width="320" height="240" screenCount="2" targetFps="50">
+                <library path="Dummy-Device-Default-Screen" />
+                <transformfunction type="javascript">
+                    (function(input, screen_id) {
+                        data = new Array(320*240*2 + 20).fill(0);
+                        input = new Uint8Array(input);
+                        data[0] = 0x84;
+                        data[3] = 0x21;
+                        data[12] = 0x1;
+                        data[13] = 0x40;
+                        data[15] = 0xf0;
+                        data[320*240*2 + 16] = 0x40;
+                        data[2] = screen_id;
+                        for (var i = 0; i &lt; 320 * 240; i ++){
+                            data[16 + 2 * i] = (input[i * 4] &amp; 0xf8) | (input[i * 4 + 1] >> 5);
+                            data[16 + 2 * i + 1] = (input[i * 4 + 1] &lt;&lt; 3) &amp; 0xe0 | (input[i * 4 + 2] >> 3);
+                        }
+                        return data;
+                    })
+                </transformfunction>
+            </screen>
+        </renderfiles>
+    </controller>
+</MixxxControllerPreset>

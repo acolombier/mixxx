@@ -677,6 +677,8 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/controllers/scripting/legacy/controllerscriptinterfacelegacy.cpp
   src/controllers/scripting/legacy/scriptconnection.cpp
   src/controllers/scripting/legacy/scriptconnectionjsproxy.cpp
+  src/controllers/rendering/controllerrenderingtransform.cpp
+  src/controllers/rendering/controllerrenderingengine.cpp
   src/controllers/keyboard/keyboardeventfilter.cpp
   src/controllers/learningutils.cpp
   src/controllers/midi/legacymidicontrollermapping.cpp

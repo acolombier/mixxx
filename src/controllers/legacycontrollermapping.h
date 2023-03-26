@@ -5,9 +5,11 @@
 #include <QHash>
 #include <QList>
 #include <QSharedPointer>
+#include <QSize>
 #include <QString>
 #include <memory>
 
+#include "controllers/rendering/controllerrenderingtransform.h"
 #include "defs_urls.h"
 
 /// This class represents a controller mapping, containing the data elements that
@@ -32,6 +34,36 @@ class LegacyControllerMapping {
         bool builtin;
     };
 
+    struct QMLFileInfo {
+        QMLFileInfo(const QString& aIdentifier,
+                const QSize& aSize,
+                uint8_t aScreen_count,
+                uint8_t aTarget_fps,
+                const QFileInfo& aFile,
+                const QList<QFileInfo>& aLibraryList,
+                const QString& transformPayload,
+                ControllerRenderingTransformFunctionType transformType)
+                : identifier(aIdentifier),
+                  size(aSize),
+                  screen_count(aScreen_count),
+                  target_fps(aTarget_fps),
+                  file(aFile),
+                  libraries(aLibraryList),
+                  transformFunctionPayload(transformPayload),
+                  transformFunctionType(transformType) {
+        }
+
+        QString identifier;
+        QSize size;
+        uint8_t screen_count;
+        uint8_t target_fps;
+        QFileInfo file;
+        QList<QFileInfo> libraries;
+
+        QString transformFunctionPayload;
+        ControllerRenderingTransformFunctionType transformFunctionType;
+    };
+
     /// Adds a script file to the list of controller scripts for this mapping.
     /// @param filename Name of the script file to add
     /// @param functionprefix The script's function prefix (or empty string)
@@ -52,6 +84,41 @@ class LegacyControllerMapping {
 
     const QList<ScriptFileInfo>& getScriptFiles() const {
         return m_scripts;
+    }
+
+    /// Adds a QML file to the list of controller QML for this mapping.
+    /// @param filename Name of the QML file to add
+    // /// @param functionprefix The script's function prefix (or empty string)
+    /// @param file A FileInfo object pointing to the script file
+    /// @param builtin If this is true, the script won't be written to the XML
+    void addQMLFile(const QString& name,
+            const QSize& size,
+            const QFileInfo& file,
+            const QList<QFileInfo>& libraries,
+            const QString& transformPayload,
+            uint8_t screenCount = 1,
+            uint8_t targetFps = 30,
+            ControllerRenderingTransformFunctionType transformType =
+                    ControllerRenderingTransformFunctionType::NONE) {
+        if (!targetFps) {
+            qWarning() << "Error when adding" << name
+                       << "to the list of render file: target FPS must not be "
+                          "zero. Discarding.";
+            return;
+        }
+        m_qmls.append(QMLFileInfo(name,
+                size,
+                screenCount,
+                targetFps,
+                file,
+                libraries,
+                transformPayload,
+                transformType));
+        setDirty(true);
+    }
+
+    const QList<QMLFileInfo>& getQMLFiles() const {
+        return m_qmls;
     }
 
     inline void setDirty(bool bDirty) {
@@ -192,4 +259,5 @@ class LegacyControllerMapping {
     QString m_mixxxVersion;
 
     QList<ScriptFileInfo> m_scripts;
+    QList<QMLFileInfo> m_qmls;
 };
