@@ -21,6 +21,7 @@
 #include "controllers/controller.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "controllers/scripting/legacy/controllerscriptinterfacelegacy.h"
+#include "moc_controllerrenderingengine.cpp"
 #include "qml/qmlwaveformoverview.h"
 
 ControllerRenderingEngine::ControllerRenderingEngine(Controller* controller,

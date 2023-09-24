@@ -128,18 +128,23 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(QT6 "Build with Qt6" ON)
-option(QML "Build with QML" OFF)
+option(QML "Build with QML" ON)
+option(QML_UI "Build with the QML UI" OFF)
 option(QOPENGL "Use QOpenGLWindow based widget instead of QGLWidget" ON)
 
 if(QML AND NOT QT6)
   message(FATAL_ERROR "Building with option QML=ON requires QT6=ON")
 endif()
 
+if(QML_UI AND NOT QML)
+  message(FATAL_ERROR "Building with option QML_UI=ON requires QML=ON")
+endif()
+
 if(QOPENGL)
   add_compile_definitions(MIXXX_USE_QOPENGL)
 endif()
 
-if(QML)
+if(QML_UI)
   add_compile_definitions(MIXXX_USE_QML)
 endif()
 
@@ -1375,7 +1380,8 @@ if(QML)
     src/qml/qmlvisibleeffectsmodel.cpp
     src/qml/qmlwaveformoverview.cpp
   )
-else()
+endif()
+if(NOT QML_UI)
   target_sources(mixxx-lib PRIVATE
     src/mixxxmainwindow.cpp
     src/waveform/guitick.cpp
