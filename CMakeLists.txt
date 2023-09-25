@@ -140,6 +140,16 @@ if(QML_UI AND NOT QML)
   message(FATAL_ERROR "Building with option QML_UI=ON requires QML=ON")
 endif()
 
+# Using a dedicated library for QML library if building with the legacy UI
+# THis allow working around a bug where CMake is expecting each class to generate
+# a JSON QML definition, even for non-QML classes
+if(QML_UI)
+  set(MIXXX_QML_LIB "mixxx-lib")
+else()
+  set(MIXXX_QML_LIB "mixxx-qml-lib")
+endif()
+
+
 if(QOPENGL)
   add_compile_definitions(MIXXX_USE_QOPENGL)
 endif()
@@ -1363,128 +1373,6 @@ target_precompile_headers(mixxx-lib PUBLIC
   src/util/workerthreadscheduler.h
   src/util/xml.h
 )
-if(QML)
-  target_sources(mixxx-lib PRIVATE
-    src/qml/asyncimageprovider.cpp
-    src/qml/qmlapplication.cpp
-    src/qml/qmlcontrolproxy.cpp
-    src/qml/qmlconfigproxy.cpp
-    src/qml/qmldlgpreferencesproxy.cpp
-    src/qml/qmleffectmanifestparametersmodel.cpp
-    src/qml/qmleffectsmanagerproxy.cpp
-    src/qml/qmleffectslotproxy.cpp
-    src/qml/qmllibraryproxy.cpp
-    src/qml/qmllibrarytracklistmodel.cpp
-    src/qml/qmlplayermanagerproxy.cpp
-    src/qml/qmlplayerproxy.cpp
-    src/qml/qmlvisibleeffectsmodel.cpp
-    src/qml/qmlwaveformoverview.cpp
-  )
-endif()
-if(NOT QML_UI)
-  target_sources(mixxx-lib PRIVATE
-    src/mixxxmainwindow.cpp
-    src/waveform/guitick.cpp
-    src/waveform/renderers/glslwaveformrenderersignal.cpp
-    src/waveform/renderers/glvsynctestrenderer.cpp
-    src/waveform/renderers/glwaveformrenderbackground.cpp
-    src/waveform/renderers/glwaveformrendererfilteredsignal.cpp
-    src/waveform/renderers/glwaveformrendererrgb.cpp
-    src/waveform/renderers/glwaveformrenderersimplesignal.cpp
-    src/waveform/renderers/waveformmark.cpp
-    src/waveform/renderers/waveformmarkrange.cpp
-    src/waveform/renderers/waveformmarkset.cpp
-    src/waveform/renderers/waveformrenderbackground.cpp
-    src/waveform/renderers/waveformrenderbeat.cpp
-    src/waveform/renderers/waveformrendererabstract.cpp
-    src/waveform/renderers/waveformrendererendoftrack.cpp
-    src/waveform/renderers/waveformrendererfilteredsignal.cpp
-    src/waveform/renderers/waveformrendererhsv.cpp
-    src/waveform/renderers/waveformrendererpreroll.cpp
-    src/waveform/renderers/waveformrendererrgb.cpp
-    src/waveform/renderers/waveformrenderersignalbase.cpp
-    src/waveform/renderers/waveformrendermark.cpp
-    src/waveform/renderers/waveformrendermarkrange.cpp
-    src/waveform/renderers/waveformsignalcolors.cpp
-    src/waveform/renderers/waveformwidgetrenderer.cpp
-    src/waveform/sharedglcontext.cpp
-    src/waveform/visualsmanager.cpp
-    src/waveform/vsyncthread.cpp
-    src/waveform/waveformmarklabel.cpp
-    src/waveform/waveformwidgetfactory.cpp
-    src/waveform/widgets/emptywaveformwidget.cpp
-    src/waveform/widgets/glrgbwaveformwidget.cpp
-    src/waveform/widgets/glsimplewaveformwidget.cpp
-    src/waveform/widgets/glslwaveformwidget.cpp
-    src/waveform/widgets/glvsynctestwidget.cpp
-    src/waveform/widgets/glwaveformwidget.cpp
-    src/waveform/widgets/glwaveformwidgetabstract.cpp
-    src/waveform/widgets/hsvwaveformwidget.cpp
-    src/waveform/widgets/rgbwaveformwidget.cpp
-    src/waveform/widgets/softwarewaveformwidget.cpp
-    src/waveform/widgets/waveformwidgetabstract.cpp
-    src/widget/woverview.cpp
-    src/widget/woverviewhsv.cpp
-    src/widget/woverviewlmh.cpp
-    src/widget/woverviewrgb.cpp
-    src/widget/wspinny.cpp
-    src/widget/wspinnybase.cpp
-    src/widget/wvumeter.cpp
-    src/widget/wvumeterbase.cpp
-    src/widget/wvumeterlegacy.cpp
-    src/widget/wwaveformviewer.cpp
-  )
-  if(QOPENGL)
-    target_sources(mixxx-lib PRIVATE
-      src/shaders/endoftrackshader.cpp
-      src/shaders/rgbashader.cpp
-      src/shaders/rgbshader.cpp
-      src/shaders/shader.cpp
-      src/shaders/textureshader.cpp
-      src/shaders/unicolorshader.cpp
-      src/shaders/vinylqualityshader.cpp
-      src/util/texture.cpp
-      src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
-      src/waveform/renderers/allshader/waveformrenderbackground.cpp
-      src/waveform/renderers/allshader/waveformrenderbeat.cpp
-      src/waveform/renderers/allshader/waveformrenderer.cpp
-      src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
-      src/waveform/renderers/allshader/waveformrendererfiltered.cpp
-      src/waveform/renderers/allshader/waveformrendererhsv.cpp
-      src/waveform/renderers/allshader/waveformrendererlrrgb.cpp
-      src/waveform/renderers/allshader/waveformrendererpreroll.cpp
-      src/waveform/renderers/allshader/waveformrendererrgb.cpp
-      src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
-      src/waveform/renderers/allshader/waveformrenderersimple.cpp
-      src/waveform/renderers/allshader/waveformrendermark.cpp
-      src/waveform/renderers/allshader/waveformrendermarkrange.cpp
-      src/waveform/widgets/allshader/filteredwaveformwidget.cpp
-      src/waveform/widgets/allshader/hsvwaveformwidget.cpp
-      src/waveform/widgets/allshader/lrrgbwaveformwidget.cpp
-      src/waveform/widgets/allshader/rgbwaveformwidget.cpp
-      src/waveform/widgets/allshader/simplewaveformwidget.cpp
-      src/waveform/widgets/allshader/waveformwidget.cpp
-      src/widget/openglwindow.cpp
-      src/widget/tooltipqopengl.cpp
-      src/widget/wglwidgetqopengl.cpp
-      src/widget/winitialglwidget.cpp
-      src/widget/wspinnyglsl.cpp
-      src/widget/wvumeterglsl.cpp
-    )
-  else()
-    target_sources(mixxx-lib PRIVATE
-      src/waveform/renderers/qtvsynctestrenderer.cpp
-      src/waveform/renderers/qtwaveformrendererfilteredsignal.cpp
-      src/waveform/renderers/qtwaveformrenderersimplesignal.cpp
-      src/waveform/widgets/qthsvwaveformwidget.cpp
-      src/waveform/widgets/qtrgbwaveformwidget.cpp
-      src/waveform/widgets/qtsimplewaveformwidget.cpp
-      src/waveform/widgets/qtvsynctestwidget.cpp
-      src/waveform/widgets/qtwaveformwidget.cpp
-      src/widget/wglwidgetqglwidget.cpp
-    )
-  endif()
-endif()
 
 set_source_files_properties(src/util/moc_included_test.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
@@ -2596,8 +2484,28 @@ endif()
 
 if(QML)
   set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
-  set_target_properties(mixxx-lib PROPERTIES AUTOMOC ON)
-  qt_add_qml_module(mixxx-lib
+  if (NOT QML_UI)
+    qt_add_library(mixxx-qml-lib STATIC)
+    target_link_libraries(mixxx-qml-lib PUBLIC
+      Qt${QT_VERSION_MAJOR}::Concurrent
+      Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Gui
+      Qt${QT_VERSION_MAJOR}::Network
+      Qt${QT_VERSION_MAJOR}::OpenGL
+      Qt${QT_VERSION_MAJOR}::PrintSupport
+      Qt${QT_VERSION_MAJOR}::Qml
+      Qt${QT_VERSION_MAJOR}::QuickWidgets
+      Qt${QT_VERSION_MAJOR}::Sql
+      Qt${QT_VERSION_MAJOR}::Svg
+      Qt${QT_VERSION_MAJOR}::Test
+      Qt${QT_VERSION_MAJOR}::Widgets
+      Qt${QT_VERSION_MAJOR}::Xml)
+    foreach(COMPONENT ${QT6_NEW_COMPONENTS})
+      target_link_libraries(mixxx-qml-lib PUBLIC Qt6::${COMPONENT})
+    endforeach()
+  endif()
+  set_target_properties(${MIXXX_QML_LIB} PROPERTIES AUTOMOC ON)
+  qt_add_qml_module(${MIXXX_QML_LIB}
     URI Mixxx
     VERSION 1.0
     RESOURCE_PREFIX /mixxx.org/imports
@@ -2607,6 +2515,9 @@ if(QML)
       res/qml/Mixxx/PlayerDropArea.qml
     NO_GENERATE_QMLDIR
   )
+  if (NOT QML_UI)
+    target_link_libraries(mixxx-lib PRIVATE mixxx-qml-lib)
+  endif()
 
   # Generation of the `qmldir` file has been disabled (via `NO_GENERATE_QMLDIR`
   # above) due to QTBUG-100326, which breaks JavaScript module imports:
@@ -2614,7 +2525,7 @@ if(QML)
   # Instead, a handwritten `qmldir` file that works around the issue needs to
   # be added to the resources here.
   set_source_files_properties("res/qml/Mixxx/qmldir" PROPERTIES QT_RESOURCE_ALIAS "qmldir")
-  qt_add_resources(mixxx-libplugin qmldir
+  qt_add_resources(${MIXXX_QML_LIB}plugin qmldir
     FILES "res/qml/Mixxx/qmldir"
     PREFIX "/mixxx.org/imports/Mixxx"
   )
@@ -2624,8 +2535,12 @@ if(QML)
   # FIXME: Currently we need to add these include directories due to
   # QTBUG-87221. We should figure out a better way to fix this.
   # See: https://bugreports.qt.io/browse/QTBUG-87221
-  target_include_directories(mixxx-lib PRIVATE src/control src/qml)
-  target_link_libraries(mixxx-lib PRIVATE mixxx-libplugin)
+  target_include_directories(${MIXXX_QML_LIB} PRIVATE src/control src/qml)
+  if (NOT QML_UI)
+    target_include_directories(${MIXXX_QML_LIB} PRIVATE src/ "${CMAKE_CURRENT_BINARY_DIR}/mixxx-lib_autogen/include" ${CMAKE_BINARY_DIR}/src)
+    target_include_directories(${MIXXX_QML_LIB} SYSTEM PUBLIC lib/rigtorp/SPSCQueue/include lib/portaudio)
+  endif()
+  target_link_libraries(${MIXXX_QML_LIB} PRIVATE ${MIXXX_QML_LIB}plugin)
 
   qt_add_library(mixxx-qml-mixxxcontrols STATIC)
   set_target_properties(mixxx-qml-mixxxcontrols PROPERTIES AUTOMOC ON)
@@ -2642,11 +2557,131 @@ if(QML)
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
       res/qml/Mixxx/Controls/WaveformOverview.qml
   )
-  target_link_libraries(mixxx-lib PRIVATE mixxx-qml-mixxxcontrolsplugin)
+  target_link_libraries(${MIXXX_QML_LIB} PRIVATE mixxx-qml-mixxxcontrolsplugin)
 
   # qt_finalize_target takes care that the resources :/mixxx.org/imports/Mixxx/
   # and :/mixxx.org/imports/Mixxx/Controls are placed into beginning of the binary
   qt_finalize_target(mixxx)
+  target_sources(${MIXXX_QML_LIB} PRIVATE
+    src/qml/asyncimageprovider.cpp
+    src/qml/qmlapplication.cpp
+    src/qml/qmlcontrolproxy.cpp
+    src/qml/qmlconfigproxy.cpp
+    src/qml/qmldlgpreferencesproxy.cpp
+    src/qml/qmleffectmanifestparametersmodel.cpp
+    src/qml/qmleffectsmanagerproxy.cpp
+    src/qml/qmleffectslotproxy.cpp
+    src/qml/qmllibraryproxy.cpp
+    src/qml/qmllibrarytracklistmodel.cpp
+    src/qml/qmlplayermanagerproxy.cpp
+    src/qml/qmlplayerproxy.cpp
+    src/qml/qmlvisibleeffectsmodel.cpp
+    src/qml/qmlwaveformoverview.cpp
+  )
+endif()
+if(NOT QML_UI)
+  target_sources(mixxx-lib PRIVATE
+    src/mixxxmainwindow.cpp
+    src/waveform/guitick.cpp
+    src/waveform/renderers/glslwaveformrenderersignal.cpp
+    src/waveform/renderers/glvsynctestrenderer.cpp
+    src/waveform/renderers/glwaveformrenderbackground.cpp
+    src/waveform/renderers/glwaveformrendererfilteredsignal.cpp
+    src/waveform/renderers/glwaveformrendererrgb.cpp
+    src/waveform/renderers/glwaveformrenderersimplesignal.cpp
+    src/waveform/renderers/waveformmark.cpp
+    src/waveform/renderers/waveformmarkrange.cpp
+    src/waveform/renderers/waveformmarkset.cpp
+    src/waveform/renderers/waveformrenderbackground.cpp
+    src/waveform/renderers/waveformrenderbeat.cpp
+    src/waveform/renderers/waveformrendererabstract.cpp
+    src/waveform/renderers/waveformrendererendoftrack.cpp
+    src/waveform/renderers/waveformrendererfilteredsignal.cpp
+    src/waveform/renderers/waveformrendererhsv.cpp
+    src/waveform/renderers/waveformrendererpreroll.cpp
+    src/waveform/renderers/waveformrendererrgb.cpp
+    src/waveform/renderers/waveformrenderersignalbase.cpp
+    src/waveform/renderers/waveformrendermark.cpp
+    src/waveform/renderers/waveformrendermarkrange.cpp
+    src/waveform/renderers/waveformsignalcolors.cpp
+    src/waveform/renderers/waveformwidgetrenderer.cpp
+    src/waveform/sharedglcontext.cpp
+    src/waveform/visualsmanager.cpp
+    src/waveform/vsyncthread.cpp
+    src/waveform/waveformmarklabel.cpp
+    src/waveform/waveformwidgetfactory.cpp
+    src/waveform/widgets/emptywaveformwidget.cpp
+    src/waveform/widgets/glrgbwaveformwidget.cpp
+    src/waveform/widgets/glsimplewaveformwidget.cpp
+    src/waveform/widgets/glslwaveformwidget.cpp
+    src/waveform/widgets/glvsynctestwidget.cpp
+    src/waveform/widgets/glwaveformwidget.cpp
+    src/waveform/widgets/glwaveformwidgetabstract.cpp
+    src/waveform/widgets/hsvwaveformwidget.cpp
+    src/waveform/widgets/rgbwaveformwidget.cpp
+    src/waveform/widgets/softwarewaveformwidget.cpp
+    src/waveform/widgets/waveformwidgetabstract.cpp
+    src/widget/woverview.cpp
+    src/widget/woverviewhsv.cpp
+    src/widget/woverviewlmh.cpp
+    src/widget/woverviewrgb.cpp
+    src/widget/wspinny.cpp
+    src/widget/wspinnybase.cpp
+    src/widget/wvumeter.cpp
+    src/widget/wvumeterbase.cpp
+    src/widget/wvumeterlegacy.cpp
+    src/widget/wwaveformviewer.cpp
+  )
+  if(QOPENGL)
+    target_sources(mixxx-lib PRIVATE
+      src/shaders/endoftrackshader.cpp
+      src/shaders/rgbashader.cpp
+      src/shaders/rgbshader.cpp
+      src/shaders/shader.cpp
+      src/shaders/textureshader.cpp
+      src/shaders/unicolorshader.cpp
+      src/shaders/vinylqualityshader.cpp
+      src/util/texture.cpp
+      src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
+      src/waveform/renderers/allshader/waveformrenderbackground.cpp
+      src/waveform/renderers/allshader/waveformrenderbeat.cpp
+      src/waveform/renderers/allshader/waveformrenderer.cpp
+      src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
+      src/waveform/renderers/allshader/waveformrendererfiltered.cpp
+      src/waveform/renderers/allshader/waveformrendererhsv.cpp
+      src/waveform/renderers/allshader/waveformrendererlrrgb.cpp
+      src/waveform/renderers/allshader/waveformrendererpreroll.cpp
+      src/waveform/renderers/allshader/waveformrendererrgb.cpp
+      src/waveform/renderers/allshader/waveformrenderersignalbase.cpp
+      src/waveform/renderers/allshader/waveformrenderersimple.cpp
+      src/waveform/renderers/allshader/waveformrendermark.cpp
+      src/waveform/renderers/allshader/waveformrendermarkrange.cpp
+      src/waveform/widgets/allshader/filteredwaveformwidget.cpp
+      src/waveform/widgets/allshader/hsvwaveformwidget.cpp
+      src/waveform/widgets/allshader/lrrgbwaveformwidget.cpp
+      src/waveform/widgets/allshader/rgbwaveformwidget.cpp
+      src/waveform/widgets/allshader/simplewaveformwidget.cpp
+      src/waveform/widgets/allshader/waveformwidget.cpp
+      src/widget/openglwindow.cpp
+      src/widget/tooltipqopengl.cpp
+      src/widget/wglwidgetqopengl.cpp
+      src/widget/winitialglwidget.cpp
+      src/widget/wspinnyglsl.cpp
+      src/widget/wvumeterglsl.cpp
+    )
+  else()
+    target_sources(${MIXXX_QML_LIB} PRIVATE
+      src/waveform/renderers/qtvsynctestrenderer.cpp
+      src/waveform/renderers/qtwaveformrendererfilteredsignal.cpp
+      src/waveform/renderers/qtwaveformrenderersimplesignal.cpp
+      src/waveform/widgets/qthsvwaveformwidget.cpp
+      src/waveform/widgets/qtrgbwaveformwidget.cpp
+      src/waveform/widgets/qtsimplewaveformwidget.cpp
+      src/waveform/widgets/qtvsynctestwidget.cpp
+      src/waveform/widgets/qtwaveformwidget.cpp
+      src/widget/wglwidgetqglwidget.cpp
+    )
+  endif()
 endif()
 
 target_compile_definitions(mixxx-lib PUBLIC QT_TABLET_SUPPORT QT_USE_QSTRINGBUILDER)
