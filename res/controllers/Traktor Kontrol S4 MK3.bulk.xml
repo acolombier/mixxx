@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <MixxxControllerPreset mixxxVersion="2.4.0" schemaVersion="1">
      <info>
-        <name>Dummy Device (Screens)</name>
+        <name>S4 Mk3 screens</name>
         <author>A. Colombier</author>
         <description>Dummy device screens</description>
         <devices>
-            <product protocol="hid" vendor_id="0xdead" product_id="0xbeaf" />
+            <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" />
         </devices>
     </info>
     <controller id="DummyDevice">

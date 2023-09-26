@@ -51,12 +51,6 @@ void Controller::startEngine()
 
 void Controller::stopEngine() {
     qCInfo(m_logBase) << "  Shutting down engine";
-    if (!m_pScriptEngineLegacy) {
-        qCWarning(m_logBase) << "Controller::stopEngine(): No engine exists!";
-        return;
-    }
-    delete m_pScriptEngineLegacy;
-    m_pScriptEngineLegacy = nullptr;
 
     for (auto renderer : m_pRenderingEngines) {
         if (m_screenDebugManager) {
@@ -65,6 +59,13 @@ void Controller::stopEngine() {
         renderer->stop();
     }
     m_pRenderingEngines.clear();
+
+    if (!m_pScriptEngineLegacy) {
+        qCWarning(m_logBase) << "Controller::stopEngine(): No engine exists!";
+        return;
+    }
+    delete m_pScriptEngineLegacy;
+    m_pScriptEngineLegacy = nullptr;
 }
 
 bool Controller::applyMapping() {

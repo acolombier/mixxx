@@ -15,6 +15,14 @@ Item {
 
     Mixxx.ControlProxy {
         group: root.group
+        key: "track_loaded"
+        onValueChanged: (value) => {
+            root.visible = value
+        }
+    }
+
+    Mixxx.ControlProxy {
+        group: root.group
         key: "playposition"
         onValueChanged: (value) => {
             root.width = value * (320 - 12);

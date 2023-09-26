@@ -22,6 +22,7 @@ class ControllerRenderingTransformFunctionBase {
     virtual bool prepare(const ControllerRenderingEngine* parent) = 0;
 
     virtual bool transform(const ControllerRenderingEngine* parent,
+            const QImage& frame,
             QByteArray& output,
             uint8_t screenId) = 0;
 };
@@ -35,6 +36,7 @@ class ControllerRenderingJSTransformFunction : public ControllerRenderingTransfo
     bool prepare(const ControllerRenderingEngine* parent) override;
 
     bool transform(const ControllerRenderingEngine* parent,
+            const QImage& frame,
             QByteArray& output,
             uint8_t screenId) override;
 

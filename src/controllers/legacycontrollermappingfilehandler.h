@@ -2,6 +2,8 @@
 
 #include "controllers/legacycontrollermapping.h"
 #include "util/xml.h"
+#include <QOpenGLContext>
+#include <QMap>
 
 /// The LegacyControllerMappingFileHandler is used for serializing/deserializing the
 /// LegacyControllerMapping objects to/from XML files and is also responsible
@@ -60,4 +62,7 @@ class LegacyControllerMappingFileHandler {
     virtual std::shared_ptr<LegacyControllerMapping> load(const QDomElement& root,
             const QString& filePath,
             const QDir& systemMappingPath) = 0;
+
+        static QMap<QString,GLenum> kSupportedPixelFormat;
+
 };

@@ -97,9 +97,10 @@ bool HidIoOutputReport::sendCachedData(QMutex* pHidDeviceAndPollMutex,
 
         cacheLock.unlock();
 
-        qCDebug(logOutput) << "t:" << startOfHidWrite.formatMillisWithUnit()
-                           << "Skipped sending identical OutputReport data from cache for ReportID"
-                           << m_reportId;
+        // qCDebug(logOutput) << "t:" << startOfHidWrite.formatMillisWithUnit()
+        //                    << "Skipped sending identical OutputReport data
+        //                    from cache for ReportID"
+        //                    << m_reportId;
 
         // Return with false, to signal the caller, that no time consuming IO operation was necessary
         return false;
@@ -122,12 +123,12 @@ bool HidIoOutputReport::sendCachedData(QMutex* pHidDeviceAndPollMutex,
     int result = hid_write(pHidDevice,
             reinterpret_cast<const unsigned char*>(m_lastSentData.constData()),
             m_lastSentData.size());
-    if (result == -1) {
-        qCWarning(logOutput) << "Unable to send data to device :"
-                             << mixxx::convertWCStringToQString(
-                                        hid_error(pHidDevice),
-                                        kMaxHidErrorMessageSize);
-    }
+    // if (result == -1) {
+    //     qCWarning(logOutput) << "Unable to send data to device :"
+    //                          << mixxx::convertWCStringToQString(
+    //                                     hid_error(pHidDevice),
+    //                                     kMaxHidErrorMessageSize);
+    // }
 
     hidDeviceLock.unlock();
 

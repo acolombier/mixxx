@@ -88,4 +88,7 @@ class ControllerRenderingEngine : public QObject {
     QFileSystemWatcher m_fileWatcher;
 
     std::unique_ptr<QQuickItem> m_rootItem;
+
+    QImage::Format mImageFormat;
+    GLenum mGLDataType;
 };

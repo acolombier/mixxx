@@ -100,9 +100,13 @@ void DebugControllerScreens::addRenderer(
         // TODO assert
         auto screen = m_debugsScreens.value(renderer.get());
         if (screen) {
-            screen->setText(mixxx::Time::elapsed().formatMillisWithUnit());
+            // screen->setText(mixxx::Time::elapsed().formatMillisWithUnit());
             screen->setPixmap(QPixmap::fromImage(frame));
-        }
+        } 
+        // TODO disconnect?
+        // else {
+
+        // }
     });
 }
 
@@ -110,7 +114,9 @@ void DebugControllerScreens::removeRenderer(std::shared_ptr<ControllerRenderingE
     VERIFY_OR_DEBUG_ASSERT(renderer.get()) {
         return;
     }
-    m_debugsScreens.take(renderer.get()).reset();
+    auto screen = m_debugsScreens.take(renderer.get());
+    screen->hide();
+    screen.reset();
 }
 
 ControllerManager::ControllerManager(UserSettingsPointer pConfig)
@@ -295,6 +301,8 @@ void ControllerManager::slotSetUpDevices() {
         if (mappingFilePath.isEmpty()) {
             continue;
         }
+
+        pController->setScreenDebugController(m_debugScreen);
 
         qDebug() << "Searching for controller mapping" << mappingFilePath
                  << "in paths:" << mappingPaths.join(",");

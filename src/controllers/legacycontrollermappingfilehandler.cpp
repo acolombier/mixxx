@@ -52,6 +52,11 @@ QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
 
 } // namespace
 
+QMap<QString,GLenum> LegacyControllerMappingFileHandler::kSupportedPixelFormat = {
+    {"RBGA8888", GL_UNSIGNED_INT},
+    {"RBG565", GL_UNSIGNED_SHORT_5_6_5_REV}, 
+};
+
 // static
 std::shared_ptr<LegacyControllerMapping> LegacyControllerMappingFileHandler::loadMapping(
         const QFileInfo& mappingFile, const QDir& systemMappingsPath) {
@@ -174,6 +179,14 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
         QString identifier = screenDef.attribute("filename", "");
         uint8_t screenCount = screenDef.attribute("screenCount", "1").toUInt();
         uint8_t targetFps = screenDef.attribute("targetFps", "1").toUInt();
+        QString pixelFormatName = screenDef.attribute("pixelType", "RBG888");
+
+        if (!kSupportedPixelFormat.contains(pixelFormatName)){
+            qWarning() << "Unsupported pixel format" << pixelFormatName;
+            continue;
+        }
+
+        GLenum pixelFormat = kSupportedPixelFormat.value(pixelFormatName);
 
         uint width = screenDef.attribute("width", "0").toUInt();
         uint height = screenDef.attribute("height", "0").toUInt();
@@ -223,6 +236,7 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
                 transformPayload,
                 screenCount,
                 targetFps,
+                pixelFormat,
                 transformType);
         screenDef = screenDef.nextSiblingElement("screen");
     }

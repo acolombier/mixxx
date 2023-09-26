@@ -8,6 +8,7 @@
 #include <QSize>
 #include <QString>
 #include <memory>
+#include <QOpenGLContext>
 
 #include "controllers/rendering/controllerrenderingtransform.h"
 #include "defs_urls.h"
@@ -39,6 +40,7 @@ class LegacyControllerMapping {
                 const QSize& aSize,
                 uint8_t aScreen_count,
                 uint8_t aTarget_fps,
+                GLenum aPixelFormat,
                 const QFileInfo& aFile,
                 const QList<QFileInfo>& aLibraryList,
                 const QString& transformPayload,
@@ -47,6 +49,7 @@ class LegacyControllerMapping {
                   size(aSize),
                   screen_count(aScreen_count),
                   target_fps(aTarget_fps),
+                  pixelFormat(aPixelFormat),
                   file(aFile),
                   libraries(aLibraryList),
                   transformFunctionPayload(transformPayload),
@@ -57,6 +60,7 @@ class LegacyControllerMapping {
         QSize size;
         uint8_t screen_count;
         uint8_t target_fps;
+        GLenum pixelFormat;
         QFileInfo file;
         QList<QFileInfo> libraries;
 
@@ -98,6 +102,7 @@ class LegacyControllerMapping {
             const QString& transformPayload,
             uint8_t screenCount = 1,
             uint8_t targetFps = 30,
+            GLenum pixelFormat =  GL_UNSIGNED_BYTE,
             ControllerRenderingTransformFunctionType transformType =
                     ControllerRenderingTransformFunctionType::NONE) {
         if (!targetFps) {
@@ -110,6 +115,7 @@ class LegacyControllerMapping {
                 size,
                 screenCount,
                 targetFps,
+                pixelFormat,
                 file,
                 libraries,
                 transformPayload,

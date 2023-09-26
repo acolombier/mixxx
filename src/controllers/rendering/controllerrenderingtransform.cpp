@@ -39,14 +39,9 @@ bool ControllerRenderingJSTransformFunction::prepare(const ControllerRenderingEn
 
 bool ControllerRenderingJSTransformFunction::transform(
         const ControllerRenderingEngine* parent,
+        const QImage& frame,
         QByteArray& output,
         uint8_t screenId) {
-    const QImage frame = parent->fbo()->toImage();
-    VERIFY_OR_DEBUG_ASSERT(!frame.isNull()) {
-        qWarning() << "Unable to extract image while rendering controller screen" << screenId;
-        return false;
-    }
-
     QByteArray input((const char*)frame.constBits(), frame.sizeInBytes());
     QJSValue dataToSend = m_function.call(
             QJSValueList{parent->jsEngine()->toScriptValue(input), screenId});
@@ -56,19 +51,16 @@ bool ControllerRenderingJSTransformFunction::transform(
         return false;
     }
 
-    // FIXME: we shouldn't have to transform every single case of the JS array
-    // to a byte manually. Sure there is a way to transform it implicitly
-    if (dataToSend.isArray()) {
-        int length = dataToSend.property("length").toInt();
-        if (length != output.size()) {
-            output.resize(length);
-            output.squeeze();
-        }
+    QVariant returnValue(dataToSend.toVariant(QJSValue::ConvertJSObjects));
 
-        for (int i = 0; i < length; i++) {
-            int value = dataToSend.property(i).toInt();
-            output[i] = static_cast<char>(value);
-        }
+    if (returnValue.canView<QByteArray>()) {
+        output = returnValue.view<QByteArray>();
+    }
+    else if (returnValue.canConvert<QByteArray>()) {
+        output = returnValue.toByteArray();
+    }
+    else {
+        qWarning() << "Unable to interpret the return data " << returnValue;
     }
     return true;
 }

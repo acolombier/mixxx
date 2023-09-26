@@ -63,6 +63,7 @@ ControllerRenderingEngine::ControllerRenderingEngine(Controller* controller,
             &ControllerRenderingEngine::reload);
 
     connect(m_pThread.get(), &QThread::started, this, &ControllerRenderingEngine::start);
+    connect(m_pThread.get(), &QThread::finished, this, &ControllerRenderingEngine::cleanup);
 
     m_pThread->start(QThread::NormalPriority);
 }
@@ -110,7 +111,7 @@ void ControllerRenderingEngine::start() {
     // No memory leak here, the QQmlEngine takes ownership of the provider
     // QQuickAsyncImageProvider* pImageProvider = std::make_unique<AsyncImageProvider>(
     //         m_pCoreServices->getTrackCollectionManager());
-    // m_pAppEngine->addImageProvider(AsyncImageProvider::kProviderName, pImageProvider);
+    // m_qmlEngine->addImageProvider(AsyncImageProvider::kProviderName, pImageProvider);
 
     m_qmlEngine->addImportPath(QStringLiteral(":/mixxx.org/imports"));
 
@@ -132,12 +133,6 @@ void ControllerRenderingEngine::start() {
         return;
     }
 
-    if (!load(m_renderingInfo.file.absoluteFilePath())) {
-        qWarning() << "Unable to load the QML file";
-        cleanup();
-        return;
-    }
-
     if (!m_context->makeCurrent(m_offscreenSurface.get())) {
         qWarning() << "Unable to start the GL context";
         cleanup();
@@ -149,16 +144,64 @@ void ControllerRenderingEngine::start() {
 
     m_quickWindow->setGraphicsDevice(QQuickGraphicsDevice::fromOpenGLContext(m_context.get()));
 
-    if (!m_renderControl->initialize())
-        qWarning("Failed to initialize redirected Qt Quick rendering");
+    VERIFY_OR_DEBUG_ASSERT(m_renderControl->initialize()){
+        qWarning() << "Failed to initialize redirected Qt Quick rendering";
+    };
 
     m_quickWindow->setRenderTarget(QQuickRenderTarget::fromOpenGLTexture(m_fbo->texture(),
             m_renderingInfo.size));
 
-    renderNext();
+    if (!load(m_renderingInfo.file.absoluteFilePath())) {
+        qWarning() << "Unable to load the QML file";
+        // cleanup();
+        return;
+    }
+
+    mGLDataType = GL_RGB;
+    switch (m_renderingInfo.pixelFormat){
+    // GL_UNSIGNED_BYTE_3_3_2:
+    // GL_UNSIGNED_BYTE_2_3_3_REV:
+    // GL_UNSIGNED_INT_10F_11F_11F_REV:
+    case GL_UNSIGNED_SHORT_5_6_5:
+    case GL_UNSIGNED_SHORT_5_6_5_REV:
+        mImageFormat = QImage::Format_RGB16;
+        mGLDataType = GL_RGB;
+        break;
+    // GL_UNSIGNED_SHORT_4_4_4_4:
+    // GL_UNSIGNED_SHORT_4_4_4_4_REV:        
+    // GL_UNSIGNED_SHORT_5_5_5_1:
+    // GL_UNSIGNED_SHORT_1_5_5_5_REV:
+    // GL_UNSIGNED_INT_8_8_8_8:
+    // GL_UNSIGNED_INT_8_8_8_8_REV:
+    // GL_UNSIGNED_INT_10_10_10_2:
+    // GL_UNSIGNED_INT_2_10_10_10_REV:
+    // GL_UNSIGNED_INT_5_9_9_9_REV:
+    case GL_UNSIGNED_BYTE:
+        mImageFormat = QImage::Format_ARGB32;
+        mGLDataType = GL_RGBA;
+        break;
+    default:
+        qWarning() << "Unsupported format";
+        cleanup();
+        return;
+    }
+
+    connect(m_context.get(), &QOpenGLContext::aboutToBeDestroyed, [=](){
+        qWarning() << "GLCTX LOST!!!!!!!!";
+        // m_pThread->quit();
+    });
+
+    connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, [=](){
+        qWarning() << "QT CLOSING!!!!!!!!";
+        // cleanup();
+        // m_pThread->quit();
+    });
+
+    QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
 }
 
 void ControllerRenderingEngine::cleanup() {
+    disconnect(this);
     m_fbo.reset();
 
     m_renderControl.reset();
@@ -216,34 +259,69 @@ bool ControllerRenderingEngine::load(const QString& qmlFile) {
 }
 
 void ControllerRenderingEngine::renderNext() {
-    auto durationToWaitBeforeFrame = (m_nextFrameStart - mixxx::Time::elapsed());
-    auto usecToWaitBeforeFrame = durationToWaitBeforeFrame.toIntegerMicros();
-
-    if (usecToWaitBeforeFrame > 0) {
-        qDebug() << "Waiting for "
-                 << durationToWaitBeforeFrame.formatMillisWithUnit()
-                 << " before render";
-        QThread::usleep(usecToWaitBeforeFrame);
+    if (m_pThread->isInterruptionRequested()) {
+        qDebug() << "Interruption is requested.";
+        m_pThread->quit();
+        return;
     }
-
-    DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get()));
-    DEBUG_ASSERT(m_context->isValid());
+    VERIFY_OR_DEBUG_ASSERT(m_offscreenSurface->isValid()){
+        qDebug() << "OffscrenSurface isn't valid anymore.";
+        cleanup();
+        return;
+    };
+    VERIFY_OR_DEBUG_ASSERT(m_context->isValid()){
+        qDebug() << "GLContext isn't valid anymore.";
+        cleanup();
+        return;
+    };
+    VERIFY_OR_DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get())){
+        qDebug() << "Couldn't set the OffscrenSurface has GLContext.";
+        cleanup();
+        return;
+    };
 
     m_nextFrameStart = mixxx::Time::elapsed();
     m_renderControl->polishItems();
 
     m_renderControl->beginFrame();
     DEBUG_ASSERT(m_renderControl->sync());
+    QImage fboImage(m_renderingInfo.size, mImageFormat);
+
+    VERIFY_OR_DEBUG_ASSERT(m_fbo->bind()){
+        qDebug() << "Couldn't bind the FBO.";
+    }
+    GLenum glError;
+    m_context->functions()->glFlush();
+    // TODO Endianness - configurable
+    m_context->functions()->glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
+    glError = m_context->functions()->glGetError();
+    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
+        qDebug() << "GLError: " << glError;
+    }
+
     m_renderControl->render();
     m_renderControl->endFrame();
 
+    while (m_context->functions()->glGetError());
+    m_context->functions()->glReadPixels(0, 0, m_renderingInfo.size.width(), m_renderingInfo.size.height(), mGLDataType, m_renderingInfo.pixelFormat, fboImage.bits());
+    glError = m_context->functions()->glGetError();
+    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
+        qDebug() << "GLError: " << glError;
+    }
     m_context->functions()->glFlush();
+    VERIFY_OR_DEBUG_ASSERT(m_fbo->release()){
+        qDebug() << "Couldn't release the FBO.";
+    }
 
-    // TODO if debug
-    emit debugScreenRendered(m_fbo->toImage());
+    fboImage.mirror(false, true);
+    QImage debugFboImage(fboImage.convertToFormat(QImage::Format_RGB32));
+    // TODO Reverse - configurable
+    // debugFboImage.rgbSwap();
+    
+    emit debugScreenRendered(debugFboImage);
 
     VERIFY_OR_DEBUG_ASSERT(!m_pTransformFunction ||
-            m_pTransformFunction->transform(this, m_screenBuffer, m_screenId)) {
+            m_pTransformFunction->transform(this, fboImage, m_screenBuffer, m_screenId)) {
         qWarning() << "Unable to transform the screen rendering";
         cleanup();
         return;
@@ -255,17 +333,22 @@ void ControllerRenderingEngine::renderNext() {
 
     qDebug() << "Fame took "
              << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
-             << " and buffer has" << m_screenBuffer.size() << "bytes.";
+             << " and buffer has" << m_screenBuffer.size() << "bytes";
 
     m_nextFrameStart += mixxx::Duration::fromMillis(1000 / m_renderingInfo.target_fps);
 
     m_context->doneCurrent();
 
-    if (!m_pThread->isInterruptionRequested()) {
-        QEvent* updateRequest = new QEvent(QEvent::UpdateRequest);
-        QCoreApplication::postEvent(this, updateRequest);
+    auto durationToWaitBeforeFrame = (m_nextFrameStart - mixxx::Time::elapsed());
+    auto msecToWaitBeforeFrame = durationToWaitBeforeFrame.toIntegerMillis();
+
+    if (msecToWaitBeforeFrame > 0) {
+        qDebug() << "Waiting for "
+                << durationToWaitBeforeFrame.formatMillisWithUnit()
+                << " before render";
+        QTimer::singleShot(msecToWaitBeforeFrame, this, &ControllerRenderingEngine::renderNext);
     } else {
-        cleanup();
+        QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
     }
 }
 

@@ -67,8 +67,8 @@ Rectangle {
             group: root.group
             key: "end_of_track"
             onValueChanged: (value) => {
-                root.border.color = 'red'
-                root.color = 'red'
+                root.border.color = value ? 'red' : timeColor
+                root.color = value ? 'red' : timeColor
             }
         }
     }
