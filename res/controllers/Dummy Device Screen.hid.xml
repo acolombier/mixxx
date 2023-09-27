@@ -10,13 +10,13 @@
     </info>
     <controller id="DummyDevice">
         <renderfiles>
-            <screen filename="Dummy-Device-Default-Screen.qml" identifier="deck" width="320" height="240" screenCount="1" targetFps="40" pixelType="RBG565">
-                <library path="Dummy-Device-Default-Screen" />
+            <screen filename="Traktor-Kontrol-S4-MK3-Screens.qml" identifier="deck" width="320" height="240" screenCount="1" targetFps="30" pixelType="RBG565">
+                <library path="Traktor-Kontrol-S4-MK3-Screens" />
                 <transformfunction type="javascript">
                     (function(input, screen_id) {
-                        data = new ArrayBuffer(320*240*2 + 20);                        
-                        header = new Uint8Array(data, 0, 16);     
-                        payload = new Uint8Array(data, 16, 320*240*2);             
+                        data = new ArrayBuffer(320*240*2 + 20);
+                        header = new Uint8Array(data, 0, 16);
+                        payload = new Uint8Array(data, 16, 320*240*2);
                         footer = new Uint8Array(data, 320*240*2 + 16, 4);
                         header.fill(0)
                         footer.fill(0)
