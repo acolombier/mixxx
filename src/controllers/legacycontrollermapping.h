@@ -4,11 +4,12 @@
 #include <QDir>
 #include <QHash>
 #include <QList>
+#include <QOpenGLContext>
 #include <QSharedPointer>
 #include <QSize>
 #include <QString>
+#include <bit>
 #include <memory>
-#include <QOpenGLContext>
 
 #include "controllers/rendering/controllerrenderingtransform.h"
 #include "defs_urls.h"
@@ -41,6 +42,7 @@ class LegacyControllerMapping {
                 uint8_t aScreen_count,
                 uint8_t aTarget_fps,
                 GLenum aPixelFormat,
+                std::endian anEndian,
                 const QFileInfo& aFile,
                 const QList<QFileInfo>& aLibraryList,
                 const QString& transformPayload,
@@ -50,6 +52,7 @@ class LegacyControllerMapping {
                   screen_count(aScreen_count),
                   target_fps(aTarget_fps),
                   pixelFormat(aPixelFormat),
+                  endian(anEndian),
                   file(aFile),
                   libraries(aLibraryList),
                   transformFunctionPayload(transformPayload),
@@ -61,6 +64,7 @@ class LegacyControllerMapping {
         uint8_t screen_count;
         uint8_t target_fps;
         GLenum pixelFormat;
+        std::endian endian;
         QFileInfo file;
         QList<QFileInfo> libraries;
 
@@ -102,7 +106,8 @@ class LegacyControllerMapping {
             const QString& transformPayload,
             uint8_t screenCount = 1,
             uint8_t targetFps = 30,
-            GLenum pixelFormat =  GL_UNSIGNED_BYTE,
+            GLenum pixelFormat = GL_UNSIGNED_BYTE,
+            std::endian endian = std::endian::big,
             ControllerRenderingTransformFunctionType transformType =
                     ControllerRenderingTransformFunctionType::NONE) {
         if (!targetFps) {
@@ -116,6 +121,7 @@ class LegacyControllerMapping {
                 screenCount,
                 targetFps,
                 pixelFormat,
+                endian,
                 file,
                 libraries,
                 transformPayload,

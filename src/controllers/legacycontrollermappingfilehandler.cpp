@@ -28,11 +28,10 @@ QFileInfo findScriptFile(std::shared_ptr<LegacyControllerMapping> mapping,
     return file;
 }
 
-// TOFO: update docstring
-/// Find script file in the mapping or system path.
+/// Find a module directory (QML) in the mapping or system path.
 ///
-/// @param mapping The controller mapping the script belongs to.
-/// @param filename The script filename.
+/// @param mapping The controller mapping the module directory belongs to.
+/// @param dirname The module directory name.
 /// @param systemMappingsPath The system mappings path to use as fallback.
 /// @return Returns a QFileInfo object. If the script was not found in either
 /// of the search directories, the QFileInfo object might point to a
@@ -40,10 +39,10 @@ QFileInfo findScriptFile(std::shared_ptr<LegacyControllerMapping> mapping,
 QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
         const QString& dirname,
         const QDir& systemMappingsPath) {
-    // Always try to load script from the mapping's directory first
+    // Always try to load module directory from the mapping's directory first
     QFileInfo dir = QFileInfo(mapping->dirPath().absoluteFilePath(dirname));
 
-    // If the script does not exist, try to find it in the fallback dir
+    // If the module directory does not exist, try to find it in the fallback dir
     if (!dir.isDir()) {
         dir = QFileInfo(systemMappingsPath.absoluteFilePath(dirname));
     }
@@ -55,6 +54,11 @@ QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
 QMap<QString,GLenum> LegacyControllerMappingFileHandler::kSupportedPixelFormat = {
     {"RBGA8888", GL_UNSIGNED_INT},
     {"RBG565", GL_UNSIGNED_SHORT_5_6_5_REV}, 
+};
+
+QMap<QString, std::endian> LegacyControllerMappingFileHandler::kEndianFormat = {
+        {"big", std::endian::big},
+        {"little", std::endian::little},
 };
 
 // static
@@ -178,20 +182,37 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
     while (!screenDef.isNull()) {
         QString identifier = screenDef.attribute("filename", "");
         uint8_t screenCount = screenDef.attribute("screenCount", "1").toUInt();
-        uint8_t targetFps = screenDef.attribute("targetFps", "1").toUInt();
+        uint8_t targetFps = screenDef.attribute("targetFps", "30").toUInt();
         QString pixelFormatName = screenDef.attribute("pixelType", "RBG888");
+        QString endianName = screenDef.attribute("endian", "big");
+
+        if (!screenCount || screenCount > MAX_SCREEN_RENDER_INSTANCE) {
+            qWarning() << "Invalid number of screen. Screen count must be "
+                          "between 1 and "
+                       << MAX_SCREEN_RENDER_INSTANCE;
+            continue;
+        }
+
+        if (!targetFps || targetFps > MAX_TARGET_FPS) {
+            qWarning() << "Invalid target FPS. Target FPS must be between 1 and " << MAX_TARGET_FPS;
+            continue;
+        }
 
         if (!kSupportedPixelFormat.contains(pixelFormatName)){
             qWarning() << "Unsupported pixel format" << pixelFormatName;
             continue;
         }
 
+        if (!kEndianFormat.contains(endianName)) {
+            qWarning() << "Unknown endiant format" << endianName;
+            continue;
+        }
+
         GLenum pixelFormat = kSupportedPixelFormat.value(pixelFormatName);
+        std::endian endian = kEndianFormat.value(endianName);
 
         uint width = screenDef.attribute("width", "0").toUInt();
         uint height = screenDef.attribute("height", "0").toUInt();
-
-        // TODO: Callback function
 
         QFileInfo file = findScriptFile(mapping, identifier, systemMappingsPath);
         identifier = screenDef.attribute("identifier", identifier);
@@ -221,8 +242,8 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
             transformType = transformTypeFromString(transformElement.attribute("type", ""));
 
             if (transformType == ControllerRenderingTransformFunctionType::UNSUPPORTED) {
-                qWarning() << "The screen transform function is unsupported. Ignoring";
-                transformType = ControllerRenderingTransformFunctionType::NONE;
+                qWarning() << "The screen transform function is unsupported";
+                continue;
             } else {
                 transformPayload = transformElement.text();
             }
@@ -237,6 +258,7 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
                 screenCount,
                 targetFps,
                 pixelFormat,
+                endian,
                 transformType);
         screenDef = screenDef.nextSiblingElement("screen");
     }

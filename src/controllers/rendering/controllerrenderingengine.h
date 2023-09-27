@@ -39,6 +39,10 @@ class ControllerRenderingEngine : public QObject {
         return true;
     }
 
+    void setDebug(bool flag) {
+        mDebug = flag;
+    }
+
     std::shared_ptr<QOpenGLFramebufferObject> fbo() const {
         return m_fbo;
     }
@@ -66,6 +70,7 @@ class ControllerRenderingEngine : public QObject {
     bool load(const QString& qmlFile);
 
     uint8_t m_screenId;
+    bool m_Debug;
     mixxx::Duration m_nextFrameStart;
 
     LegacyControllerMapping::QMLFileInfo m_renderingInfo;
@@ -89,6 +94,7 @@ class ControllerRenderingEngine : public QObject {
 
     std::unique_ptr<QQuickItem> m_rootItem;
 
-    QImage::Format mImageFormat;
-    GLenum mGLDataType;
+    QImage::Format m_imageFormat;
+    GLenum m_GLDataType;
+    bool m_reversedPixelFormat;
 };

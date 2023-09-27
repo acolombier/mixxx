@@ -14,15 +14,13 @@ struct ProductInfo {
     QString protocol;
     QString vendor_id;
     QString product_id;
+    QString usage_page;
+    QString usage;
+    QString interface_number;
 
     // Bulk-specific
     QString in_epaddr;
     QString out_epaddr;
-
-    // HID-specific
-    QString usage_page;
-    QString usage;
-    QString interface_number;
 };
 
 /// Base class handling enumeration and parsing of mapping info headers

@@ -26,6 +26,14 @@
 #ifdef __MODPLUG__
 #include "preferences/dialog/dlgprefmodplug.h"
 #endif
+#include "qml/qmlconfigproxy.h"
+#include "qml/qmlcontrolproxy.h"
+#include "qml/qmldlgpreferencesproxy.h"
+#include "qml/qmleffectslotproxy.h"
+#include "qml/qmleffectsmanagerproxy.h"
+#include "qml/qmllibraryproxy.h"
+#include "qml/qmlplayermanagerproxy.h"
+#include "qml/qmlplayerproxy.h"
 #include "soundio/soundmanager.h"
 #include "sources/soundsourceproxy.h"
 #include "util/db/dbconnectionpooled.h"
@@ -226,8 +234,6 @@ void CoreServices::initialize(QApplication* pApp) {
             XESetWireToError(QX11Info::display(), i, &__xErrorHandler);
         }
     }
-#else
-    Q_UNUSED(pApp);
 #endif
 
     UserSettingsPointer pConfig = m_pSettingsManager->settings();
@@ -444,6 +450,17 @@ void CoreServices::initialize(QApplication* pApp) {
     }
 
     m_isInitialized = true;
+
+    initializeQMLSignletons(pApp);
+}
+
+void initializeQMLSignletons(QApplication* pApp) {
+    mixxx::qml::QmlEffectsManagerProxy::s_pInstance = new mixxx::qml::QmlEffectsManagerProxy(
+            getEffectsManager(), pApp);
+    mixxx::qml::QmlPlayerManagerProxy::s_pInstance =
+            new mixxx::qml::QmlPlayerManagerProxy(getPlayerManager(), pApp);
+    mixxx::qml::QmlConfigProxy::s_pInstance = new mixxx::qml::QmlConfigProxy(getSettings(), pApp);
+    mixxx::qml::QmlLibraryProxy::s_pInstance = new mixxx::qml::QmlLibraryProxy(getLibrary(), pApp);
 }
 
 void CoreServices::initializeKeyboard() {

@@ -17,6 +17,7 @@
 #include <QQuickRenderTarget>
 #include <QQuickWindow>
 #include <QScreen>
+#include <bit>
 
 #include "controllers/controller.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
@@ -24,12 +25,17 @@
 #include "moc_controllerrenderingengine.cpp"
 #include "qml/qmlwaveformoverview.h"
 
+ControllerRenderingEngine::kPlatformEndian =
+        constexpr(std::endian::native == std::endian::big) ? qToBigEndian : qToLittleEndian;
+
 ControllerRenderingEngine::ControllerRenderingEngine(Controller* controller,
         LegacyControllerMapping::QMLFileInfo qml,
         const RuntimeLoggingCategory& logger,
         uint8_t screenId)
         : QObject(),
           m_screenId(screenId),
+          m_debug(false),
+          m_reversedPixelFormat(false),
           m_renderingInfo(qml) {
     m_pThread = std::make_unique<QThread>();
     m_pThread->setObjectName("ControllerScreenRenderer");
@@ -157,15 +163,14 @@ void ControllerRenderingEngine::start() {
         return;
     }
 
-    mGLDataType = GL_RGB;
+    m_GLDataType = GL_RGB;
     switch (m_renderingInfo.pixelFormat){
     // GL_UNSIGNED_BYTE_3_3_2:
     // GL_UNSIGNED_BYTE_2_3_3_REV:
-    // GL_UNSIGNED_INT_10F_11F_11F_REV:
     case GL_UNSIGNED_SHORT_5_6_5:
     case GL_UNSIGNED_SHORT_5_6_5_REV:
-        mImageFormat = QImage::Format_RGB16;
-        mGLDataType = GL_RGB;
+        m_imageFormat = QImage::Format_RGB16;
+        m_GLDataType = GL_RGB;
         break;
     // GL_UNSIGNED_SHORT_4_4_4_4:
     // GL_UNSIGNED_SHORT_4_4_4_4_REV:        
@@ -177,11 +182,11 @@ void ControllerRenderingEngine::start() {
     // GL_UNSIGNED_INT_2_10_10_10_REV:
     // GL_UNSIGNED_INT_5_9_9_9_REV:
     case GL_UNSIGNED_BYTE:
-        mImageFormat = QImage::Format_ARGB32;
-        mGLDataType = GL_RGBA;
+        m_imageFormat = QImage::Format_ARGB32;
+        m_GLDataType = GL_RGBA;
         break;
     default:
-        qWarning() << "Unsupported format";
+        DEUB_ASSERT(!"Unsupported format");
         cleanup();
         return;
     }
@@ -285,15 +290,16 @@ void ControllerRenderingEngine::renderNext() {
 
     m_renderControl->beginFrame();
     DEBUG_ASSERT(m_renderControl->sync());
-    QImage fboImage(m_renderingInfo.size, mImageFormat);
+    QImage fboImage(m_renderingInfo.size, m_imageFormat);
 
     VERIFY_OR_DEBUG_ASSERT(m_fbo->bind()){
         qDebug() << "Couldn't bind the FBO.";
     }
     GLenum glError;
     m_context->functions()->glFlush();
-    // TODO Endianness - configurable
-    m_context->functions()->glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
+    if constexpr (m_renderingInfo.endian != std::endian::native) {
+        m_context->functions()->glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
+    }
     glError = m_context->functions()->glGetError();
     VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
         qDebug() << "GLError: " << glError;
@@ -303,7 +309,13 @@ void ControllerRenderingEngine::renderNext() {
     m_renderControl->endFrame();
 
     while (m_context->functions()->glGetError());
-    m_context->functions()->glReadPixels(0, 0, m_renderingInfo.size.width(), m_renderingInfo.size.height(), mGLDataType, m_renderingInfo.pixelFormat, fboImage.bits());
+    m_context->functions()->glReadPixels(0,
+            0,
+            m_renderingInfo.size.width(),
+            m_renderingInfo.size.height(),
+            m_GLDataType,
+            m_renderingInfo.pixelFormat,
+            fboImage.bits());
     glError = m_context->functions()->glGetError();
     VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
         qDebug() << "GLError: " << glError;
@@ -314,11 +326,20 @@ void ControllerRenderingEngine::renderNext() {
     }
 
     fboImage.mirror(false, true);
-    QImage debugFboImage(fboImage.convertToFormat(QImage::Format_RGB32));
-    // TODO Reverse - configurable
-    // debugFboImage.rgbSwap();
-    
-    emit debugScreenRendered(debugFboImage);
+
+    if (mDebug) {
+        QImage debugFboImage(fboImage);
+
+        if constexpr (m_renderingInfo.endian != std::endian::native) {
+            kPlatformEndian((const void*)frame.constBits(),
+                    frame.sizeInBytes(),
+                    debugFboImage.bits())
+        }
+        // TODO Reverse - configurable
+        // debugFboImage.rgbSwap();
+
+        emit debugScreenRendered(debugFboImage.convertToFormat(QImage::Format_RGB32));
+    }
 
     VERIFY_OR_DEBUG_ASSERT(!m_pTransformFunction ||
             m_pTransformFunction->transform(this, fboImage, m_screenBuffer, m_screenId)) {

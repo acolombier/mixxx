@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QMap>
+#include <QOpenGLContext>
+#include <bit>
+
 #include "controllers/legacycontrollermapping.h"
 #include "util/xml.h"
-#include <QOpenGLContext>
-#include <QMap>
 
 /// The LegacyControllerMappingFileHandler is used for serializing/deserializing the
 /// LegacyControllerMapping objects to/from XML files and is also responsible
@@ -38,10 +40,10 @@ class LegacyControllerMappingFileHandler {
     void parseMappingInfo(const QDomElement& root,
             std::shared_ptr<LegacyControllerMapping> mapping) const;
 
-    /// Adds script files from XML to the LegacyControllerMapping.
+    /// Adds script and render files from XML to the LegacyControllerMapping.
     ///
     /// This function parses the supplied QDomElement structure, finds the
-    /// matching script files inside the search paths and adds them to
+    /// matching script files and render file inside the search paths and adds them to
     /// LegacyControllerMapping.
     ///
     /// @param root The root node of the XML document for the mapping.
@@ -64,5 +66,11 @@ class LegacyControllerMappingFileHandler {
             const QDir& systemMappingPath) = 0;
 
         static QMap<QString,GLenum> kSupportedPixelFormat;
-
+        static QMap<QString, std::endian> kEndianFormat;
 };
+
+// Maximum number of instance (screens) allowed to be generated per controller
+#define MAX_SCREEN_RENDER_INSTANCE 10
+
+// Maximum target frame per request for a a screen controller
+#define MAX_TARGET_FPS 240

@@ -16,16 +16,6 @@
 #ifdef MIXXX_USE_QML
 #include "qml/qmlapplication.h"
 #else
-
-#include "qml/qmlconfigproxy.h"
-#include "qml/qmlcontrolproxy.h"
-#include "qml/qmldlgpreferencesproxy.h"
-#include "qml/qmleffectslotproxy.h"
-#include "qml/qmleffectsmanagerproxy.h"
-#include "qml/qmllibraryproxy.h"
-#include "qml/qmlplayermanagerproxy.h"
-#include "qml/qmlplayerproxy.h"
-
 #include "mixxxmainwindow.h"
 #endif
 #include "sources/soundsourceproxy.h"
@@ -70,13 +60,6 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
                 &MixxxMainWindow::initializationProgressUpdate);
         
         pCoreServices->initialize(pApp);
-        
-        mixxx::qml::QmlEffectsManagerProxy::s_pInstance = new mixxx::qml::QmlEffectsManagerProxy(
-                pCoreServices->getEffectsManager(), pApp);
-        mixxx::qml::QmlPlayerManagerProxy::s_pInstance =
-                new mixxx::qml::QmlPlayerManagerProxy(pCoreServices->getPlayerManager(), pApp);
-        mixxx::qml::QmlConfigProxy::s_pInstance = new mixxx::qml::QmlConfigProxy(pCoreServices->getSettings(), pApp);
-        mixxx::qml::QmlLibraryProxy::s_pInstance = new mixxx::qml::QmlLibraryProxy(pCoreServices->getLibrary(), pApp);
 
 #ifdef MIXXX_USE_QOPENGL
         // Will call initialize when the initial wglwidget's
