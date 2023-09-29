@@ -9,28 +9,15 @@
         </devices>
     </info>
     <controller id="DummyDevice">
-        <renderfiles>
-            <screen filename="Traktor-Kontrol-S4-MK3-Screens.qml" identifier="deck" width="320" height="240" screenCount="1" targetFps="30" pixelType="RBG565">
-                <library path="Traktor-Kontrol-S4-MK3-Screens" />
-                <transformfunction type="javascript">
-                    (function(input, screen_id) {
-                        data = new ArrayBuffer(320*240*2 + 20);
-                        header = new Uint8Array(data, 0, 16);
-                        payload = new Uint8Array(data, 16, 320*240*2);
-                        footer = new Uint8Array(data, 320*240*2 + 16, 4);
-                        header.fill(0)
-                        footer.fill(0)
-                        header[0] = 0x84;
-                        header[3] = 0x21;
-                        header[12] = 0x1;
-                        header[13] = 0x40;
-                        header[15] = 0xf0;
-                        payload.set(new Uint8Array(input, 0, 320*240*2))
-                        footer[2] = screen_id;
-                        return data;
-                    })
-                </transformfunction>
-            </screen>
-        </renderfiles>
+        <screens>
+            <screen identifier="leftdeck" width="320" height="240" targetFps="5" pixelType="RBG565" />
+            <screen identifier="rightdeck" width="320" height="240" targetFps="5" pixelType="RBG565" />
+        </screens>
+        <scriptfiles>
+            <file filename="DummyDeviceDefaultScreen.qml" />
+        </scriptfiles>
+        <qmllibraries>
+            <library path="Dummy-Device-Default-Screen" />
+        </qmllibraries>
     </controller>
 </MixxxControllerPreset>

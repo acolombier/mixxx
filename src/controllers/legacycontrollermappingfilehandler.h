@@ -69,8 +69,5 @@ class LegacyControllerMappingFileHandler {
         static QMap<QString, std::endian> kEndianFormat;
 };
 
-// Maximum number of instance (screens) allowed to be generated per controller
-#define MAX_SCREEN_RENDER_INSTANCE 10
-
 // Maximum target frame per request for a a screen controller
 #define MAX_TARGET_FPS 240

@@ -1,12 +1,19 @@
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 
+#include <QDirIterator>
+#include <QMap>
+#include <QtEndian>
+
 #include "control/controlobject.h"
 #include "controllers/controller.h"
+#include "controllers/rendering/controllerrenderingengine.h"
 #include "controllers/scripting/colormapperjsproxy.h"
 #include "controllers/scripting/legacy/controllerscriptinterfacelegacy.h"
 #include "errordialoghandler.h"
 #include "mixer/playermanager.h"
 #include "moc_controllerscriptenginelegacy.cpp"
+#include "util/assert.h"
+#include "util/cmdlineargs.h"
 
 ControllerScriptEngineLegacy::ControllerScriptEngineLegacy(
         Controller* controller, const RuntimeLoggingCategory& logger)
@@ -54,6 +61,89 @@ bool ControllerScriptEngineLegacy::callFunctionOnObjects(
             success = false;
         }
     }
+    if (m_bQmlMode) {
+        QHashIterator<QString, std::shared_ptr<QQuickItem>> i(m_rootItems);
+        while (i.hasNext()) {
+            i.next();
+            const QMetaObject* metaObject = i.value()->metaObject();
+            QStringList argList;
+            for (int i = 0; i < args.size(); i++)
+                argList << "QVariant";
+            int methodIdx =
+                    metaObject->indexOfMethod(QString("%1(%2)")
+                                                      .arg(function)
+                                                      .arg(argList.join(','))
+                                                      .toUtf8());
+            if (methodIdx == -1) {
+                qCWarning(m_logger) << "QML Scene " << i.key() << "has no"
+                                    << function << " method";
+                continue;
+            }
+            QMetaMethod method = metaObject->method(methodIdx);
+            qCDebug(m_logger) << "Executing"
+                              << function << "on QML Scene " << i.key();
+            QVariant returnedValue;
+            bool isSuccessfull;
+
+            switch (args.size()) {
+            case 0:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue));
+                break;
+            case 1:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue),
+                        Q_ARG(QVariant, args[0].toVariant()));
+                break;
+            case 2:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue),
+                        Q_ARG(QVariant, args[0].toVariant()),
+                        Q_ARG(QVariant, args[1].toVariant()));
+                break;
+            case 3:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue),
+                        Q_ARG(QVariant, args[0].toVariant()),
+                        Q_ARG(QVariant, args[1].toVariant()),
+                        Q_ARG(QVariant, args[2].toVariant()));
+                break;
+            case 4:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue),
+                        Q_ARG(QVariant, args[0].toVariant()),
+                        Q_ARG(QVariant, args[1].toVariant()),
+                        Q_ARG(QVariant, args[2].toVariant()),
+                        Q_ARG(QVariant, args[3].toVariant()));
+                break;
+            default:
+                qDebug() << "Trying to call a controller lifecycle method with "
+                            "more than 5 args. Ignoring extra args";
+            case 5:
+                isSuccessfull = method.invoke(i.value().get(),
+                        Qt::DirectConnection,
+                        Q_RETURN_ARG(QVariant, returnedValue),
+                        Q_ARG(QVariant, args[0].toVariant()),
+                        Q_ARG(QVariant, args[1].toVariant()),
+                        Q_ARG(QVariant, args[2].toVariant()),
+                        Q_ARG(QVariant, args[3].toVariant()),
+                        Q_ARG(QVariant, args[4].toVariant()));
+                break;
+            }
+
+            if (!isSuccessfull || !returnedValue.isValid()) {
+                // TODO how do we show the error?
+                qDebug() << "We've received" << returnedValue;
+                // showScriptExceptionDialog(QJSValue{}, bFatalError);
+                success = false;
+            }
+        }
+    }
     return success;
 }
 
@@ -90,6 +180,26 @@ QJSValue ControllerScriptEngineLegacy::wrapFunctionCode(
     return wrappedFunction;
 }
 
+void ControllerScriptEngineLegacy::setLibraryDirectories(
+        const QList<LegacyControllerMapping::QMLModuleInfo>& directories) {
+    const QStringList paths = m_fileWatcher.files();
+    if (!paths.isEmpty()) {
+        m_fileWatcher.removePaths(paths);
+    }
+
+    m_libraryDirectories = directories;
+}
+void ControllerScriptEngineLegacy::setInfoScrens(
+        const QList<LegacyControllerMapping::ScreenInfo>& screens) {
+    // // TODO stop rendering gracefully
+    // if (m_renderingScreens.isEmpty()){
+    // }
+    m_rootItems.clear();
+    m_renderingScreens.clear();
+    m_transformScreenFrameFunctions.clear();
+    m_infoScreens = screens;
+}
+
 void ControllerScriptEngineLegacy::setScriptFiles(
         const QList<LegacyControllerMapping::ScriptFileInfo>& scripts) {
     const QStringList paths = m_fileWatcher.files();
@@ -97,11 +207,41 @@ void ControllerScriptEngineLegacy::setScriptFiles(
         m_fileWatcher.removePaths(paths);
     }
     m_scriptFiles = scripts;
+
+    for (const LegacyControllerMapping::ScriptFileInfo& script : std::as_const(m_scriptFiles)) {
+        if (script.type == LegacyControllerMapping::ScriptFileInfo::Type::QML) {
+            setQMLMode(true);
+            return;
+        }
+    }
+
+    setQMLMode(false);
 }
 
 bool ControllerScriptEngineLegacy::initialize() {
     if (!ControllerScriptEngineBase::initialize()) {
         return false;
+    }
+
+    QMap<QString, ControllerRenderingEngine*> availableScreens;
+
+    if (m_bQmlMode) {
+        for (const LegacyControllerMapping::ScreenInfo& screen : std::as_const(m_infoScreens)) {
+            VERIFY_OR_DEBUG_ASSERT(!availableScreens.contains(screen.identifier)) {
+                qWarning() << "A controller screen already contains the "
+                              "identifier "
+                           << screen.identifier;
+                return false;
+            }
+            availableScreens.insert(screen.identifier,
+                    new ControllerRenderingEngine(screen));
+            availableScreens.value(screen.identifier)
+                    ->requestSetup(
+                            std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine));
+        }
+    } else if (!m_infoScreens.isEmpty()) {
+        qWarning() << "Controller mapping has screen definitions but no QML "
+                      "files to render on it. Ignoring.";
     }
 
     // Binary data is passed from the Controller as a QByteArray, which
@@ -126,15 +266,73 @@ bool ControllerScriptEngineLegacy::initialize() {
     engineGlobalObject.setProperty(
             "engine", m_pJSEngine->newQObject(legacyScriptInterface));
 
-    for (const LegacyControllerMapping::ScriptFileInfo& script : std::as_const(m_scriptFiles)) {
-        if (!evaluateScriptFile(script.file)) {
-            shutdown();
-            return false;
+    if (m_bQmlMode) {
+        for (const LegacyControllerMapping::QMLModuleInfo& module :
+                std::as_const(m_libraryDirectories)) {
+            auto path = module.dirinfo.absoluteFilePath();
+            QDirIterator it(path,
+                    QStringList() << "*.qml",
+                    QDir::Files,
+                    QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                if (!m_fileWatcher.addPath(it.next())) {
+                    qCWarning(m_logger) << "Failed to watch QML module file"
+                                        << it.next() << "in QML module" << path;
+                } else {
+                    qDebug() << "Watching file" << it.next() << "for controller auto-reload";
+                }
+            }
+            std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine)->addImportPath(path);
         }
-        if (!script.functionPrefix.isEmpty()) {
-            m_scriptFunctionPrefixes.append(script.functionPrefix);
+    } else if (!m_libraryDirectories.isEmpty()) {
+        qWarning() << "Controller mapping has QML library definitions but no "
+                      "QML files to use it. Ignoring.";
+    }
+
+    for (const LegacyControllerMapping::ScriptFileInfo& script : std::as_const(m_scriptFiles)) {
+        switch (script.type) {
+        case LegacyControllerMapping::ScriptFileInfo::Type::JAVASCRIPT:
+            if (!evaluateScriptFile(script.file)) {
+                shutdown();
+                return false;
+            }
+            if (!script.identifier.isEmpty()) {
+                m_scriptFunctionPrefixes.append(script.identifier);
+            }
+            break;
+        case LegacyControllerMapping::ScriptFileInfo::Type::QML:
+            if (script.identifier.isEmpty()) {
+                while (availableScreens.size()) {
+                    QString screenIdentifier(availableScreens.firstKey());
+                    if (!bindSceneToScreen(script,
+                                screenIdentifier,
+                                availableScreens.take(screenIdentifier))) {
+                        shutdown();
+                        return false;
+                    }
+                }
+            } else if (!bindSceneToScreen(script,
+                               script.identifier,
+                               availableScreens.take(script.identifier))) {
+                shutdown();
+                return false;
+            }
+            break;
         }
     }
+
+    if (!availableScreens.isEmpty()) {
+        qWarning()
+                << "Found screen with no QMl scene able to run on it. Ignoring"
+                << availableScreens.size() << "screens";
+
+        while (availableScreens.size()) {
+            auto orphanScreen = availableScreens.take(availableScreens.firstKey());
+            std::move(orphanScreen)->deleteLater();
+        }
+    }
+
+    // if ()
 
     // For testing, do not actually initialize the scripts, just check for
     // syntax errors above.
@@ -158,12 +356,122 @@ bool ControllerScriptEngineLegacy::initialize() {
             controllerName,
             m_logger().isDebugEnabled(),
     };
-    if (!callFunctionOnObjects(m_scriptFunctionPrefixes, "init", args, true)) {
+
+    for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+        pScreen->start();
+    }
+
+    if (!m_bQmlMode && !callFunctionOnObjects(m_scriptFunctionPrefixes, "init", args, true)) {
         shutdown();
         return false;
     }
 
     return true;
+}
+
+bool ControllerScriptEngineLegacy::bindSceneToScreen(
+        const LegacyControllerMapping::ScriptFileInfo& qmlFile,
+        const QString& screenIdentifier,
+        ControllerRenderingEngine* pScreen) {
+    auto pScene = loadQMLFile(qmlFile, pScreen);
+    if (!pScene) {
+        return false;
+    }
+    const QMetaObject* metaObject = pScene->metaObject();
+
+    for (int i = metaObject->methodOffset(); i < metaObject->methodCount(); ++i)
+        qDebug() << "method: "
+                 << QString::fromLatin1(metaObject->method(i).methodSignature())
+                 << metaObject->method(i).isValid();
+    int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant)");
+    if (methodIdx == -1 || !metaObject->method(methodIdx).isValid()) {
+        qDebug() << "QML Scene for screen" << screenIdentifier
+                 << "has no transformFrame method. The frame data will be sent "
+                    "untransformed";
+        m_transformScreenFrameFunctions.insert(screenIdentifier, QMetaMethod());
+    } else {
+        m_transformScreenFrameFunctions.insert(screenIdentifier, metaObject->method(methodIdx));
+    }
+    connect(pScreen,
+            &ControllerRenderingEngine::frameRendered,
+            this,
+            &ControllerScriptEngineLegacy::handleScreenFrame);
+    m_renderingScreens.insert(screenIdentifier, pScreen);
+    m_rootItems.insert(screenIdentifier, pScene);
+    return true;
+}
+
+void ControllerScriptEngineLegacy::handleScreenFrame(
+        const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame) {
+    VERIFY_OR_DEBUG_ASSERT(m_transformScreenFrameFunctions.contains(screeninfo.identifier)) {
+        qWarning() << "Unable to find transform function info for the given screen";
+        return;
+    };
+    VERIFY_OR_DEBUG_ASSERT(m_rootItems.contains(screeninfo.identifier)) {
+        qWarning() << "Unable to find a root item for the given screen";
+        return;
+    };
+
+    if (CmdlineArgs::Instance().getControllerPreviewScreens()) {
+        QImage screenDebug(frame);
+
+        if (screeninfo.endian != std::endian::native) {
+            switch (screeninfo.endian) {
+            case std::endian::big:
+                qFromBigEndian<ushort>(frame.constBits(),
+                        frame.sizeInBytes() / 2,
+                        screenDebug.bits());
+                break;
+            case std::endian::little:
+                qFromLittleEndian<ushort>(frame.constBits(),
+                        frame.sizeInBytes() / 2,
+                        screenDebug.bits());
+                break;
+            default:
+                break;
+            }
+        }
+        if (screeninfo.reversedColor) {
+            screenDebug.rgbSwap();
+        }
+
+        emit previewRenderedScreen(screeninfo, screenDebug);
+    }
+
+    QByteArray input((const char*)frame.constBits(), frame.sizeInBytes());
+    // qDebug() << "About to transform: "<<QByteArray(input.toHex(' '), 64);
+
+    QMetaMethod tranformMethod = m_transformScreenFrameFunctions.value(screeninfo.identifier);
+
+    if (!tranformMethod.isValid()) {
+        // m_pController->sendBytes(input);
+        return;
+    }
+
+    QVariant returnedValue;
+    QVariant inputVariant(input);
+
+    bool isSuccessful = tranformMethod.invoke(m_rootItems.value(screeninfo.identifier).get(),
+            Qt::DirectConnection,
+            Q_RETURN_ARG(QVariant, returnedValue),
+            Q_ARG(QVariant, input));
+
+    if (!isSuccessful || !returnedValue.isValid()) {
+        qWarning() << "Could not transform rendering buffer. Error should be "
+                      "visible in previous log messages";
+        return;
+    }
+
+    if (returnedValue.canView<QByteArray>()) {
+        // QByteArray transformedFrame(returnedValue.view<QByteArray>());
+        // qDebug() << "About to send: "<<QByteArray(transformedFrame.toHex(' '), 64);
+        m_pController->sendBytes(returnedValue.view<QByteArray>());
+    } else if (returnedValue.canConvert<QByteArray>()) {
+        // qDebug() << "About to send: "<<QByteArray(returnedValue.toByteArray().toHex(' '), 64);
+        m_pController->sendBytes(returnedValue.toByteArray());
+    } else {
+        qWarning() << "Unable to interpret the returned data " << returnedValue;
+    }
 }
 
 void ControllerScriptEngineLegacy::shutdown() {
@@ -172,6 +480,29 @@ void ControllerScriptEngineLegacy::shutdown() {
     if (m_pJSEngine) {
         callFunctionOnObjects(m_scriptFunctionPrefixes, "shutdown");
     }
+
+    // Wait for up to 4 frames to allow screens to display a shutdown
+    // splash/idle screen or simply clear themselves
+    uint maxFramePeriod = 0;
+    for (const ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+        uint framePeriod = 1000 / pScreen->info().target_fps;
+        maxFramePeriod = qMax(maxFramePeriod, framePeriod);
+    }
+
+    if (maxFramePeriod) {
+        thread()->msleep(maxFramePeriod * 4);
+        QCoreApplication::processEvents();
+    }
+
+    m_rootItems.clear();
+    for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+        pScreen->deleteLater();
+    }
+    m_renderingScreens.clear();
+    m_transformScreenFrameFunctions.clear();
+    // for (std::shared_ptr<QQuickItem>& rootItem : m_rootItems.values()) {
+    //     std::move(rootItem)->deleteLater();
+    // }
     m_scriptWrappedFunctionCache.clear();
     m_incomingDataFunctions.clear();
     m_scriptFunctionPrefixes.clear();
@@ -215,7 +546,7 @@ bool ControllerScriptEngineLegacy::evaluateScriptFile(const QFileInfo& scriptFil
     // evaluating it.
     if (!m_fileWatcher.addPath(scriptFile.absoluteFilePath())) {
         qCWarning(m_logger) << "Failed to watch script file" << scriptFile.absoluteFilePath();
-    };
+    }
 
     qCDebug(m_logger) << "Loading"
                       << scriptFile.absoluteFilePath();
@@ -263,6 +594,58 @@ bool ControllerScriptEngineLegacy::evaluateScriptFile(const QFileInfo& scriptFil
     }
 
     return true;
+}
+
+std::shared_ptr<QQuickItem> ControllerScriptEngineLegacy::loadQMLFile(
+        const LegacyControllerMapping::ScriptFileInfo& qmlScript,
+        const ControllerRenderingEngine* pScreen) {
+    VERIFY_OR_DEBUG_ASSERT(m_pJSEngine ||
+            qmlScript.type !=
+                    LegacyControllerMapping::ScriptFileInfo::Type::QML) {
+        return std::shared_ptr<QQuickItem>(nullptr);
+    }
+
+    std::unique_ptr<QQmlComponent> qmlComponent =
+            std::make_unique<QQmlComponent>(
+                    std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine).get(),
+                    QUrl(qmlScript.file.absoluteFilePath()),
+                    QQmlComponent::PreferSynchronous);
+
+    if (qmlComponent->isError()) {
+        const QList<QQmlError> errorList = qmlComponent->errors();
+        for (const QQmlError& error : errorList)
+            qWarning() << error.url() << error.line() << error;
+        return std::shared_ptr<QQuickItem>(nullptr);
+    }
+
+    QObject* pRootObject = qmlComponent->createWithInitialProperties(
+            QVariantMap{{"screenId", pScreen->info().identifier}});
+    if (qmlComponent->isError()) {
+        const QList<QQmlError> errorList = qmlComponent->errors();
+        for (const QQmlError& error : errorList)
+            qWarning() << error.url() << error.line() << error;
+        return std::shared_ptr<QQuickItem>(nullptr);
+    }
+
+    std::shared_ptr<QQuickItem> rootItem =
+            std::shared_ptr<QQuickItem>(qobject_cast<QQuickItem*>(pRootObject));
+    if (!rootItem) {
+        qWarning("run: Not a QQuickItem");
+        delete pRootObject;
+        return std::shared_ptr<QQuickItem>(nullptr);
+    }
+
+    if (!m_fileWatcher.addPath(qmlScript.file.absoluteFilePath())) {
+        qCWarning(m_logger) << "Failed to watch script file" << qmlScript.file.absoluteFilePath();
+    }
+
+    // The root item is ready. Associate it with the window.
+    rootItem->setParentItem(pScreen->quickWindow()->contentItem());
+
+    rootItem->setWidth(pScreen->quickWindow()->width());
+    rootItem->setHeight(pScreen->quickWindow()->height());
+
+    return rootItem;
 }
 
 QJSValue ControllerScriptEngineLegacy::wrapArrayBufferCallback(const QJSValue& callback) {

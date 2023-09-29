@@ -70,22 +70,6 @@ QmlApplication::QmlApplication(
     // the QQmlApplicationEngine.
     m_pDlgPreferences->setAttribute(Qt::WA_QuitOnClose, false);
 
-    // Any uncreateable non-singleton types registered here require arguments
-    // that we don't want to expose to QML directly. Instead, they can be
-    // retrieved by member properties or methods from the singleton types.
-    //
-    // The alternative would be to register their *arguments* in the QML
-    // system, which would improve nothing, or we had to expose them as
-    // singletons to that they can be accessed by components instantiated by
-    // QML, which would also be suboptimal.
-    QmlDlgPreferencesProxy::s_pInstance = new QmlDlgPreferencesProxy(m_pDlgPreferences, this);
-    QmlEffectsManagerProxy::s_pInstance = new QmlEffectsManagerProxy(
-            pCoreServices->getEffectsManager(), this);
-    QmlPlayerManagerProxy::s_pInstance =
-            new QmlPlayerManagerProxy(pCoreServices->getPlayerManager(), this);
-    QmlConfigProxy::s_pInstance = new QmlConfigProxy(pCoreServices->getSettings(), this);
-    QmlLibraryProxy::s_pInstance = new QmlLibraryProxy(pCoreServices->getLibrary(), this);
-
     loadQml(m_mainFilePath);
 
     pCoreServices->getControllerManager()->setUpDevices();

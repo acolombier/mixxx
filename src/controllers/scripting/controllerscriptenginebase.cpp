@@ -1,5 +1,7 @@
 #include "controllers/scripting/controllerscriptenginebase.h"
 
+#include <QQmlEngine>
+
 #include "control/controlobject.h"
 #include "controllers/controller.h"
 #include "controllers/scripting/colormapperjsproxy.h"
@@ -15,7 +17,8 @@ ControllerScriptEngineBase::ControllerScriptEngineBase(
           m_pController(controller),
           m_logger(logger),
           m_bAbortOnWarning(false),
-          m_bTesting(false) {
+          m_bTesting(false),
+          m_bQmlMode(false) {
     // Handle error dialog buttons
     qRegisterMetaType<QMessageBox::StandardButton>("QMessageBox::StandardButton");
 }
@@ -28,9 +31,16 @@ bool ControllerScriptEngineBase::initialize() {
     m_bAbortOnWarning = CmdlineArgs::Instance().getControllerAbortOnWarning();
 
     // Create the Script Engine
-    m_pJSEngine = std::make_shared<QJSEngine>(this);
+    if (!m_bQmlMode) {
+        m_pJSEngine = std::make_shared<QJSEngine>(this);
 
-    m_pJSEngine->installExtensions(QJSEngine::ConsoleExtension);
+        m_pJSEngine->installExtensions(QJSEngine::ConsoleExtension);
+    } else {
+        m_pJSEngine = std::make_shared<QQmlEngine>(this);
+        std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine)
+                ->addImportPath(QStringLiteral(":/mixxx.org/imports"));
+        // TODO Register clones of QML singletons to prevent thread-unsafety?
+    }
 
     QJSValue engineGlobalObject = m_pJSEngine->globalObject();
 

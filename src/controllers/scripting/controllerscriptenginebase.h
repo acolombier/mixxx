@@ -40,6 +40,10 @@ class ControllerScriptEngineBase : public QObject {
         m_bTesting = testing;
     };
 
+    inline void setQMLMode(bool qmlFlag) {
+        m_bQmlMode = qmlFlag;
+    };
+
     bool isTesting() const {
         return m_bTesting;
     }
@@ -59,6 +63,7 @@ class ControllerScriptEngineBase : public QObject {
     bool m_bAbortOnWarning;
 
     bool m_bTesting;
+    bool m_bQmlMode;
 
   protected slots:
     void reload();

@@ -10,13 +10,13 @@ Here is how to get the daemon setup. Make sure to do this **before** Mixxx is st
 
 ```sh
 # Enable UHID
-sudo modprope uhid
+sudo modprobe uhid
 # This next command assumes you are running it from the Mixxx directory
 #  Optionally, you can pass:
 #    `-DVENDOR_ID=0x1234` to customize vendor ID
 #    `-DPRODUCT_ID=0x1234` to customize product ID
 #    `-DDEVICE_NAME="My Device"` to customize the device name
-gcc ./tools/dummy_hid_device.cpp -lhidapi-hidraw -o dummy_hid_device && sudo ./dummy_hid_device
+cd build && gcc ../tools/dummy_hid_device.cpp -lhidapi-hidraw -o dummy_hid_device && sudo ./dummy_hid_device
 # Allow the created hidraw device to be accesssed by the user. Alternatively, you can run Mixxx as root, but that's not recommended.
 sudo chown "$USER" "$(ls -1t /dev/hidraw* | head -n 1)"
 ```

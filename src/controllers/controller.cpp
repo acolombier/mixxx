@@ -52,13 +52,13 @@ void Controller::startEngine()
 void Controller::stopEngine() {
     qCInfo(m_logBase) << "  Shutting down engine";
 
-    for (auto renderer : m_pRenderingEngines) {
-        if (m_screenDebugManager) {
-            m_screenDebugManager->removeRenderer(renderer);
-        }
-        renderer->stop();
-    }
-    m_pRenderingEngines.clear();
+    // for (auto renderer : m_pRenderingEngines) {
+    //     if (m_screenDebugManager) {
+    //         m_screenDebugManager->removeRenderer(renderer);
+    //     }
+    //     renderer->stop();
+    // }
+    // m_pRenderingEngines.clear();
 
     if (!m_pScriptEngineLegacy) {
         qCWarning(m_logBase) << "Controller::stopEngine(): No engine exists!";
@@ -88,29 +88,27 @@ bool Controller::applyMapping() {
     }
 
     m_pScriptEngineLegacy->setScriptFiles(scriptFiles);
+    m_pScriptEngineLegacy->setLibraryDirectories(pMapping->getLibraryDirectories());
+    m_pScriptEngineLegacy->setInfoScrens(pMapping->getInfoScreens());
 
-    // TODO: is this function reentrant? Can there be multiple call once the controller is open?
+    // for (const LegacyControllerMapping::QMLFileInfo& qml : std::as_const(qmlFiles)) {
+    //     for (uint8_t screenId = 0; screenId < qml.screen_count; screenId++) {
+    //         m_pRenderingEngines.append(
+    //                 std::make_shared<ControllerRenderingEngine>(
+    //                         this, qml, m_logBase, screenId));
 
-    QList<LegacyControllerMapping::QMLFileInfo> qmlFiles = pMapping->getQMLFiles();
-
-    for (const LegacyControllerMapping::QMLFileInfo& qml : std::as_const(qmlFiles)) {
-        for (uint8_t screenId = 0; screenId < qml.screen_count; screenId++) {
-            m_pRenderingEngines.append(
-                    std::make_shared<ControllerRenderingEngine>(
-                            this, qml, m_logBase, screenId));
-
-            // FIXME: this must use a direct connection to hold the rendering
-            // loop till the screen data has been sent!
-            if (m_screenDebugManager) {
-                m_screenDebugManager->addRenderer(m_pRenderingEngines.last(), screenId);
-            }
-            connect(m_pRenderingEngines.last().get(),
-                    &ControllerRenderingEngine::frameRendered,
-                    this,
-                    &Controller::sendBytes,
-                    Qt::DirectConnection);
-        }
-    }
+    //         // FIXME: this must use a direct connection to hold the rendering
+    //         // loop till the screen data has been sent!
+    //         if (m_screenDebugManager) {
+    //             m_screenDebugManager->addRenderer(m_pRenderingEngines.last(), screenId);
+    //         }
+    //         connect(m_pRenderingEngines.last().get(),
+    //                 &ControllerRenderingEngine::frameRendered,
+    //                 this,
+    //                 &Controller::sendBytes,
+    //                 Qt::DirectConnection);
+    //     }
+    // }
 
     return m_pScriptEngineLegacy->initialize();
 }

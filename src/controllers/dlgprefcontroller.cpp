@@ -17,6 +17,7 @@
 #include "defs_urls.h"
 #include "moc_dlgprefcontroller.cpp"
 #include "preferences/usersettings.h"
+#include "util/cmdlineargs.h"
 #include "util/versionstore.h"
 
 namespace {
@@ -398,15 +399,15 @@ QString DlgPrefController::mappingFileLinks(
         linkList << scriptFileLink;
     }
 
-    for (const auto& qml : pMapping->getQMLFiles()) {
+    for (const auto& qmlLibrary : pMapping->getLibraryDirectories()) {
         QString scriptFileLink = coloredLinkString(
                 m_pLinkColor,
-                qml.file.fileName(),
-                qml.file.absoluteFilePath());
-        if (!qml.file.exists()) {
+                qmlLibrary.dirinfo.fileName(),
+                qmlLibrary.dirinfo.absoluteFilePath());
+        if (!qmlLibrary.dirinfo.exists()) {
             scriptFileLink +=
                     QStringLiteral(" (") + tr("missing") + QStringLiteral(")");
-        } else if (qml.file.absoluteFilePath().startsWith(
+        } else if (qmlLibrary.dirinfo.absoluteFilePath().startsWith(
                            systemMappingPath)) {
             scriptFileLink += builtinFileSuffix;
         }
@@ -622,6 +623,7 @@ void DlgPrefController::slotMappingSelected(int chosenIndex) {
             }
             enableWizardAndIOTabs(false);
         }
+        m_ui.groupBoxScreens->setVisible(false);
     } else { // User picked a mapping
         m_ui.chkEnabledDevice->setEnabled(true);
 
@@ -824,12 +826,45 @@ void DlgPrefController::initTableView(QTableView* pTable) {
     pTable->setAlternatingRowColors(true);
 }
 
+void ControllerScreenPreview::updateFrame(
+        const LegacyControllerMapping::ScreenInfo& screen, QImage frame) {
+    if (m_screenInfo.identifier != screen.identifier) {
+        return;
+    }
+    setPixmap(QPixmap::fromImage(frame));
+}
+
 void DlgPrefController::slotShowMapping(std::shared_ptr<LegacyControllerMapping> pMapping) {
     m_ui.labelLoadedMapping->setText(mappingName(pMapping));
     m_ui.labelLoadedMappingDescription->setText(mappingDescription(pMapping));
     m_ui.labelLoadedMappingAuthor->setText(mappingAuthor(pMapping));
     m_ui.labelLoadedMappingSupportLinks->setText(mappingSupportLinks(pMapping));
     m_ui.labelLoadedMappingScriptFileLinks->setText(mappingFileLinks(pMapping));
+
+    if (m_pController->getScriptEngine()) {
+        disconnect(m_pController->getScriptEngine(), nullptr, this, nullptr);
+    }
+    qDeleteAll(m_ui.groupBoxScreens->findChildren<QLabel*>("", Qt::FindDirectChildrenOnly));
+
+    if (pMapping && CmdlineArgs::Instance().getControllerPreviewScreens() &&
+            m_pController->getScriptEngine()) {
+        auto screens = pMapping->getInfoScreens();
+
+        for (const LegacyControllerMapping::ScreenInfo& screen : qAsConst(screens)) {
+            ControllerScreenPreview* pPreviewScreen =
+                    new ControllerScreenPreview(m_ui.groupBoxScreens, screen);
+            m_ui.groupBoxScreens->layout()->addWidget(pPreviewScreen);
+
+            connect(m_pController->getScriptEngine(),
+                    &ControllerScriptEngineLegacy::previewRenderedScreen,
+                    pPreviewScreen,
+                    &ControllerScreenPreview::updateFrame);
+        }
+
+        m_ui.groupBoxScreens->setVisible(!screens.isEmpty());
+    } else {
+        m_ui.groupBoxScreens->setVisible(false);
+    }
 
     // We mutate this mapping so keep a reference to it while we are using it.
     // TODO(rryan): Clone it? Technically a waste since nothing else uses this

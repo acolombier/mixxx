@@ -4,9 +4,13 @@
 #include <QJSEngine>
 #include <QJSValue>
 #include <QMessageBox>
+#include <QQuickItem>
 
 #include "controllers/legacycontrollermapping.h"
 #include "controllers/scripting/controllerscriptenginebase.h"
+#include "util/parented_ptr.h"
+
+class ControllerRenderingEngine;
 
 /// ControllerScriptEngineLegacy loads and executes controller scripts for the legacy
 /// JS/XML hybrid controller mapping system.
@@ -28,11 +32,28 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
 
   public slots:
     void setScriptFiles(const QList<LegacyControllerMapping::ScriptFileInfo>& scripts);
+    void setLibraryDirectories(const QList<LegacyControllerMapping::QMLModuleInfo>& scripts);
+    void setInfoScrens(const QList<LegacyControllerMapping::ScreenInfo>& scripts);
+
+  private slots:
+    void handleScreenFrame(const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame);
+
+  signals:
+    /// Emitted when a screen has been rendered
+    void previewRenderedScreen(const LegacyControllerMapping::ScreenInfo& screen, QImage frame);
 
   private:
     bool evaluateScriptFile(const QFileInfo& scriptFile);
+    bool bindSceneToScreen(
+            const LegacyControllerMapping::ScriptFileInfo& qmlFile,
+            const QString& screenIdentifier,
+            ControllerRenderingEngine* pScreen);
     void shutdown() override;
+    bool bindSceneToScreen();
 
+    std::shared_ptr<QQuickItem> loadQMLFile(
+            const LegacyControllerMapping::ScriptFileInfo& qmlScript,
+            const ControllerRenderingEngine* pScreen);
     QJSValue wrapArrayBufferCallback(const QJSValue& callback);
     bool callFunctionOnObjects(const QList<QString>& scriptFunctionPrefixes,
             const QString&,
@@ -41,9 +62,15 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
 
     QJSValue m_makeArrayBufferWrapperFunction;
     QList<QString> m_scriptFunctionPrefixes;
+    QHash<QString, ControllerRenderingEngine*> m_renderingScreens;
+    QHash<QString, bool> m_isScreenSending;
+    QHash<QString, std::shared_ptr<QQuickItem>> m_rootItems;
+    QHash<QString, QMetaMethod> m_transformScreenFrameFunctions;
     QList<QJSValue> m_incomingDataFunctions;
     QHash<QString, QJSValue> m_scriptWrappedFunctionCache;
+    QList<LegacyControllerMapping::QMLModuleInfo> m_libraryDirectories;
     QList<LegacyControllerMapping::ScriptFileInfo> m_scriptFiles;
+    QList<LegacyControllerMapping::ScreenInfo> m_infoScreens;
 
     QFileSystemWatcher m_fileWatcher;
 

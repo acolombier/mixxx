@@ -17,6 +17,22 @@ class Controller;
 class ControllerManager;
 class MappingInfoEnumerator;
 
+/// Widget to preview controller screen
+class ControllerScreenPreview : public QLabel {
+    Q_OBJECT
+  public:
+    ControllerScreenPreview(QWidget* parent,
+            const LegacyControllerMapping::ScreenInfo& screen)
+            : QLabel(), m_screenInfo(screen) {
+        setFixedSize(screen.size);
+    }
+  public slots:
+    void updateFrame(const LegacyControllerMapping::ScreenInfo& screen, QImage frame);
+
+  private:
+    LegacyControllerMapping::ScreenInfo m_screenInfo;
+};
+
 /// Configuration dialog for a single DJ controller
 class DlgPrefController : public DlgPreferencePage {
     Q_OBJECT

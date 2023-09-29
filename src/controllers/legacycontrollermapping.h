@@ -13,6 +13,7 @@
 
 #include "controllers/rendering/controllerrenderingtransform.h"
 #include "defs_urls.h"
+#include "util/assert.h"
 
 /// This class represents a controller mapping, containing the data elements that
 /// make it up.
@@ -26,65 +27,73 @@ class LegacyControllerMapping {
     virtual std::shared_ptr<LegacyControllerMapping> clone() const = 0;
 
     struct ScriptFileInfo {
+        enum Type {
+            JAVASCRIPT,
+            QML,
+        };
+
         ScriptFileInfo()
                 : builtin(false) {
         }
 
         QString name;
-        QString functionPrefix;
+        QString identifier;
         QFileInfo file;
+        Type type;
         bool builtin;
     };
 
-    struct QMLFileInfo {
-        QMLFileInfo(const QString& aIdentifier,
+    struct QMLModuleInfo {
+        QMLModuleInfo(const QFileInfo& aDirinfo,
+                bool isBuiltin)
+                : dirinfo(aDirinfo),
+                  builtin(isBuiltin) {
+        }
+
+        QFileInfo dirinfo;
+        bool builtin;
+    };
+
+    struct ScreenInfo {
+        ScreenInfo(const QString& aIdentifier,
                 const QSize& aSize,
-                uint8_t aScreen_count,
                 uint8_t aTarget_fps,
                 GLenum aPixelFormat,
                 std::endian anEndian,
-                const QFileInfo& aFile,
-                const QList<QFileInfo>& aLibraryList,
-                const QString& transformPayload,
-                ControllerRenderingTransformFunctionType transformType)
+                bool isReversedColor)
                 : identifier(aIdentifier),
                   size(aSize),
-                  screen_count(aScreen_count),
                   target_fps(aTarget_fps),
                   pixelFormat(aPixelFormat),
                   endian(anEndian),
-                  file(aFile),
-                  libraries(aLibraryList),
-                  transformFunctionPayload(transformPayload),
-                  transformFunctionType(transformType) {
+                  reversedColor(isReversedColor) {
         }
 
         QString identifier;
         QSize size;
-        uint8_t screen_count;
         uint8_t target_fps;
         GLenum pixelFormat;
         std::endian endian;
-        QFileInfo file;
-        QList<QFileInfo> libraries;
-
-        QString transformFunctionPayload;
-        ControllerRenderingTransformFunctionType transformFunctionType;
+        bool reversedColor;
     };
 
     /// Adds a script file to the list of controller scripts for this mapping.
     /// @param filename Name of the script file to add
-    /// @param functionprefix The script's function prefix (or empty string)
+    /// @param identifier The script's function prefix with Javascript OR the
+    /// screen identifier this QML should be run for (or empty string)
     /// @param file A FileInfo object pointing to the script file
+    /// @param type A ScriptFileInfo::Type the specify script file type
     /// @param builtin If this is true, the script won't be written to the XML
     void addScriptFile(const QString& name,
-            const QString& functionprefix,
+            const QString& identifier,
             const QFileInfo& file,
+            ScriptFileInfo::Type type = ScriptFileInfo::Type::JAVASCRIPT,
             bool builtin = false) {
         ScriptFileInfo info;
         info.name = name;
-        info.functionPrefix = functionprefix;
+        info.identifier = identifier;
         info.file = file;
+        info.type = type;
         info.builtin = builtin;
         m_scripts.append(info);
         setDirty(true);
@@ -94,43 +103,46 @@ class LegacyControllerMapping {
         return m_scripts;
     }
 
-    /// Adds a QML file to the list of controller QML for this mapping.
-    /// @param filename Name of the QML file to add
-    // /// @param functionprefix The script's function prefix (or empty string)
-    /// @param file A FileInfo object pointing to the script file
+    /// Adds a custom QML module file to the list of controller modules for this mapping.
+    /// @param dirinfo A FileInfo of the directory or QML module
     /// @param builtin If this is true, the script won't be written to the XML
-    void addQMLFile(const QString& name,
-            const QSize& size,
-            const QFileInfo& file,
-            const QList<QFileInfo>& libraries,
-            const QString& transformPayload,
-            uint8_t screenCount = 1,
-            uint8_t targetFps = 30,
-            GLenum pixelFormat = GL_UNSIGNED_BYTE,
-            std::endian endian = std::endian::big,
-            ControllerRenderingTransformFunctionType transformType =
-                    ControllerRenderingTransformFunctionType::NONE) {
-        if (!targetFps) {
-            qWarning() << "Error when adding" << name
-                       << "to the list of render file: target FPS must not be "
-                          "zero. Discarding.";
-            return;
-        }
-        m_qmls.append(QMLFileInfo(name,
-                size,
-                screenCount,
-                targetFps,
-                pixelFormat,
-                endian,
-                file,
-                libraries,
-                transformPayload,
-                transformType));
+    void addLibraryDirectory(const QFileInfo& dirinfo,
+            bool builtin = false) {
+        m_modules.append(QMLModuleInfo(
+                dirinfo,
+                builtin));
         setDirty(true);
     }
 
-    const QList<QMLFileInfo>& getQMLFiles() const {
-        return m_qmls;
+    const QList<QMLModuleInfo>& getLibraryDirectories() const {
+        return m_modules;
+    }
+
+    // TODO update
+    /// Adds a screen info where QML will be rendered.
+    /// @param filename Name of the QML file to add
+    /// @param file A FileInfo object pointing to the script file
+    /// @param builtin If this is true, the script won't be written to the XML
+    void addScreenInfo(const QString& identifier,
+            const QSize& size,
+            uint8_t targetFps = 30,
+            GLenum pixelFormat = GL_UNSIGNED_BYTE,
+            std::endian endian = std::endian::big,
+            bool reversedColor = false) {
+        VERIFY_OR_DEBUG_ASSERT(true){
+                // TODO some sanity check (targetFps, ...)
+        };
+        m_screens.append(ScreenInfo(identifier,
+                size,
+                targetFps,
+                pixelFormat,
+                endian,
+                reversedColor));
+        setDirty(true);
+    }
+
+    const QList<ScreenInfo>& getInfoScreens() const {
+        return m_screens;
     }
 
     inline void setDirty(bool bDirty) {
@@ -271,5 +283,6 @@ class LegacyControllerMapping {
     QString m_mixxxVersion;
 
     QList<ScriptFileInfo> m_scripts;
-    QList<QMLFileInfo> m_qmls;
+    QList<QMLModuleInfo> m_modules;
+    QList<ScreenInfo> m_screens;
 };

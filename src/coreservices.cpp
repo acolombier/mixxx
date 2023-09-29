@@ -454,7 +454,15 @@ void CoreServices::initialize(QApplication* pApp) {
     initializeQMLSignletons(pApp);
 }
 
-void initializeQMLSignletons(QApplication* pApp) {
+void CoreServices::initializeQMLSignletons(QApplication* pApp) {
+    // Any uncreateable non-singleton types registered here require arguments
+    // that we don't want to expose to QML directly. Instead, they can be
+    // retrieved by member properties or methods from the singleton types.
+    //
+    // The alternative would be to register their *arguments* in the QML
+    // system, which would improve nothing, or we had to expose them as
+    // singletons to that they can be accessed by components instantiated by
+    // QML, which would also be suboptimal.
     mixxx::qml::QmlEffectsManagerProxy::s_pInstance = new mixxx::qml::QmlEffectsManagerProxy(
             getEffectsManager(), pApp);
     mixxx::qml::QmlPlayerManagerProxy::s_pInstance =

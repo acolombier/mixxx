@@ -18,16 +18,16 @@ class ControllerRenderingEngine;
 /// Function to sort controllers by name
 bool controllerCompare(Controller *a, Controller *b);
 
-class DebugControllerScreens : public QObject {
-    Q_OBJECT
-  public:
-    void addRenderer(std::shared_ptr<ControllerRenderingEngine> renderer, uint8_t screenId);
+// class DebugControllerScreens : public QObject {
+//     Q_OBJECT
+//   public:
+//     void addRenderer(std::shared_ptr<ControllerRenderingEngine> renderer, uint8_t screenId);
 
-    void removeRenderer(std::shared_ptr<ControllerRenderingEngine> renderer);
+//     void removeRenderer(std::shared_ptr<ControllerRenderingEngine> renderer);
 
-  private:
-    QHash<ControllerRenderingEngine*, std::shared_ptr<QLabel>> m_debugsScreens;
-};
+//   private:
+//     QHash<ControllerRenderingEngine*, std::shared_ptr<QLabel>> m_debugsScreens;
+// };
 
 /// Manages enumeration/operation/deletion of hardware controllers.
 class ControllerManager : public QObject {
@@ -97,5 +97,5 @@ class ControllerManager : public QObject {
     QSharedPointer<MappingInfoEnumerator> m_pMainThreadSystemMappingEnumerator;
     bool m_skipPoll;
 
-    std::shared_ptr<DebugControllerScreens> m_debugScreen;
+    // std::shared_ptr<DebugControllerScreens> m_debugScreen;
 };

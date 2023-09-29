@@ -13,7 +13,7 @@
 #include "util/runtimeloggingcategory.h"
 
 class ControllerJSProxy;
-class DebugControllerScreens;
+// class DebugControllerScreens;
 
 /// This is a base class representing a physical (or software) controller.  It
 /// must be inherited by a class that implements it on some API. Note that the
@@ -59,11 +59,11 @@ class Controller : public QObject {
         return m_bLearning;
     }
 
-    virtual bool matchMapping(const MappingInfo& mapping) = 0;
-
-    void setScreenDebugController(std::shared_ptr<DebugControllerScreens> manager) {
-        m_screenDebugManager = manager;
+    inline ControllerScriptEngineLegacy* getScriptEngine() const {
+        return m_pScriptEngineLegacy;
     }
+
+    virtual bool matchMapping(const MappingInfo& mapping) = 0;
 
   signals:
     /// Emitted when the controller is opened or closed.
@@ -119,9 +119,6 @@ class Controller : public QObject {
     // To be called when receiving events
     void triggerActivity();
 
-    inline ControllerScriptEngineLegacy* getScriptEngine() const {
-        return m_pScriptEngineLegacy;
-    }
     inline void setDeviceCategory(const QString& deviceCategory) {
         m_sDeviceCategory = deviceCategory;
     }
@@ -141,7 +138,7 @@ class Controller : public QObject {
     const RuntimeLoggingCategory m_logInput;
     const RuntimeLoggingCategory m_logOutput;
 
-  protected slots:
+  public slots:
     // This must be reimplemented by sub-classes desiring to send raw bytes to a
     // controller.
     virtual void sendBytes(const QByteArray& data) = 0;
@@ -160,7 +157,7 @@ class Controller : public QObject {
         return false;
     }
 
-    std::shared_ptr<DebugControllerScreens> m_screenDebugManager;
+    // std::shared_ptr<DebugControllerScreens> m_screenDebugManager;
 
   private:
     ControllerScriptEngineLegacy* m_pScriptEngineLegacy;
