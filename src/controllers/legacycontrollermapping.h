@@ -11,7 +11,6 @@
 #include <bit>
 #include <memory>
 
-#include "controllers/rendering/controllerrenderingtransform.h"
 #include "defs_urls.h"
 #include "util/assert.h"
 
@@ -57,24 +56,30 @@ class LegacyControllerMapping {
     struct ScreenInfo {
         ScreenInfo(const QString& aIdentifier,
                 const QSize& aSize,
-                uint8_t aTarget_fps,
+                uint aTargetFps,
+                uint aSplashOff,
                 GLenum aPixelFormat,
                 std::endian anEndian,
-                bool isReversedColor)
+                bool isReversedColor,
+                bool isRawData)
                 : identifier(aIdentifier),
                   size(aSize),
-                  target_fps(aTarget_fps),
+                  target_fps(aTargetFps),
+                  splash_off(aSplashOff),
                   pixelFormat(aPixelFormat),
                   endian(anEndian),
-                  reversedColor(isReversedColor) {
+                  reversedColor(isReversedColor),
+                  rawData(isRawData) {
         }
 
         QString identifier;
         QSize size;
-        uint8_t target_fps;
+        uint target_fps;
+        uint splash_off;
         GLenum pixelFormat;
         std::endian endian;
         bool reversedColor;
+        bool rawData;
     };
 
     /// Adds a script file to the list of controller scripts for this mapping.
@@ -118,26 +123,31 @@ class LegacyControllerMapping {
         return m_modules;
     }
 
-    // TODO update
-    /// Adds a screen info where QML will be rendered.
-    /// @param filename Name of the QML file to add
-    /// @param file A FileInfo object pointing to the script file
-    /// @param builtin If this is true, the script won't be written to the XML
+    /// @brief Adds a screen info where QML will be rendered.
+    /// @param identifier The screen identifier
+    /// @param size the size of the screen
+    /// @param targetFps the maximum FPS to render
+    /// @param splashoff the rendering grace time given when the screen is requested to shutdown
+    /// @param pixelFormat the pixel encoding format
+    /// @param endian the pixel endian format
+    /// @param reversedColor whether or not the RGB is swapped BGR
+    /// @param rawData whether or not the screen is allowed to reserve bare data, not transformed
     void addScreenInfo(const QString& identifier,
             const QSize& size,
-            uint8_t targetFps = 30,
+            uint targetFps = 30,
+            uint splashoff = 50,
             GLenum pixelFormat = GL_UNSIGNED_BYTE,
             std::endian endian = std::endian::big,
-            bool reversedColor = false) {
-        VERIFY_OR_DEBUG_ASSERT(true){
-                // TODO some sanity check (targetFps, ...)
-        };
+            bool reversedColor = false,
+            bool rawData = false) {
         m_screens.append(ScreenInfo(identifier,
                 size,
                 targetFps,
+                splashoff,
                 pixelFormat,
                 endian,
-                reversedColor));
+                reversedColor,
+                rawData));
         setDirty(true);
     }
 

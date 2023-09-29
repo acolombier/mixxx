@@ -105,6 +105,10 @@ DlgPrefController::DlgPrefController(
             &ControllerManager::mappingApplied,
             this,
             &DlgPrefController::enableWizardAndIOTabs);
+    connect(m_pController,
+            &Controller::openChanged,
+            this,
+            [this](bool) { slotShowMapping(m_pMapping); });
 
     // Open script file links
     connect(m_ui.labelLoadedMappingScriptFileLinks,
@@ -826,12 +830,38 @@ void DlgPrefController::initTableView(QTableView* pTable) {
     pTable->setAlternatingRowColors(true);
 }
 
+ControllerScreenPreview::ControllerScreenPreview(
+        QWidget* parent, const LegacyControllerMapping::ScreenInfo& screen)
+        : QWidget(parent),
+          m_screenInfo(screen),
+          m_pFrame(make_parented<QLabel>(this)),
+          m_pStat(make_parented<QLabel>("- FPS", this)),
+          m_lastFrameTimespamp(mixxx::Time::elapsed()) {
+    m_pFrame->setFixedSize(screen.size);
+    m_pStat->setAlignment(Qt::AlignRight);
+    auto aLayout = make_parented<QVBoxLayout>(this);
+    auto aBottomLayout = make_parented<QHBoxLayout>(this);
+    aLayout->addWidget(m_pFrame);
+    aBottomLayout->addWidget(make_parented<QLabel>(
+            QString("Screen %0").arg(m_screenInfo.identifier), this));
+    aBottomLayout->addWidget(m_pStat);
+    aLayout->addItem(aBottomLayout);
+    setLayout(aLayout);
+}
 void ControllerScreenPreview::updateFrame(
         const LegacyControllerMapping::ScreenInfo& screen, QImage frame) {
     if (m_screenInfo.identifier != screen.identifier) {
         return;
     }
-    setPixmap(QPixmap::fromImage(frame));
+    auto currentTimestamp = mixxx::Time::elapsed();
+    auto durationSinceLastFrame = (currentTimestamp - m_lastFrameTimespamp).toIntegerMillis();
+    if (durationSinceLastFrame) {
+        m_pStat->setText(QString("%0 FPS (requested %1)")
+                                 .arg(1000 / durationSinceLastFrame)
+                                 .arg(m_screenInfo.target_fps));
+    }
+    m_pFrame->setPixmap(QPixmap::fromImage(frame));
+    m_lastFrameTimespamp = currentTimestamp;
 }
 
 void DlgPrefController::slotShowMapping(std::shared_ptr<LegacyControllerMapping> pMapping) {
@@ -844,7 +874,7 @@ void DlgPrefController::slotShowMapping(std::shared_ptr<LegacyControllerMapping>
     if (m_pController->getScriptEngine()) {
         disconnect(m_pController->getScriptEngine(), nullptr, this, nullptr);
     }
-    qDeleteAll(m_ui.groupBoxScreens->findChildren<QLabel*>("", Qt::FindDirectChildrenOnly));
+    qDeleteAll(m_ui.groupBoxScreens->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
 
     if (pMapping && CmdlineArgs::Instance().getControllerPreviewScreens() &&
             m_pController->getScriptEngine()) {

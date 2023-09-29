@@ -11,6 +11,7 @@
 #include "controllers/ui_dlgprefcontrollerdlg.h"
 #include "preferences/dialog/dlgpreferencepage.h"
 #include "preferences/usersettings.h"
+#include "util/parented_ptr.h"
 
 // Forward declarations
 class Controller;
@@ -18,19 +19,21 @@ class ControllerManager;
 class MappingInfoEnumerator;
 
 /// Widget to preview controller screen
-class ControllerScreenPreview : public QLabel {
+class ControllerScreenPreview : public QWidget {
     Q_OBJECT
   public:
     ControllerScreenPreview(QWidget* parent,
-            const LegacyControllerMapping::ScreenInfo& screen)
-            : QLabel(), m_screenInfo(screen) {
-        setFixedSize(screen.size);
-    }
+            const LegacyControllerMapping::ScreenInfo& screen);
   public slots:
     void updateFrame(const LegacyControllerMapping::ScreenInfo& screen, QImage frame);
 
   private:
     LegacyControllerMapping::ScreenInfo m_screenInfo;
+
+    parented_ptr<QLabel> m_pFrame;
+    parented_ptr<QLabel> m_pStat;
+
+    mixxx::Duration m_lastFrameTimespamp;
 };
 
 /// Configuration dialog for a single DJ controller

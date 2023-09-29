@@ -40,6 +40,10 @@ bool ControllerScriptEngineBase::initialize() {
         std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine)
                 ->addImportPath(QStringLiteral(":/mixxx.org/imports"));
         // TODO Register clones of QML singletons to prevent thread-unsafety?
+        // No memory leak here, the QQmlEngine takes ownership of the provider
+        // QQuickAsyncImageProvider* pImageProvider = std::make_unique<AsyncImageProvider>(
+        //         m_pCoreServices->getTrackCollectionManager());
+        // m_qmlEngine->addImageProvider(AsyncImageProvider::kProviderName, pImageProvider);
     }
 
     QJSValue engineGlobalObject = m_pJSEngine->globalObject();

@@ -3,6 +3,7 @@
 #include <QFileSystemWatcher>
 #include <QJSValue>
 #include <QLabel>
+#include <QMutex>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -12,6 +13,7 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
+#include <QWaitCondition>
 #include <bit>
 
 #include "controllers/legacycontrollermapping.h"
@@ -21,7 +23,7 @@
 #include "util/runtimeloggingcategory.h"
 #include "util/time.h"
 
-class ControllerRenderingTransformFunctionBase;
+class Controller;
 
 class ControllerRenderingEngine : public QObject {
     Q_OBJECT
@@ -30,8 +32,6 @@ class ControllerRenderingEngine : public QObject {
     ~ControllerRenderingEngine();
 
     bool event(QEvent* event) override;
-
-    bool stop();
 
     const QSize& size() const {
         return m_screenInfo.size;
@@ -47,23 +47,28 @@ class ControllerRenderingEngine : public QObject {
 
   public slots:
     void requestSetup(std::shared_ptr<QQmlEngine> qmlEngine);
+    void requestSend(Controller* controller, const QByteArray& frame);
     void start();
+    bool stop();
 
   private slots:
-    void cleanup();
+    void finish();
     void renderFrame();
     void setup(std::shared_ptr<QQmlEngine> qmlEngine);
+    void send(Controller* controller, const QByteArray& frame);
 
   signals:
     void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame);
     void setupRequested(std::shared_ptr<QQmlEngine> engine);
+    void stopRequested();
+    void sendRequested(Controller* controller, const QByteArray& frame);
 
   private:
-    void createFbo();
-
     mixxx::Duration m_nextFrameStart;
 
     LegacyControllerMapping::ScreenInfo m_screenInfo;
+
+    std::unique_ptr<QThread> m_pThread;
 
     std::unique_ptr<QOpenGLContext> m_context;
     std::unique_ptr<QOffscreenSurface> m_offscreenSurface;
@@ -72,9 +77,9 @@ class ControllerRenderingEngine : public QObject {
 
     std::unique_ptr<QOpenGLFramebufferObject> m_fbo;
 
-    std::unique_ptr<QTimer> m_pFrameClock;
-
     QImage::Format m_imageFormat;
     GLenum m_GLDataType;
-    bool m_reversedPixelFormat;
+
+    QWaitCondition m_waitCondition;
+    QMutex m_mutex;
 };

@@ -71,3 +71,6 @@ class LegacyControllerMappingFileHandler {
 
 // Maximum target frame per request for a a screen controller
 #define MAX_TARGET_FPS 240
+
+// Maximum time allowed for a screen to run a splash off animation
+#define MAX_SPLASHOFF_DURATION 3000

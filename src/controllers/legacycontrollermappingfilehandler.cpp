@@ -194,14 +194,23 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
     // Look for additional ones
     while (!screen.isNull()) {
         QString identifier = screen.attribute("identifier", "");
-        uint8_t targetFps = screen.attribute("targetFps", "30").toUInt();
+        uint targetFps = screen.attribute("targetFps", "30").toUInt();
         QString pixelFormatName = screen.attribute("pixelType", "RBG888");
         QString endianName = screen.attribute("endian", "big");
         QString reversedColor = screen.attribute("reversed", "false").toLower();
+        QString rawData = screen.attribute("raw", "false").toLower();
+        uint splashoff = screen.attribute("splashoff", "0").toUInt();
 
         if (!targetFps || targetFps > MAX_TARGET_FPS) {
             qWarning() << "Invalid target FPS. Target FPS must be between 1 and " << MAX_TARGET_FPS;
             continue;
+        }
+
+        if (splashoff > MAX_SPLASHOFF_DURATION) {
+            qWarning() << "Invalid splashoff duration. Splashoff duration must "
+                          "be between 0 and "
+                       << MAX_SPLASHOFF_DURATION;
+            splashoff = MAX_SPLASHOFF_DURATION;
         }
 
         if (!kSupportedPixelFormat.contains(pixelFormatName)){
@@ -224,9 +233,11 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
         mapping->addScreenInfo(identifier,
                 QSize(width, height),
                 targetFps,
+                splashoff,
                 pixelFormat,
                 endian,
-                reversedColor == "yes" || reversedColor == "true" || reversedColor == "1");
+                reversedColor == "yes" || reversedColor == "true" || reversedColor == "1",
+                rawData == "yes" || rawData == "true" || rawData == "1");
         screen = screen.nextSiblingElement("screen");
     }
     // Build a list of QML files to load

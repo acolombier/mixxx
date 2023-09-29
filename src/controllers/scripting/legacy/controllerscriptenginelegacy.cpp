@@ -136,9 +136,8 @@ bool ControllerScriptEngineLegacy::callFunctionOnObjects(
                 break;
             }
 
-            if (!isSuccessfull || !returnedValue.isValid()) {
+            if (!isSuccessfull) {
                 // TODO how do we show the error?
-                qDebug() << "We've received" << returnedValue;
                 // showScriptExceptionDialog(QJSValue{}, bFatalError);
                 success = false;
             }
@@ -403,7 +402,9 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
 
 void ControllerScriptEngineLegacy::handleScreenFrame(
         const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame) {
-    VERIFY_OR_DEBUG_ASSERT(m_transformScreenFrameFunctions.contains(screeninfo.identifier)) {
+    VERIFY_OR_DEBUG_ASSERT(
+            m_transformScreenFrameFunctions.contains(screeninfo.identifier) ||
+            m_renderingScreens.contains(screeninfo.identifier)) {
         qWarning() << "Unable to find transform function info for the given screen";
         return;
     };
@@ -443,8 +444,9 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
 
     QMetaMethod tranformMethod = m_transformScreenFrameFunctions.value(screeninfo.identifier);
 
-    if (!tranformMethod.isValid()) {
+    if (!tranformMethod.isValid() && screeninfo.rawData) {
         // m_pController->sendBytes(input);
+        m_renderingScreens[screeninfo.identifier]->requestSend(m_pController, input);
         return;
     }
 
@@ -465,10 +467,14 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     if (returnedValue.canView<QByteArray>()) {
         // QByteArray transformedFrame(returnedValue.view<QByteArray>());
         // qDebug() << "About to send: "<<QByteArray(transformedFrame.toHex(' '), 64);
-        m_pController->sendBytes(returnedValue.view<QByteArray>());
+        // m_pController->sendBytes(returnedValue.view<QByteArray>());
+        m_renderingScreens[screeninfo.identifier]->requestSend(
+                m_pController, returnedValue.view<QByteArray>());
     } else if (returnedValue.canConvert<QByteArray>()) {
         // qDebug() << "About to send: "<<QByteArray(returnedValue.toByteArray().toHex(' '), 64);
-        m_pController->sendBytes(returnedValue.toByteArray());
+        // m_pController->sendBytes(returnedValue.toByteArray());
+        m_renderingScreens[screeninfo.identifier]->requestSend(
+                m_pController, returnedValue.toByteArray());
     } else {
         qWarning() << "Unable to interpret the returned data " << returnedValue;
     }
@@ -483,26 +489,24 @@ void ControllerScriptEngineLegacy::shutdown() {
 
     // Wait for up to 4 frames to allow screens to display a shutdown
     // splash/idle screen or simply clear themselves
-    uint maxFramePeriod = 0;
+    uint maxSplashOffDuration = 0;
     for (const ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
-        uint framePeriod = 1000 / pScreen->info().target_fps;
-        maxFramePeriod = qMax(maxFramePeriod, framePeriod);
+        maxSplashOffDuration = qMax(maxSplashOffDuration, pScreen->info().splash_off);
     }
 
-    if (maxFramePeriod) {
-        thread()->msleep(maxFramePeriod * 4);
-        QCoreApplication::processEvents();
+    auto splashOffDeadline = mixxx::Duration::fromMillis(maxSplashOffDuration) +
+            mixxx::Time::elapsed();
+    while (splashOffDeadline > mixxx::Time::elapsed()) {
+        QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents,
+                (splashOffDeadline - mixxx::Time::elapsed()).toIntegerMillis());
     }
 
     m_rootItems.clear();
     for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
-        pScreen->deleteLater();
+        VERIFY_OR_DEBUG_ASSERT(pScreen->stop()){};
     }
     m_renderingScreens.clear();
     m_transformScreenFrameFunctions.clear();
-    // for (std::shared_ptr<QQuickItem>& rootItem : m_rootItems.values()) {
-    //     std::move(rootItem)->deleteLater();
-    // }
     m_scriptWrappedFunctionCache.clear();
     m_incomingDataFunctions.clear();
     m_scriptFunctionPrefixes.clear();

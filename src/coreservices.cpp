@@ -561,6 +561,12 @@ void CoreServices::finalize() {
     Timer t("CoreServices::~CoreServices");
     t.start();
 
+    // Delete all the QML singletons
+    delete mixxx::qml::QmlEffectsManagerProxy::s_pInstance;
+    delete mixxx::qml::QmlPlayerManagerProxy::s_pInstance;
+    delete mixxx::qml::QmlConfigProxy::s_pInstance;
+    delete mixxx::qml::QmlLibraryProxy::s_pInstance;
+
     // Stop all pending library operations
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "stopping pending Library tasks";
     m_pTrackCollectionManager->stopLibraryScan();

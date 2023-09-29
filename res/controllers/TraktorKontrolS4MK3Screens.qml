@@ -15,7 +15,7 @@ import Mixxx.Controls 1.0 as MixxxControls
 // Import other project QML scripts
 import "Traktor-Kontrol-S4-MK3-Screens" as S4MK3
 
-Item {
+Rectangle {
     id: root
 
     required property string screenId
@@ -25,10 +25,15 @@ Item {
     property string group: "[Channel1]"
     property var deckPlayer: Mixxx.PlayerManager.getPlayer(root.group)
 
+    color: "black"
+    antialiasing: true
+
     function init(controlerName, isDebug) {
         console.log(`Screen ${root.screenId} has started`)
         // root.stat = DummyDeviceDefaultScreen.Stat.Running
         loader.sourceComponent = live
+        root.group = root.screenId === "rightdeck" ? "[Channel2]" : "[Channel1]"
+        onAir.update()
     }
 
     function shutdown() {
@@ -38,7 +43,6 @@ Item {
     }
 
     function transformFrame(input) {
-        console.log(`Transforming screen ${root.screenId === "leftdeck" ? 0 : 1}`);
         const outputData = new ArrayBuffer(320*240*2 + 20);
         const header = new Uint8Array(outputData, 0, 16);
         const payload = new Uint8Array(outputData, 16, 320*240*2);
@@ -58,499 +62,502 @@ Item {
         return outputData;
     }
 
-    function onRuntimeDataUpdate(data) {
-        console.log(`Received data on screen#${root.screenId} while currently bind to ${root.group}: ${JSON.stringify(data)}`);
-        if (typeof data === "object" && typeof data.group === "object" && data.group.length === 2 && typeof data.group[root.screenId] === "string" && root.group !== data.group[root.screenId]) {
-            root.group = data.group[root.screenId]
-            console.log(`Changed group for screen ${root.screenId} to ${root.group}`);
-        }
-        var shouldBeCompacted = false;
-        if (typeof data.zoomedWaveform === "object") {
-            shouldBeCompacted |= data.zoomedWaveform[root.group]
-            waveformZoomed.visible = data.zoomedWaveform[root.group]
-        }
-        if (typeof data.keyboardMode === "object") {
-            shouldBeCompacted |= data.keyboardMode[root.group]
-            keyboard.visible = !!data.keyboardMode[root.group]
-        }
-        deckInfo.state = shouldBeCompacted ? "compacted" : ""
-        if (typeof data.displayBeatloopSize === "object") {
-            timeIndicator.mode = data.displayBeatloopSize[root.screenId] ? S4MK3.TimeAndBeatloopIndicator.Mode.BeetjumpSize : S4MK3.TimeAndBeatloopIndicator.Mode.RemainingTime
-            timeIndicator.update()
-        }
-    }
+    Item {
+        anchors.fill: parent
 
-    Component.onCompleted: {
-        // engine.onRuntimeDataUpdate(onRuntimeDataUpdate)
-        if (root.screenId === "rightdeck") {
-            root.group = "[Channel2]"
-        }
-
-        onRuntimeDataUpdate({
-            // zoomedWaveform: {
-            //     "[Channel1]": true
-            // }
-        })
-
-        // root.deckPlayer.onWaveformLengthChanged((value) => {
-        //     console.warn("Changed!!")
-        // })
-        // root.deckPlayer.onWaveformTextureChanged((value) => {
-        //     console.warn("Changed!!")
-        // })
-        // root.deckPlayer.onWaveformTextureSizeChanged((value) => {
-        //     console.warn("Changed!!")
-        // })
-    }
-    Component {
-        id: splashoff
-        Rectangle {
-            color: "black"
-            anchors.fill: parent
-            Image {
+        Component {
+            id: splashoff
+            Rectangle {
                 anchors.fill: parent
-                fillMode: Image.PreserveAspectFit
-                source: "../images/templates/logo_mixxx.png" // loads cat.png
+                color: "black"
+
+                Image {
+                    anchors.centerIn: parent
+                    width: root.width*0.8
+                    height: root.height
+                    fillMode: Image.PreserveAspectFit
+                    source: "../images/templates/logo_mixxx.png" // loads cat.png
+                }
             }
-
-            // width: 10
-            // height: 10
         }
-    }
-    Component {
-        id: live
+        Component {
+            id: live
 
-        Rectangle {
-            anchors.fill: parent
-            color: "black"
-
-            antialiasing: true
-
-            ColumnLayout {
+            Rectangle {
                 anchors.fill: parent
-                anchors.leftMargin: 6
-                anchors.rightMargin: 6
-                anchors.topMargin: 2
-                anchors.bottomMargin: 6
-                spacing: 6
+                color: "black"
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 36
-                    color: "transparent"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 1
-
-                        S4MK3.OnAirTrack {
-                            id: onAir
-                            group: root.group
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                        }
+                function onRuntimeDataUpdate(data) {
+                    console.log(`Received data on screen#${root.screenId} while currently bind to ${root.group}: ${JSON.stringify(data)}`);
+                    if (typeof data === "object" && typeof data.group === "object" && data.group.length === 2 && typeof data.group[root.screenId] === "string" && root.group !== data.group[root.screenId]) {
+                        root.group = data.group[root.screenId]
+                        console.log(`Changed group for screen ${root.screenId} to ${root.group}`);
+                    }
+                    var shouldBeCompacted = false;
+                    if (typeof data.zoomedWaveform === "object") {
+                        shouldBeCompacted |= data.zoomedWaveform[root.group]
+                        waveformZoomed.visible = data.zoomedWaveform[root.group]
+                    }
+                    if (typeof data.keyboardMode === "object") {
+                        shouldBeCompacted |= data.keyboardMode[root.group]
+                        keyboard.visible = !!data.keyboardMode[root.group]
+                    }
+                    deckInfo.state = shouldBeCompacted ? "compacted" : ""
+                    if (typeof data.displayBeatloopSize === "object") {
+                        timeIndicator.mode = data.displayBeatloopSize[root.screenId] ? S4MK3.TimeAndBeatloopIndicator.Mode.BeetjumpSize : S4MK3.TimeAndBeatloopIndicator.Mode.RemainingTime
+                        timeIndicator.update()
                     }
                 }
 
-                // Indicator
-                Rectangle {
-                    id: deckInfo
-
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 105
-                    color: "transparent"
-
-                    GridLayout {
-                        id: gridLayout
-                        anchors.fill: parent
-                        columnSpacing: 6
-                        rowSpacing: 6
-                        columns: 2
-
-                        // Section: Key
-                        S4MK3.KeyIndicator {
-                            id: keyIndicator
-                            group: root.group
-                            borderColor: smallBoxBorder
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                        }
-
-                        // Section: Bpm
-                        S4MK3.BPMIndicator {
-                            id: bpmIndicator
-                            group: root.group
-                            borderColor: smallBoxBorder
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                        }
-
-                        // Section: Key
-                        S4MK3.TimeAndBeatloopIndicator {
-                            id: timeIndicator
-                            group: root.group
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 72
-                            timeColor: smallBoxBorder
-                        }
-
-                        // Section: Bpm
-                        S4MK3.LoopSizeIndicator {
-                            id: loopSizeIndicator
-                            group: root.group
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 72
-                        }
+                Component.onCompleted: {
+                    // engine.onRuntimeDataUpdate(onRuntimeDataUpdate)
+                    if (root.screenId === "rightdeck") {
+                        root.group = "[Channel2]"
                     }
-                    states: State {
-                        name: "compacted"
 
-                        PropertyChanges {
-                            target:deckInfo
-                            Layout.preferredHeight: 28
-                        }
-                        PropertyChanges {
-                            target: gridLayout
-                            columns: 4
-                        }
-                        PropertyChanges {
-                            target: bpmIndicator
-                            state: "compacted"
-                        }
-                        PropertyChanges {
-                            target: timeIndicator
-                            Layout.preferredHeight: -1
-                            Layout.fillHeight: true
-                            state: "compacted"
-                        }
-                        PropertyChanges {
-                            target: loopSizeIndicator
-                            Layout.preferredHeight: -1
-                            Layout.fillHeight: true
-                            state: "compacted"
-                        }
-                    }
+                    onRuntimeDataUpdate({
+                        // zoomedWaveform: {
+                        //     "[Channel1]": true
+                        // }
+                    })
+
+                    // root.deckPlayer.onWaveformLengthChanged((value) => {
+                    //     console.warn("Changed!!")
+                    // })
+                    // root.deckPlayer.onWaveformTextureChanged((value) => {
+                    //     console.warn("Changed!!")
+                    // })
+                    // root.deckPlayer.onWaveformTextureSizeChanged((value) => {
+                    //     console.warn("Changed!!")
+                    // })
                 }
 
-                // Track progress
-                Item {
-                    // Layout.preferredHeight: 40
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    layer.enabled: true
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 6
+                    anchors.topMargin: 2
+                    anchors.bottomMargin: 6
+                    spacing: 6
 
-                    S4MK3.Progression {
-                        id: progression
-                        group: root.group
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
+                        color: "transparent"
 
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.bottom: parent.bottom
-                    }
-
-                    MixxxControls.WaveformOverview {
-                        id: waveform
-                        group: root.group
-                        anchors.fill: parent
-                        channels: Mixxx.WaveformOverview.Channels.BothChannels
-                        renderer: Mixxx.WaveformOverview.Renderer.RGB
-                        colorHigh: 'white'
-                        colorMid: 'blue'
-                        colorLow: 'green'
-                    }
-
-                    // Hotcue
-                    Repeater {
-                        model: 8
-
-                        S4MK3.HotcuePoint {
-                            required property int index
-
-                            Mixxx.ControlProxy {
-                                id: samplesControl
-
-                                group: root.group
-                                key: "track_samples"
-                            }
-
-                            Mixxx.ControlProxy {
-                                id: hotcueEnabled
-                                group: root.group
-                                key: `hotcue_${index}_status`
-                            }
-
-                            Mixxx.ControlProxy {
-                                id: hotcuePosition
-                                group: root.group
-                                key: `hotcue_${index}_position`
-                            }
-
-                            anchors.top: parent.top
-                            // anchors.left: parent.left
-                            anchors.bottom: parent.bottom
-                            visible: hotcueEnabled.value
-
-                            number: this.index
-                            type: S4MK3.HotcuePoint.Type.OneShot
-                            position: hotcuePosition.value / samplesControl.value
-                        }
-                    }
-
-                    // Intro
-                    S4MK3.HotcuePoint {
-
-                        Mixxx.ControlProxy {
-                            id: introStartEnabled
-                            group: root.group
-                            key: `intro_start_enabled`
-                            onValueChanged: (value) => {
-                                console.log(value);
-                            }
-                        }
-
-                        Mixxx.ControlProxy {
-                            id: introStartPosition
-                            group: root.group
-                            key: `intro_start_position`
-                            onValueChanged: (value) => {
-                                console.log(value);
-                            }
-                        }
-
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        visible: introStartEnabled.value
-
-                        type: S4MK3.HotcuePoint.Type.IntroIn
-                        position: introStartPosition.value / samplesControl.value
-                    }
-
-                    // Extro
-                    S4MK3.HotcuePoint {
-
-                        Mixxx.ControlProxy {
-                            id: introEndEnabled
-                            group: root.group
-                            key: `intro_end_enabled`
-                        }
-
-                        Mixxx.ControlProxy {
-                            id: introEndPosition
-                            group: root.group
-                            key: `intro_end_position`
-                        }
-
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        visible: introEndEnabled.value
-
-                        type: S4MK3.HotcuePoint.Type.IntroOut
-                        position: introEndPosition.value / samplesControl.value
-                    }
-
-                    // Loop in
-                    S4MK3.HotcuePoint {
-                        Mixxx.ControlProxy {
-                            id: loopStartPosition
-                            group: root.group
-                            key: `loop_start_position`
-                        }
-
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        visible: loopStartPosition.value > 0
-
-                        type: S4MK3.HotcuePoint.Type.LoopIn
-                        position: loopStartPosition.value / samplesControl.value
-                    }
-
-                    // Loop out
-                    S4MK3.HotcuePoint {
-                        Mixxx.ControlProxy {
-                            id: loopEndPosition
-                            group: root.group
-                            key: `loop_end_position`
-                        }
-
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        visible: loopEndPosition.value > 0
-
-                        type: S4MK3.HotcuePoint.Type.LoopOut
-                        position: loopEndPosition.value / samplesControl.value
-                    }
-
-                    Item {
-                        id: waveformZoomed
-
-                        property var group: root.group
-                        property real scale: 0.2
-
-                        visible: false
-                        antialiasing: true
-                        anchors.fill: parent
-
-                            // MixxxControls.WaveformDisplay {
-                            //     anchors.fill: parent
-                            //     group: waveformZoomed.group
-                            //     scale: waveformZoomed.scale
-                            // }
-
-                        Rectangle {
-                            color: "white"
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            x: 153
-                            width: 2
-                        }
-                        Item {
-                            id: waveformContainer
-
-                            property real duration: samplesControl.value / sampleRateControl.value
-
+                        RowLayout {
                             anchors.fill: parent
-                            clip: true
+                            spacing: 1
+
+                            S4MK3.OnAirTrack {
+                                id: onAir
+                                group: root.group
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+                        }
+                    }
+
+                    // Indicator
+                    Rectangle {
+                        id: deckInfo
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 105
+                        color: "transparent"
+
+                        GridLayout {
+                            id: gridLayout
+                            anchors.fill: parent
+                            columnSpacing: 6
+                            rowSpacing: 6
+                            columns: 2
+
+                            // Section: Key
+                            S4MK3.KeyIndicator {
+                                id: keyIndicator
+                                group: root.group
+                                borderColor: smallBoxBorder
+
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+
+                            // Section: Bpm
+                            S4MK3.BPMIndicator {
+                                id: bpmIndicator
+                                group: root.group
+                                borderColor: smallBoxBorder
+
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+
+                            // Section: Key
+                            S4MK3.TimeAndBeatloopIndicator {
+                                id: timeIndicator
+                                group: root.group
+
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 72
+                                timeColor: smallBoxBorder
+                            }
+
+                            // Section: Bpm
+                            S4MK3.LoopSizeIndicator {
+                                id: loopSizeIndicator
+                                group: root.group
+
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 72
+                            }
+                        }
+                        states: State {
+                            name: "compacted"
+
+                            PropertyChanges {
+                                target:deckInfo
+                                Layout.preferredHeight: 28
+                            }
+                            PropertyChanges {
+                                target: gridLayout
+                                columns: 4
+                            }
+                            PropertyChanges {
+                                target: bpmIndicator
+                                state: "compacted"
+                            }
+                            PropertyChanges {
+                                target: timeIndicator
+                                Layout.preferredHeight: -1
+                                Layout.fillHeight: true
+                                state: "compacted"
+                            }
+                            PropertyChanges {
+                                target: loopSizeIndicator
+                                Layout.preferredHeight: -1
+                                Layout.fillHeight: true
+                                state: "compacted"
+                            }
+                        }
+                    }
+
+                    // Track progress
+                    Item {
+                        // Layout.preferredHeight: 40
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        layer.enabled: true
+
+                        S4MK3.Progression {
+                            id: progression
+                            group: root.group
+
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.bottom: parent.bottom
+                        }
+
+                        MixxxControls.WaveformOverview {
+                            id: waveform
+                            group: root.group
+                            anchors.fill: parent
+                            channels: Mixxx.WaveformOverview.Channels.BothChannels
+                            renderer: Mixxx.WaveformOverview.Renderer.RGB
+                            colorHigh: 'white'
+                            colorMid: 'blue'
+                            colorLow: 'green'
+                        }
+
+                        // Hotcue
+                        Repeater {
+                            model: 8
+
+                            S4MK3.HotcuePoint {
+                                required property int index
+
+                                Mixxx.ControlProxy {
+                                    id: samplesControl
+
+                                    group: root.group
+                                    key: "track_samples"
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: hotcueEnabled
+                                    group: root.group
+                                    key: `hotcue_${index}_status`
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: hotcuePosition
+                                    group: root.group
+                                    key: `hotcue_${index}_position`
+                                }
+
+                                anchors.top: parent.top
+                                // anchors.left: parent.left
+                                anchors.bottom: parent.bottom
+                                visible: hotcueEnabled.value
+
+                                number: this.index
+                                type: S4MK3.HotcuePoint.Type.OneShot
+                                position: hotcuePosition.value / samplesControl.value
+                            }
+                        }
+
+                        // Intro
+                        S4MK3.HotcuePoint {
 
                             Mixxx.ControlProxy {
-                                id: samplesControl
-
+                                id: introStartEnabled
                                 group: root.group
-                                key: "track_samples"
+                                key: `intro_start_enabled`
+                                onValueChanged: (value) => {
+                                    console.log(value);
+                                }
                             }
 
                             Mixxx.ControlProxy {
-                                id: sampleRateControl
-
+                                id: introStartPosition
                                 group: root.group
-                                key: "track_samplerate"
+                                key: `intro_start_position`
+                                onValueChanged: (value) => {
+                                    console.log(value);
+                                }
+                            }
+
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            visible: introStartEnabled.value
+
+                            type: S4MK3.HotcuePoint.Type.IntroIn
+                            position: introStartPosition.value / samplesControl.value
+                        }
+
+                        // Extro
+                        S4MK3.HotcuePoint {
+
+                            Mixxx.ControlProxy {
+                                id: introEndEnabled
+                                group: root.group
+                                key: `intro_end_enabled`
                             }
 
                             Mixxx.ControlProxy {
-                                id: playPositionControl
-
+                                id: introEndPosition
                                 group: root.group
-                                key: "playposition"
+                                key: `intro_end_position`
                             }
 
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            visible: introEndEnabled.value
+
+                            type: S4MK3.HotcuePoint.Type.IntroOut
+                            position: introEndPosition.value / samplesControl.value
+                        }
+
+                        // Loop in
+                        S4MK3.HotcuePoint {
                             Mixxx.ControlProxy {
-                                id: rateRatioControl
-
+                                id: loopStartPosition
                                 group: root.group
-                                key: "rate_ratio"
+                                key: `loop_start_position`
                             }
 
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            visible: loopStartPosition.value > 0
+
+                            type: S4MK3.HotcuePoint.Type.LoopIn
+                            position: loopStartPosition.value / samplesControl.value
+                        }
+
+                        // Loop out
+                        S4MK3.HotcuePoint {
                             Mixxx.ControlProxy {
-                                id: zoomControl
-
+                                id: loopEndPosition
                                 group: root.group
-                                key: "waveform_zoom"
+                                key: `loop_end_position`
                             }
 
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            visible: loopEndPosition.value > 0
+
+                            type: S4MK3.HotcuePoint.Type.LoopOut
+                            position: loopEndPosition.value / samplesControl.value
+                        }
+
+                        Item {
+                            id: waveformZoomed
+
+                            property var group: root.group
+                            property real scale: 0.2
+
+                            visible: false
+                            antialiasing: true
+                            anchors.fill: parent
+
+                                // MixxxControls.WaveformDisplay {
+                                //     anchors.fill: parent
+                                //     group: waveformZoomed.group
+                                //     scale: waveformZoomed.scale
+                                // }
+
+                            Rectangle {
+                                color: "white"
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                x: 153
+                                width: 2
+                            }
                             Item {
-                                id: waveformBeat
+                                id: waveformContainer
 
-                                property real effectiveZoomFactor: (zoomControl.value * rateRatioControl.value / waveformZoomed.scale) * 6
-
-                                width: waveformContainer.duration * effectiveZoomFactor
-                                height: parent.height
-                                x: 0.5 * waveformContainer.width - playPositionControl.value * width
-                                visible: true
-
-                                Shape {
-                                    id: preroll
-
-                                    property real triangleHeight: waveformBeat.height
-                                    property real triangleWidth: 0.25 * waveformBeat.effectiveZoomFactor
-                                    property int numTriangles: Math.ceil(width / triangleWidth)
-
-                                    anchors.top: waveformBeat.top
-                                    anchors.right: waveformBeat.left
-                                    width: Math.max(0, waveformBeat.x)
-                                    height: waveformBeat.height
-
-                                    ShapePath {
-                                        strokeColor: 'red'
-                                        strokeWidth: 1
-                                        fillColor: "transparent"
-
-                                        PathMultiline {
-                                            paths: {
-                                                let p = [];
-                                                for (let i = 0; i < preroll.numTriangles; i++) {
-                                                    p.push([Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2), Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, 0), Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, preroll.triangleHeight), Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2)]);
-                                                }
-                                                return p;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Shape {
-                                    id: postroll
-
-                                    property real triangleHeight: waveformBeat.height
-                                    property real triangleWidth: 0.25 * waveformBeat.effectiveZoomFactor
-                                    property int numTriangles: Math.ceil(width / triangleWidth)
-
-                                    anchors.top: waveformBeat.top
-                                    anchors.left: waveformBeat.right
-                                    width: waveformContainer.width / 2
-                                    height: waveformBeat.height
-
-                                    ShapePath {
-                                        strokeColor: 'red'
-                                        strokeWidth: 1
-                                        fillColor: "transparent"
-
-                                        PathMultiline {
-                                            paths: {
-                                                let p = [];
-                                                for (let i = 0; i < postroll.numTriangles; i++) {
-                                                    p.push([Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2), Qt.point((i + 1) * postroll.triangleWidth, 0), Qt.point((i + 1) * postroll.triangleWidth, postroll.triangleHeight), Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2)]);
-                                                }
-                                                return p;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            MixxxControls.WaveformOverview {
                                 property real duration: samplesControl.value / sampleRateControl.value
 
-                                    // anchors.fill: parent
-                                    // clip: true
-
-                                group: root.group
                                 anchors.fill: parent
-                                channels: Mixxx.WaveformOverview.Channels.BothChannels
-                                renderer: Mixxx.WaveformOverview.Renderer.RGB
-                                colorHigh: 'white'
-                                colorMid: 'blue'
-                                colorLow: 'green'
+                                clip: true
+
+                                Mixxx.ControlProxy {
+                                    id: samplesControl
+
+                                    group: root.group
+                                    key: "track_samples"
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: sampleRateControl
+
+                                    group: root.group
+                                    key: "track_samplerate"
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: playPositionControl
+
+                                    group: root.group
+                                    key: "playposition"
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: rateRatioControl
+
+                                    group: root.group
+                                    key: "rate_ratio"
+                                }
+
+                                Mixxx.ControlProxy {
+                                    id: zoomControl
+
+                                    group: root.group
+                                    key: "waveform_zoom"
+                                }
+
+                                Item {
+                                    id: waveformBeat
+
+                                    property real effectiveZoomFactor: (zoomControl.value * rateRatioControl.value / waveformZoomed.scale) * 6
+
+                                    width: waveformContainer.duration * effectiveZoomFactor
+                                    height: parent.height
+                                    x: 0.5 * waveformContainer.width - playPositionControl.value * width
+                                    visible: true
+
+                                    Shape {
+                                        id: preroll
+
+                                        property real triangleHeight: waveformBeat.height
+                                        property real triangleWidth: 0.25 * waveformBeat.effectiveZoomFactor
+                                        property int numTriangles: Math.ceil(width / triangleWidth)
+
+                                        anchors.top: waveformBeat.top
+                                        anchors.right: waveformBeat.left
+                                        width: Math.max(0, waveformBeat.x)
+                                        height: waveformBeat.height
+
+                                        ShapePath {
+                                            strokeColor: 'red'
+                                            strokeWidth: 1
+                                            fillColor: "transparent"
+
+                                            PathMultiline {
+                                                paths: {
+                                                    let p = [];
+                                                    for (let i = 0; i < preroll.numTriangles; i++) {
+                                                        p.push([Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2), Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, 0), Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, preroll.triangleHeight), Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2)]);
+                                                    }
+                                                    return p;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Shape {
+                                        id: postroll
+
+                                        property real triangleHeight: waveformBeat.height
+                                        property real triangleWidth: 0.25 * waveformBeat.effectiveZoomFactor
+                                        property int numTriangles: Math.ceil(width / triangleWidth)
+
+                                        anchors.top: waveformBeat.top
+                                        anchors.left: waveformBeat.right
+                                        width: waveformContainer.width / 2
+                                        height: waveformBeat.height
+
+                                        ShapePath {
+                                            strokeColor: 'red'
+                                            strokeWidth: 1
+                                            fillColor: "transparent"
+
+                                            PathMultiline {
+                                                paths: {
+                                                    let p = [];
+                                                    for (let i = 0; i < postroll.numTriangles; i++) {
+                                                        p.push([Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2), Qt.point((i + 1) * postroll.triangleWidth, 0), Qt.point((i + 1) * postroll.triangleWidth, postroll.triangleHeight), Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2)]);
+                                                    }
+                                                    return p;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MixxxControls.WaveformOverview {
+                                    property real duration: samplesControl.value / sampleRateControl.value
+
+                                        // anchors.fill: parent
+                                        // clip: true
+
+                                    group: root.group
+                                    anchors.fill: parent
+                                    channels: Mixxx.WaveformOverview.Channels.BothChannels
+                                    renderer: Mixxx.WaveformOverview.Renderer.RGB
+                                    colorHigh: 'white'
+                                    colorMid: 'blue'
+                                    colorLow: 'green'
+                                }
                             }
                         }
                     }
-                }
 
-                // spacer item
-                S4MK3.Keyboard {
-                    id: keyboard
-                    group: root.group
-                    visible: false
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    // spacer item
+                    S4MK3.Keyboard {
+                        id: keyboard
+                        group: root.group
+                        visible: false
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                    }
                 }
             }
         }
-    }
-    Loader {
-        id: loader
-        anchors.fill: parent
-        sourceComponent: live
+        Loader {
+            id: loader
+            anchors.fill: parent
+            sourceComponent: live
+        }
     }
 }
