@@ -74,11 +74,7 @@ QmlPlayerManagerProxy* QmlPlayerManagerProxy::create(QQmlEngine* pQmlEngine, QJS
     DEBUG_ASSERT(s_pInstance);
 
     // The engine has to have the same thread affinity as the singleton.
-    VERIFY_OR_DEBUG_ASSERT(pJsEngine->thread() == s_pInstance->thread()) {
-        qWarning() << "Using a QML singleton created in the thread "
-                   << s_pInstance->thread() << " in the thread "
-                   << pJsEngine->thread() << ". Risk?";
-    };
+    DEBUG_ASSERT(pJsEngine->thread() == s_pInstance->thread());
 
     // There can only be one engine accessing the singleton.
     if (s_pJsEngine) {

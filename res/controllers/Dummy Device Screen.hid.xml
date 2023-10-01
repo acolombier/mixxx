@@ -10,14 +10,12 @@
     </info>
     <controller id="DummyDevice">
         <screens>
-            <screen identifier="leftdeck" width="320" height="240" targetFps="5" pixelType="RBG565" />
-            <screen identifier="rightdeck" width="320" height="240" targetFps="5" pixelType="RBG565" />
+            <screen identifier="main" width="480" height="360" targetFps="20" pixelType="RBGA" splashoff="2000" />
         </screens>
         <scriptfiles>
             <file filename="DummyDeviceDefaultScreen.qml" />
         </scriptfiles>
         <qmllibraries>
-            <library path="Dummy-Device-Default-Screen" />
         </qmllibraries>
     </controller>
 </MixxxControllerPreset>

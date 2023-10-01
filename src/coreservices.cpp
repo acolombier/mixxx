@@ -561,7 +561,7 @@ void CoreServices::finalize() {
     Timer t("CoreServices::~CoreServices");
     t.start();
 
-    // Delete all the QML singletons
+    // Delete all the QML singletons in order to prevent controller leaks
     delete mixxx::qml::QmlEffectsManagerProxy::s_pInstance;
     delete mixxx::qml::QmlPlayerManagerProxy::s_pInstance;
     delete mixxx::qml::QmlConfigProxy::s_pInstance;

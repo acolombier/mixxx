@@ -234,9 +234,27 @@ bool ControllerScriptEngineLegacy::initialize() {
             }
             availableScreens.insert(screen.identifier,
                     new ControllerRenderingEngine(screen));
+
+            if (!availableScreens.value(screen.identifier)->isValid()) {
+                qWarning() << QString(
+                        "Unable to start the screen render for %1.")
+                                      .arg(screen.identifier);
+                return false;
+            }
+
+            if (m_bTesting)
+                continue;
+
             availableScreens.value(screen.identifier)
                     ->requestSetup(
                             std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine));
+
+            if (!availableScreens.value(screen.identifier)->isValid()) {
+                qWarning() << QString(
+                        "Unable to setupr the screen render for %1.")
+                                      .arg(screen.identifier);
+                return false;
+            }
         }
     } else if (!m_infoScreens.isEmpty()) {
         qWarning() << "Controller mapping has screen definitions but no QML "
@@ -376,10 +394,6 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
     }
     const QMetaObject* metaObject = pScene->metaObject();
 
-    for (int i = metaObject->methodOffset(); i < metaObject->methodCount(); ++i)
-        qDebug() << "method: "
-                 << QString::fromLatin1(metaObject->method(i).methodSignature())
-                 << metaObject->method(i).isValid();
     int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant)");
     if (methodIdx == -1 || !metaObject->method(methodIdx).isValid()) {
         qDebug() << "QML Scene for screen" << screenIdentifier
@@ -500,8 +514,10 @@ void ControllerScriptEngineLegacy::shutdown() {
     }
 
     m_rootItems.clear();
-    for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
-        VERIFY_OR_DEBUG_ASSERT(pScreen->stop()){};
+    if (!m_bTesting) {
+        for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+            VERIFY_OR_DEBUG_ASSERT(!pScreen->isValid() || pScreen->stop()){};
+        }
     }
     m_renderingScreens.clear();
     m_transformScreenFrameFunctions.clear();
@@ -642,10 +658,12 @@ std::shared_ptr<QQuickItem> ControllerScriptEngineLegacy::loadQMLFile(
     }
 
     // The root item is ready. Associate it with the window.
-    rootItem->setParentItem(pScreen->quickWindow()->contentItem());
+    if (!m_bTesting) {
+        rootItem->setParentItem(pScreen->quickWindow()->contentItem());
 
-    rootItem->setWidth(pScreen->quickWindow()->width());
-    rootItem->setHeight(pScreen->quickWindow()->height());
+        rootItem->setWidth(pScreen->quickWindow()->width());
+        rootItem->setHeight(pScreen->quickWindow()->height());
+    }
 
     return rootItem;
 }

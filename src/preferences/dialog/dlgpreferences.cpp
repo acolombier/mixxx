@@ -14,6 +14,7 @@
 #include "moc_dlgpreferences.cpp"
 #include "preferences/dialog/dlgpreflibrary.h"
 #include "preferences/dialog/dlgprefsound.h"
+#include "preferences/dialog/ui_dlgpreferencesdlg.h"
 
 #ifdef __VINYLCONTROL__
 #include "preferences/dialog/dlgprefvinyl.h"
@@ -61,38 +62,39 @@ DlgPreferences::DlgPreferences(
         std::shared_ptr<EffectsManager> pEffectsManager,
         std::shared_ptr<SettingsManager> pSettingsManager,
         std::shared_ptr<Library> pLibrary)
-        : m_allPages(),
+        : m_pUi(new Ui::DlgPreferencesDlg),
+          m_allPages(),
           m_pConfig(pSettingsManager->settings()),
           m_pageSizeHint(QSize(0, 0)) {
-    setupUi(this);
+    m_pUi->setupUi(this);
     fixSliderStyle();
-    contentsTreeWidget->setHeaderHidden(true);
+    m_pUi->contentsTreeWidget->setHeaderHidden(true);
 
     // Add '&' to default button labels to always have Alt shortcuts, indpependent
     // of operating system.
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Help)->setText(tr("&Help"));
+    m_pUi->buttonBox->button(QDialogButtonBox::Help)->setText(tr("&Help"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::RestoreDefaults)->setText(tr("&Restore Defaults"));
+    m_pUi->buttonBox->button(QDialogButtonBox::RestoreDefaults)->setText(tr("&Restore Defaults"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Apply)->setText(tr("&Apply"));
+    m_pUi->buttonBox->button(QDialogButtonBox::Apply)->setText(tr("&Apply"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("&Cancel"));
+    m_pUi->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("&Cancel"));
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
-    buttonBox->button(QDialogButtonBox::Ok)->setText(tr("&Ok"));
+    m_pUi->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("&Ok"));
 
-    connect(buttonBox,
+    connect(m_pUi->buttonBox,
             QOverload<QAbstractButton*>::of(&QDialogButtonBox::clicked),
             this,
             &DlgPreferences::slotButtonPressed);
 
-    connect(contentsTreeWidget,
+    connect(m_pUi->contentsTreeWidget,
             &QTreeWidget::currentItemChanged,
             this,
             &DlgPreferences::changePage);
 
-    while (pagesWidget->count() > 0) {
-        pagesWidget->removeWidget(pagesWidget->currentWidget());
+    while (m_pUi->pagesWidget->count() > 0) {
+        m_pUi->pagesWidget->removeWidget(m_pUi->pagesWidget->currentWidget());
     }
 
     // Check the text color of the palette for whether to use dark or light icons
@@ -105,7 +107,7 @@ DlgPreferences::DlgPreferences(
     // Construct widgets for use in tabs.
     m_soundPage = PreferencesPage(
             new DlgPrefSound(this, pSoundManager, m_pConfig),
-            new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type));
+            new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type));
     addPageWidget(m_soundPage,
             tr("Sound Hardware"),
             "ic_preferences_soundhardware.svg");
@@ -116,12 +118,12 @@ DlgPreferences::DlgPreferences(
             pLibrary->trackCollectionManager(),
             &TrackCollectionManager::startLibraryScan);
     addPageWidget(PreferencesPage(plibraryPage,
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Library"),
             "ic_preferences_library.svg");
 
     QTreeWidgetItem* pControllerRootItem =
-            new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type);
+            new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type);
     m_pControllersDlg = new DlgPrefControllers(
             this, m_pConfig, pControllerManager, pControllerRootItem);
     addPageWidget(PreferencesPage(m_pControllersDlg,
@@ -134,7 +136,7 @@ DlgPreferences::DlgPreferences(
     // TODO(rryan) determine why/if this is still true
     addPageWidget(PreferencesPage(
                           new DlgPrefVinyl(this, pVCManager, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Vinyl Control"),
             "ic_preferences_vinyl.svg");
 #endif // __VINYLCONTROL__
@@ -154,7 +156,7 @@ DlgPreferences::DlgPreferences(
             Qt::DirectConnection);
     addPageWidget(PreferencesPage(pInterfacePage,
                           new QTreeWidgetItem(
-                                  contentsTreeWidget, QTreeWidgetItem::Type)),
+                                  m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Interface"),
             "ic_preferences_interface.svg");
 
@@ -162,9 +164,9 @@ DlgPreferences::DlgPreferences(
     // ugly proxy for determining whether this is being instantiated for QML or legacy QWidgets GUI
     if (pSkinLoader) {
         DlgPrefWaveform* pWaveformPage = new DlgPrefWaveform(this, m_pConfig, pLibrary);
-        addPageWidget(PreferencesPage(
-                              pWaveformPage,
-                              new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+        addPageWidget(PreferencesPage(pWaveformPage,
+                              new QTreeWidgetItem(m_pUi->contentsTreeWidget,
+                                      QTreeWidgetItem::Type)),
                 tr("Waveforms"),
                 "ic_preferences_waveforms.svg");
         connect(pWaveformPage,
@@ -177,77 +179,77 @@ DlgPreferences::DlgPreferences(
 
     addPageWidget(PreferencesPage(
                           new DlgPrefColors(this, m_pConfig, pLibrary),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Colors"),
             "ic_preferences_colors.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefDeck(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Decks"),
             "ic_preferences_decks.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefMixer(this, pEffectsManager, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Mixer"),
             "ic_preferences_crossfader.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefEffects(this, m_pConfig, pEffectsManager),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Effects"),
             "ic_preferences_effects.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefAutoDJ(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Auto DJ"),
             "ic_preferences_autodj.svg");
 
 #ifdef __BROADCAST__
     addPageWidget(PreferencesPage(
                           new DlgPrefBroadcast(this, pSettingsManager->broadcastSettings()),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Live Broadcasting"),
             "ic_preferences_broadcast.svg");
 #endif // __BROADCAST__
 
     addPageWidget(PreferencesPage(
                           new DlgPrefRecord(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Recording"),
             "ic_preferences_recording.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefBeats(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Beat Detection"),
             "ic_preferences_bpmdetect.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefKey(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Key Detection"),
             "ic_preferences_keydetect.svg");
     addPageWidget(PreferencesPage(
                           new DlgPrefReplayGain(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Normalization"),
             "ic_preferences_replaygain.svg");
 
 #ifdef __MODPLUG__
     addPageWidget(PreferencesPage(
                           new DlgPrefModplug(this, m_pConfig),
-                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+                          new QTreeWidgetItem(m_pUi->contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Modplug Decoder"),
             "ic_preferences_modplug.svg");
 #endif // __MODPLUG__
 
     // Find accept and apply buttons
-    const auto buttons = buttonBox->buttons();
+    const auto buttons = m_pUi->buttonBox->buttons();
     for (QAbstractButton* button : buttons) {
-        QDialogButtonBox::ButtonRole role = buttonBox->buttonRole(button);
+        QDialogButtonBox::ButtonRole role = m_pUi->buttonBox->buttonRole(button);
         if (role == QDialogButtonBox::ButtonRole::ApplyRole) {
             m_pApplyButton = button;
         } else if (role == QDialogButtonBox::ButtonRole::AcceptRole) {
@@ -255,13 +257,13 @@ DlgPreferences::DlgPreferences(
         }
     }
 
-    labelWarning->hide();
-    labelWarningIcon->hide();
-    labelWarning->setText(tr(
+    m_pUi->labelWarning->hide();
+    m_pUi->labelWarningIcon->hide();
+    m_pUi->labelWarning->setText(tr(
             "<font color='#BB0000'><b>Some preferences pages have errors. "
             "To apply the changes please first fix the issues.</b></font>"));
     QIcon icon = style()->standardIcon(QStyle::SP_MessageBoxWarning);
-    labelWarningIcon->setPixmap(icon.pixmap(16));
+    m_pUi->labelWarningIcon->setPixmap(icon.pixmap(16));
 
     // Install event handler to generate closeDlg signal
     installEventFilter(this);
@@ -283,7 +285,10 @@ DlgPreferences::~DlgPreferences() {
     // &DlgPreferences::changePage iterates on the PreferencesPage instances in m_allPages,
     // but the pDlg objects of the controller items are already destroyed by DlgPrefControllers,
     // which causes a crash when accessed.
-    disconnect(contentsTreeWidget, &QTreeWidget::currentItemChanged, this, &DlgPreferences::changePage);
+    disconnect(m_pUi->contentsTreeWidget,
+            &QTreeWidget::currentItemChanged,
+            this,
+            &DlgPreferences::changePage);
     // Need to explicitly delete rather than relying on child auto-deletion
     // because otherwise the QStackedWidget will delete the controller
     // preference pages (and DlgPrefControllers dynamically generates and
@@ -311,7 +316,7 @@ void DlgPreferences::changePage(QTreeWidgetItem* pCurrent, QTreeWidgetItem* pPre
 
 void DlgPreferences::showSoundHardwarePage() {
     switchToPage(m_soundPage.pTreeItem->text(0), m_soundPage.pDlg);
-    contentsTreeWidget->setCurrentItem(m_soundPage.pTreeItem);
+    m_pUi->contentsTreeWidget->setCurrentItem(m_soundPage.pTreeItem);
 }
 
 bool DlgPreferences::eventFilter(QObject* o, QEvent* e) {
@@ -416,7 +421,7 @@ void DlgPreferences::onShow() {
 }
 
 void DlgPreferences::slotButtonPressed(QAbstractButton* pButton) {
-    QDialogButtonBox::ButtonRole role = buttonBox->buttonRole(pButton);
+    QDialogButtonBox::ButtonRole role = m_pUi->buttonBox->buttonRole(pButton);
     DlgPreferencePage* pCurrentPage = currentPage();
     switch (role) {
     case QDialogButtonBox::ResetRole:
@@ -472,11 +477,11 @@ void DlgPreferences::addPageWidget(PreferencesPage page,
             &DlgPreferencePage::slotResetToDefaults);
 
     // Add a new scroll area to the stacked pages widget containing the page
-    QScrollArea* sa = new QScrollArea(pagesWidget);
+    QScrollArea* sa = new QScrollArea(m_pUi->pagesWidget);
     sa->setWidgetResizable(true);
 
     sa->setWidget(page.pDlg);
-    pagesWidget->addWidget(sa);
+    m_pUi->pagesWidget->addWidget(sa);
     m_allPages.append(page);
 
     int iframe = 2 * sa->frameWidth();
@@ -485,7 +490,7 @@ void DlgPreferences::addPageWidget(PreferencesPage page,
 }
 
 DlgPreferencePage* DlgPreferences::currentPage() {
-    QObject* pObject = pagesWidget->currentWidget();
+    QObject* pObject = m_pUi->pagesWidget->currentWidget();
     for (int i = 0; i < 2; ++i) {
         if (pObject == nullptr) {
             return nullptr;
@@ -500,11 +505,11 @@ DlgPreferencePage* DlgPreferences::currentPage() {
 }
 
 void DlgPreferences::removePageWidget(DlgPreferencePage* pWidget) {
-    pagesWidget->removeWidget(pWidget->parentWidget()->parentWidget());
+    m_pUi->pagesWidget->removeWidget(pWidget->parentWidget()->parentWidget());
 }
 
 void DlgPreferences::expandTreeItem(QTreeWidgetItem* pItem) {
-    contentsTreeWidget->expandItem(pItem);
+    m_pUi->contentsTreeWidget->expandItem(pItem);
 }
 
 void DlgPreferences::switchToPage(const QString& pageTitle, DlgPreferencePage* pWidget) {
@@ -517,9 +522,9 @@ void DlgPreferences::switchToPage(const QString& pageTitle, DlgPreferencePage* p
 #else
     Q_UNUSED(pageTitle);
 #endif
-    pagesWidget->setCurrentWidget(pWidget->parentWidget()->parentWidget());
+    m_pUi->pagesWidget->setCurrentWidget(pWidget->parentWidget()->parentWidget());
 
-    QPushButton* pButton = buttonBox->button(QDialogButtonBox::Help);
+    QPushButton* pButton = m_pUi->buttonBox->button(QDialogButtonBox::Help);
     VERIFY_OR_DEBUG_ASSERT(pButton) {
         return;
     }
@@ -570,7 +575,7 @@ QRect DlgPreferences::getDefaultGeometry() {
         optimumSize -= (frameSize() - size());
     }
 
-    QSize staticSize = size() - pagesWidget->size();
+    QSize staticSize = size() - m_pUi->pagesWidget->size();
     optimumSize = optimumSize.boundedTo(staticSize + m_pageSizeHint);
 
     QRect optimumRect = geometry();

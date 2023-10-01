@@ -51,9 +51,11 @@ QFileInfo findLibraryPath(std::shared_ptr<LegacyControllerMapping> mapping,
 
 } // namespace
 
-QMap<QString, GLenum> LegacyControllerMappingFileHandler::kSupportedPixelFormat = {
-        {"RBGA8888", GL_UNSIGNED_INT_8_8_8_8},
-        {"RBG565", GL_UNSIGNED_SHORT_5_6_5},
+QMap<QString, QImage::Format> LegacyControllerMappingFileHandler::kSupportedPixelFormat = {
+        // TODO(ac) unit test that these are all supported by ControllerRenderingEngine
+        {"RBG", QImage::Format_RGB888},
+        {"RBGA", QImage::Format_RGBA8888},
+        {"RGB565", QImage::Format_RGB16},
 };
 
 QMap<QString, std::endian> LegacyControllerMappingFileHandler::kEndianFormat = {
@@ -143,7 +145,7 @@ QDomElement LegacyControllerMappingFileHandler::getControllerNode(
     return root.firstChildElement("controller");
 }
 
-void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
+void LegacyControllerMappingFileHandler::addScriptFilesToMapping( // TODO(ac) Unit test
         const QDomElement& controller,
         std::shared_ptr<LegacyControllerMapping> mapping,
         const QDir& systemMappingsPath) const {
@@ -196,14 +198,14 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
         QString identifier = screen.attribute("identifier", "");
         uint targetFps = screen.attribute("targetFps", "30").toUInt();
         QString pixelFormatName = screen.attribute("pixelType", "RBG888");
-        QString endianName = screen.attribute("endian", "big");
+        QString endianName = screen.attribute("endian", "little");
         QString reversedColor = screen.attribute("reversed", "false").toLower();
         QString rawData = screen.attribute("raw", "false").toLower();
         uint splashoff = screen.attribute("splashoff", "0").toUInt();
 
         if (!targetFps || targetFps > MAX_TARGET_FPS) {
             qWarning() << "Invalid target FPS. Target FPS must be between 1 and " << MAX_TARGET_FPS;
-            continue;
+            return;
         }
 
         if (splashoff > MAX_SPLASHOFF_DURATION) {
@@ -215,15 +217,15 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
 
         if (!kSupportedPixelFormat.contains(pixelFormatName)){
             qWarning() << "Unsupported pixel format" << pixelFormatName;
-            continue;
+            return;
         }
 
         if (!kEndianFormat.contains(endianName)) {
             qWarning() << "Unknown endiant format" << endianName;
-            continue;
+            return;
         }
 
-        GLenum pixelFormat = kSupportedPixelFormat.value(pixelFormatName);
+        QImage::Format pixelFormat = kSupportedPixelFormat.value(pixelFormatName);
         std::endian endian = kEndianFormat.value(endianName);
 
         uint width = screen.attribute("width", "0").toUInt();

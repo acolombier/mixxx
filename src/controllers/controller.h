@@ -7,13 +7,11 @@
 #include "controllers/controllermappinginfo.h"
 #include "controllers/legacycontrollermapping.h"
 #include "controllers/legacycontrollermappingfilehandler.h"
-#include "controllers/rendering/controllerrenderingengine.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "util/duration.h"
 #include "util/runtimeloggingcategory.h"
 
 class ControllerJSProxy;
-// class DebugControllerScreens;
 
 /// This is a base class representing a physical (or software) controller.  It
 /// must be inherited by a class that implements it on some API. Note that the
@@ -157,11 +155,8 @@ class Controller : public QObject {
         return false;
     }
 
-    // std::shared_ptr<DebugControllerScreens> m_screenDebugManager;
-
   private:
     ControllerScriptEngineLegacy* m_pScriptEngineLegacy;
-    QList<std::shared_ptr<ControllerRenderingEngine>> m_pRenderingEngines;
 
     // Verbose and unique description of device type, defaults to empty
     QString m_sDeviceCategory;

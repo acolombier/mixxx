@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QHash>
+#include <QImage>
 #include <QList>
 #include <QOpenGLContext>
 #include <QSharedPointer>
@@ -58,7 +59,7 @@ class LegacyControllerMapping {
                 const QSize& aSize,
                 uint aTargetFps,
                 uint aSplashOff,
-                GLenum aPixelFormat,
+                QImage::Format aPixelFormat,
                 std::endian anEndian,
                 bool isReversedColor,
                 bool isRawData)
@@ -76,7 +77,7 @@ class LegacyControllerMapping {
         QSize size;
         uint target_fps;
         uint splash_off;
-        GLenum pixelFormat;
+        QImage::Format pixelFormat;
         std::endian endian;
         bool reversedColor;
         bool rawData;
@@ -136,7 +137,7 @@ class LegacyControllerMapping {
             const QSize& size,
             uint targetFps = 30,
             uint splashoff = 50,
-            GLenum pixelFormat = GL_UNSIGNED_BYTE,
+            QImage::Format pixelFormat = QImage::Format_RGB32,
             std::endian endian = std::endian::big,
             bool reversedColor = false,
             bool rawData = false) {

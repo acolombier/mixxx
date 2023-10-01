@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QImage>
 #include <QMap>
 #include <QOpenGLContext>
 #include <bit>
@@ -65,8 +66,8 @@ class LegacyControllerMappingFileHandler {
             const QString& filePath,
             const QDir& systemMappingPath) = 0;
 
-        static QMap<QString,GLenum> kSupportedPixelFormat;
-        static QMap<QString, std::endian> kEndianFormat;
+    static QMap<QString, QImage::Format> kSupportedPixelFormat;
+    static QMap<QString, std::endian> kEndianFormat;
 };
 
 // Maximum target frame per request for a a screen controller

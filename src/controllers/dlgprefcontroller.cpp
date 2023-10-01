@@ -18,6 +18,7 @@
 #include "moc_dlgprefcontroller.cpp"
 #include "preferences/usersettings.h"
 #include "util/cmdlineargs.h"
+#include "util/time.h"
 #include "util/versionstore.h"
 
 namespace {
@@ -834,40 +835,41 @@ ControllerScreenPreview::ControllerScreenPreview(
         QWidget* parent, const LegacyControllerMapping::ScreenInfo& screen)
         : QWidget(parent),
           m_screenInfo(screen),
-          m_pFrame(make_parented<QLabel>(this)),
-          m_pStat(make_parented<QLabel>("- FPS", this)),
+          m_pFrame(new QLabel(this)),
+          m_pStat(new QLabel("- FPS", this)),
           m_frameDurationHistoryIdx(0),
           m_lastFrameTimespamp(mixxx::Time::elapsed()) {
-    memset(m_frameDurationHistory, 0, 5);
+    size_t frameDurationHistoryLenght = sizeof(m_frameDurationHistory) / sizeof(uint);
+    memset(m_frameDurationHistory, 0, frameDurationHistoryLenght);
     m_pFrame->setFixedSize(screen.size);
     m_pStat->setAlignment(Qt::AlignRight);
     auto aLayout = make_parented<QVBoxLayout>(this);
     auto aBottomLayout = make_parented<QHBoxLayout>(this);
     aLayout->addWidget(m_pFrame);
     aBottomLayout->addWidget(make_parented<QLabel>(
-            QString("Screen %0").arg(m_screenInfo.identifier), this));
+            QString("Screen \"<i>%0</i>\"").arg(m_screenInfo.identifier), this));
     aBottomLayout->addWidget(m_pStat);
     aLayout->addItem(aBottomLayout);
-    setLayout(aLayout);
 }
 void ControllerScreenPreview::updateFrame(
         const LegacyControllerMapping::ScreenInfo& screen, QImage frame) {
     if (m_screenInfo.identifier != screen.identifier) {
         return;
     }
+    size_t frameDurationHistoryLenght = sizeof(m_frameDurationHistory) / sizeof(uint);
     auto currentTimestamp = mixxx::Time::elapsed();
     m_frameDurationHistory[m_frameDurationHistoryIdx++] =
             (currentTimestamp - m_lastFrameTimespamp).toIntegerMillis();
-    m_frameDurationHistoryIdx %= 5;
+    m_frameDurationHistoryIdx %= frameDurationHistoryLenght;
 
     double durationSinceLastFrame = 0.0;
-    for (uint8_t i = 0; i < 5; i++) {
+    for (uint8_t i = 0; i < frameDurationHistoryLenght; i++) {
         durationSinceLastFrame += (double)m_frameDurationHistory[i];
     }
-    durationSinceLastFrame /= 5.0;
+    durationSinceLastFrame /= (double)frameDurationHistoryLenght;
 
     if (durationSinceLastFrame > 0.0) {
-        m_pStat->setText(QString("%0 FPS (requested %1)")
+        m_pStat->setText(QString("%0 FPS <i>(requested %1)</i>")
                                  .arg((int)(1000.0 / durationSinceLastFrame))
                                  .arg(m_screenInfo.target_fps));
     }
@@ -887,7 +889,11 @@ void DlgPrefController::slotShowMapping(std::shared_ptr<LegacyControllerMapping>
     }
     qDeleteAll(m_ui.groupBoxScreens->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
 
-    if (pMapping && CmdlineArgs::Instance().getControllerPreviewScreens() &&
+    if (pMapping &&
+            CmdlineArgs::Instance()
+                    .getControllerPreviewScreens() && // TODO (ac) use currently
+                                                      // active screen instead
+                                                      // of mapping one
             m_pController->getScriptEngine()) {
         auto screens = pMapping->getInfoScreens();
 

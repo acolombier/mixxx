@@ -261,8 +261,6 @@ void ControllerManager::slotSetUpDevices() {
             continue;
         }
 
-        // pController->setScreenDebugController(m_debugScreen);
-
         qDebug() << "Searching for controller mapping" << mappingFilePath
                  << "in paths:" << mappingPaths.join(",");
         QFileInfo mappingFile = findMappingFile(mappingFilePath, mappingPaths);
@@ -381,9 +379,6 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
-
-    // pController->setScreenDebugController(m_debugScreen);
-
     int result = pController->open();
     pollIfAnyControllersOpen();
 
@@ -402,7 +397,6 @@ void ControllerManager::closeController(Controller* pController) {
     if (!pController) {
         return;
     }
-
     pController->close();
     pollIfAnyControllersOpen();
     // Update configuration to reflect controller is disabled.

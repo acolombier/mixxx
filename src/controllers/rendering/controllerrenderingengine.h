@@ -37,6 +37,10 @@ class ControllerRenderingEngine : public QObject {
         return m_screenInfo.size;
     }
 
+    bool isValid() const {
+        return m_isValid;
+    }
+
     QQuickWindow* quickWindow() const {
         return m_quickWindow.get();
     }
@@ -77,8 +81,10 @@ class ControllerRenderingEngine : public QObject {
 
     std::unique_ptr<QOpenGLFramebufferObject> m_fbo;
 
-    QImage::Format m_imageFormat;
+    GLenum m_GLDataFormat;
     GLenum m_GLDataType;
+
+    bool m_isValid;
 
     QWaitCondition m_waitCondition;
     QMutex m_mutex;
