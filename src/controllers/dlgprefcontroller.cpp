@@ -836,7 +836,9 @@ ControllerScreenPreview::ControllerScreenPreview(
           m_screenInfo(screen),
           m_pFrame(make_parented<QLabel>(this)),
           m_pStat(make_parented<QLabel>("- FPS", this)),
+          m_frameDurationHistoryIdx(0),
           m_lastFrameTimespamp(mixxx::Time::elapsed()) {
+    memset(m_frameDurationHistory, 0, 5);
     m_pFrame->setFixedSize(screen.size);
     m_pStat->setAlignment(Qt::AlignRight);
     auto aLayout = make_parented<QVBoxLayout>(this);
@@ -854,10 +856,19 @@ void ControllerScreenPreview::updateFrame(
         return;
     }
     auto currentTimestamp = mixxx::Time::elapsed();
-    auto durationSinceLastFrame = (currentTimestamp - m_lastFrameTimespamp).toIntegerMillis();
-    if (durationSinceLastFrame) {
+    m_frameDurationHistory[m_frameDurationHistoryIdx++] =
+            (currentTimestamp - m_lastFrameTimespamp).toIntegerMillis();
+    m_frameDurationHistoryIdx %= 5;
+
+    double durationSinceLastFrame = 0.0;
+    for (uint8_t i = 0; i < 5; i++) {
+        durationSinceLastFrame += (double)m_frameDurationHistory[i];
+    }
+    durationSinceLastFrame /= 5.0;
+
+    if (durationSinceLastFrame > 0.0) {
         m_pStat->setText(QString("%0 FPS (requested %1)")
-                                 .arg(1000 / durationSinceLastFrame)
+                                 .arg((int)(1000.0 / durationSinceLastFrame))
                                  .arg(m_screenInfo.target_fps));
     }
     m_pFrame->setPixmap(QPixmap::fromImage(frame));

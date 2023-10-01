@@ -85,7 +85,7 @@ Item {
         onTriggered: {
             if (status == OnAirTrack.TimerStatus.Cooldown) {
                 status += backward ? -1 : 1
-                interval = 15
+                interval = 10
             }
             frame.x -= backward ? -1 : 1;
             if (-frame.x >= (text.text.length - 29) * 11) {

@@ -331,8 +331,6 @@ bool ControllerScriptEngineLegacy::initialize() {
         }
     }
 
-    // if ()
-
     // For testing, do not actually initialize the scripts, just check for
     // syntax errors above.
     if (m_bTesting) {

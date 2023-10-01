@@ -15,6 +15,7 @@ Rectangle {
     property color loopOnFontColor: "black"
 
     property bool on: true
+    signal updated
 
     radius: 6
     border.width: 2
@@ -31,7 +32,10 @@ Rectangle {
             group: root.group
             key: "beatloop_size"
             onValueChanged: (value) => {
-                indicator.text = (value < 1 ? `1/${1 / value}` : `${value}`);
+                const newValue = (value < 1 ? `1/${1 / value}` : `${value}`);
+                if (newValue === indicator.text) return;
+                indicator.text = newValue;
+                root.updated()
             }
         }
     }
@@ -40,7 +44,9 @@ Rectangle {
         group: root.group
         key: "loop_enabled"
         onValueChanged: (value) => {
+            if (value === root.on) return;
             root.on = value;
+            root.updated()
         }
     }
 

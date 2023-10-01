@@ -3,15 +3,15 @@
      <info>
         <name>S4 Mk3 screens</name>
         <author>A. Colombier</author>
-        <description>Dummy device screens</description>
+        <description>Test device screens</description>
         <devices>
             <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" />
         </devices>
     </info>
     <controller id="Traktor">
         <screens>
-            <screen identifier="leftdeck" width="320" height="240" targetFps="15" pixelType="RBG565" reversed="true" splashoff="200" />
-            <screen identifier="rightdeck" width="320" height="240" targetFps="15" pixelType="RBG565" reversed="true" splashoff="200" />
+            <screen identifier="leftdeck" width="320" height="240" targetFps="60" pixelType="RBG565" reversed="true" splashoff="300" />
+            <screen identifier="rightdeck" width="320" height="240" targetFps="60" pixelType="RBG565" reversed="true" splashoff="300" />
         </screens>
         <scriptfiles>
             <file filename="TraktorKontrolS4MK3Screens.qml" />

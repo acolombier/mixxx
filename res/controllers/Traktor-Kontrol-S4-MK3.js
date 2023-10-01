@@ -2494,7 +2494,7 @@ class S4Mk3Deck extends Deck {
                 const wheelOutput = new Uint8Array(40).fill(0);
                 wheelOutput[0] = decks[0] - 1;
 
-                if (engine.getValue(this.group, "end_of_track") && WheelLedBlinkOnTrackEnd) {
+                if (engine.getValue(this.group, "end_of_track") && WheelLedBlinkOnTrackEnd && fractionOfTrack < 1) {
                     wheelOutput[1] = wheelLEDmodes.ringFlash;
                 } else {
                     wheelOutput[1] = wheelLEDmodes.spot;

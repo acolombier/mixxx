@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QList>
 #include <memory>
 
 #include "controllers/controllerinputmappingtablemodel.h"
@@ -32,6 +33,8 @@ class ControllerScreenPreview : public QWidget {
 
     parented_ptr<QLabel> m_pFrame;
     parented_ptr<QLabel> m_pStat;
+    uint8_t m_frameDurationHistoryIdx;
+    uint m_frameDurationHistory[5];
 
     mixxx::Duration m_lastFrameTimespamp;
 };

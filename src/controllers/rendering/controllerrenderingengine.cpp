@@ -227,13 +227,6 @@ void ControllerRenderingEngine::renderFrame() {
 
     emit frameRendered(m_screenInfo, fboImage);
 
-    // auto endOfRender = mixxx::Time::elapsed();
-    // qDebug() << "Fame took "
-    //          << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
-    //          << " and frame has" << fboImage.sizeInBytes() << "bytes";
-
-    m_nextFrameStart += mixxx::Duration::fromMillis(1000 / m_screenInfo.target_fps);
-
     m_context->doneCurrent();
 }
 
@@ -243,7 +236,16 @@ bool ControllerRenderingEngine::stop() {
 }
 
 void ControllerRenderingEngine::send(Controller* controller, const QByteArray& frame) {
-    controller->sendBytes(frame);
+    if (!frame.isEmpty()) {
+        controller->sendBytes(frame);
+    }
+
+    // auto endOfRender = mixxx::Time::elapsed();
+    // qDebug() << "Fame took "
+    //          << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
+    //          << " and frame has" << frame.size() << "bytes";
+
+    m_nextFrameStart += mixxx::Duration::fromSeconds(1.0 / (double)m_screenInfo.target_fps);
 
     auto durationToWaitBeforeFrame = (m_nextFrameStart - mixxx::Time::elapsed());
     auto msecToWaitBeforeFrame = durationToWaitBeforeFrame.toIntegerMillis();
@@ -252,7 +254,10 @@ void ControllerRenderingEngine::send(Controller* controller, const QByteArray& f
         // qDebug() << "Waiting for "
         //          << durationToWaitBeforeFrame.formatMillisWithUnit()
         //          << " before rendering next frame";
-        QTimer::singleShot(msecToWaitBeforeFrame, this, &ControllerRenderingEngine::renderFrame);
+        QTimer::singleShot(msecToWaitBeforeFrame,
+                Qt::PreciseTimer,
+                this,
+                &ControllerRenderingEngine::renderFrame);
     } else {
         QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
     }

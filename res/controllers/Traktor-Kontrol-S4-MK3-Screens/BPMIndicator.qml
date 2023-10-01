@@ -17,9 +17,11 @@ Rectangle {
     border.color: smallBoxBorder
     border.width: 2
 
+    signal updated
+
     Text {
-        id: inidcator
-        text: value.toFixed(2)
+        id: indicator
+        text: "-"
         font.pixelSize: 17
         color: fontColor
         anchors.centerIn: parent
@@ -28,7 +30,10 @@ Rectangle {
             group: root.group
             key: "bpm"
             onValueChanged: (value) => {
-                inidcator.text = value.toFixed(2);
+                const newValue = value.toFixed(2);
+                if (newValue === indicator.text) return;
+                indicator.text = newValue;
+                root.updated()
             }
         }
     }
@@ -46,7 +51,10 @@ Rectangle {
             group: root.group
             key: "rateRange"
             onValueChanged: (value) => {
-                range.text = `-/+ \n${(value * 100).toFixed()}%`;
+                const newValue = `-/+ \n${(value * 100).toFixed()}%`;
+                if (range.text === newValue) return;
+                range.text = newValue;
+                root.updated();
             }
         }
     }

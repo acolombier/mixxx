@@ -23,17 +23,22 @@ Rectangle {
     border.color: timeColor
     border.width: 2
     color: timeColor
+    signal updated
 
     function update() {
+        let newValue = "";
         if (root.mode === TimeAndBeatloopIndicator.Mode.RemainingTime) {
             var seconds = ((1.0 - progression.value) * duration.value);
             var mins = parseInt(seconds / 60).toString();
             seconds = parseInt(seconds % 60).toString();
 
-            indicator.text = `-${mins.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+            newValue = `-${mins.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
         } else {
-            indicator.text = (beatjump.value < 1 ? `1/${1 / beatjump.value}` : `${beatjump.value}`);
+            newValue = (beatjump.value < 1 ? `1/${1 / beatjump.value}` : `${beatjump.value}`);
         }
+        if (newValue === indicator.text) return;
+        indicator.text = newValue;
+        root.updated()
     }
 
     Text {
@@ -69,6 +74,7 @@ Rectangle {
             onValueChanged: (value) => {
                 root.border.color = value ? 'red' : timeColor
                 root.color = value ? 'red' : timeColor
+                root.updated()
             }
         }
     }

@@ -16,6 +16,8 @@ Item {
         Backward
     }
 
+    signal updated
+
     property string fullText
     property int index
 
@@ -70,6 +72,7 @@ Item {
         if (text.text.trim() == "-") {
             text.text = trackLoadedControl.value ? `Unknown for ${root.group}` : qsTr("No Track Loaded")
         }
+        root.updated()
     }
 
     Timer {
@@ -85,9 +88,10 @@ Item {
         onTriggered: {
             if (status == OnAirTrack.TimerStatus.Cooldown) {
                 status += backward ? -1 : 1
-                interval = 10
+                interval = 15
             }
             frame.x -= backward ? -1 : 1;
+            root.updated()
             if (-frame.x >= (text.text.length - 29) * 11) {
                 backward = true
                 status = OnAirTrack.TimerStatus.Cooldown

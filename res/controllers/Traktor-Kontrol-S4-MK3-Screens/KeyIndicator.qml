@@ -102,12 +102,15 @@ Rectangle {
     border.width: 2
 
     color: colorsMap[key]
+    signal updated
 
     Mixxx.ControlProxy {
         group: root.group
         key: "key"
         onValueChanged: (value) => {
+            if (value === root.key) return;
             root.key = value;
+            root.updated()
         }
     }
 

@@ -12,12 +12,15 @@ Item {
     property real windowWidth: Window.width
 
     width: 0
+    signal updated
 
     Mixxx.ControlProxy {
         group: root.group
         key: "track_loaded"
         onValueChanged: (value) => {
+            if (value === root.visible) return;
             root.visible = value
+            root.updated()
         }
     }
 
@@ -25,7 +28,10 @@ Item {
         group: root.group
         key: "playposition"
         onValueChanged: (value) => {
-            root.width = value * (320 - 12);
+            const newValue = Math.round(value * (320 - 12));
+            if (newValue === root.width) return;
+            root.width = newValue;
+            root.updated()
         }
     }
 
