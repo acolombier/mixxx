@@ -844,7 +844,7 @@ ControllerScreenPreview::ControllerScreenPreview(
     m_pFrame->setFixedSize(screen.size);
     m_pStat->setAlignment(Qt::AlignRight);
     auto aLayout = make_parented<QVBoxLayout>(this);
-    auto aBottomLayout = make_parented<QHBoxLayout>(this);
+    auto aBottomLayout = new QHBoxLayout(this);
     aLayout->addWidget(m_pFrame);
     aBottomLayout->addWidget(make_parented<QLabel>(
             QString("Screen \"<i>%0</i>\"").arg(m_screenInfo.identifier), this));
