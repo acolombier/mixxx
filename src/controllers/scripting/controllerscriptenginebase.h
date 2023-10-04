@@ -12,6 +12,7 @@
 
 class Controller;
 class EvaluationException;
+class ControllerRuntimeData;
 
 /// ControllerScriptEngineBase manages the JavaScript engine for controller scripts.
 /// ControllerScriptModuleEngine implements the current system using JS modules.
@@ -48,7 +49,17 @@ class ControllerScriptEngineBase : public QObject {
         return m_bTesting;
     }
 
+    void setRuntimeData(std::shared_ptr<ControllerRuntimeData> runtimeData) {
+        m_pRuntimeData = std::move(runtimeData);
+    }
+
+    std::shared_ptr<ControllerRuntimeData> getRuntimeData() const {
+        return m_pRuntimeData;
+    }
+
   protected:
+    std::shared_ptr<ControllerRuntimeData> m_pRuntimeData;
+
     virtual void shutdown();
 
     void scriptErrorDialog(const QString& detailedError, const QString& key, bool bFatal = false);
