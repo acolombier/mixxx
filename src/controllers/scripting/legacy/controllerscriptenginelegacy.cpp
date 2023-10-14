@@ -394,7 +394,8 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
     }
     const QMetaObject* metaObject = pScene->metaObject();
 
-    int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant)");
+    // TODO support typed QML with (ArrayBuffer, Date)
+    int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant, QVariant)");
     if (methodIdx == -1 || !metaObject->method(methodIdx).isValid()) {
         qDebug() << "QML Scene for screen" << screenIdentifier
                  << "has no transformFrame method. The frame data will be sent "
@@ -413,7 +414,9 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
 }
 
 void ControllerScriptEngineLegacy::handleScreenFrame(
-        const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame) {
+        const LegacyControllerMapping::ScreenInfo& screeninfo,
+        QImage frame,
+        const QDateTime& timestamp) {
     VERIFY_OR_DEBUG_ASSERT(
             m_transformScreenFrameFunctions.contains(screeninfo.identifier) ||
             m_renderingScreens.contains(screeninfo.identifier)) {
@@ -468,7 +471,8 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     bool isSuccessful = tranformMethod.invoke(m_rootItems.value(screeninfo.identifier).get(),
             Qt::DirectConnection,
             Q_RETURN_ARG(QVariant, returnedValue),
-            Q_ARG(QVariant, input));
+            Q_ARG(QVariant, input),
+            Q_ARG(QVariant, timestamp));
 
     if (!isSuccessful || !returnedValue.isValid()) {
         qWarning() << "Could not transform rendering buffer. Error should be "

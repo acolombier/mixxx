@@ -218,6 +218,7 @@ void ControllerRenderingEngine::renderFrame() {
         finish();
     }
 
+    QDateTime timestamp = QDateTime::currentDateTime();
     m_renderControl->render();
     m_renderControl->endFrame();
 
@@ -234,13 +235,16 @@ void ControllerRenderingEngine::renderFrame() {
         qWarning() << "GLError: " << glError;
         finish();
     }
+    VERIFY_OR_DEBUG_ASSERT(!fboImage.isNull()) {
+        qWarning() << "Screen frame is null!";
+    }
     VERIFY_OR_DEBUG_ASSERT(m_fbo->release()){
         qDebug() << "Couldn't release the FBO.";
     }
 
     fboImage.mirror(false, true);
 
-    emit frameRendered(m_screenInfo, fboImage);
+    emit frameRendered(m_screenInfo, fboImage, timestamp);
 
     m_context->doneCurrent();
 }

@@ -36,7 +36,10 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
     void setInfoScrens(const QList<LegacyControllerMapping::ScreenInfo>& scripts);
 
   private slots:
-    void handleScreenFrame(const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame);
+    void handleScreenFrame(
+            const LegacyControllerMapping::ScreenInfo& screeninfo,
+            QImage frame,
+            const QDateTime& timestamp);
 
   signals:
     /// Emitted when a screen has been rendered

@@ -32,7 +32,7 @@ Item {
         loader.sourceComponent = splashoff
     }
 
-    function transformFrame(input) {
+    function transformFrame(input, timestamp) {
         return new ArrayBuffer(0);
     }
 

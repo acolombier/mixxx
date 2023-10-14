@@ -62,7 +62,9 @@ class ControllerRenderingEngine : public QObject {
     void send(Controller* controller, const QByteArray& frame);
 
   signals:
-    void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo, QImage frame);
+    void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo,
+            QImage frame,
+            const QDateTime& timestamp);
     void setupRequested(std::shared_ptr<QQmlEngine> engine);
     void stopRequested();
     void sendRequested(Controller* controller, const QByteArray& frame);
