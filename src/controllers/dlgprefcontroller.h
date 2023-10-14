@@ -28,7 +28,7 @@ class ControllerScreenPreview : public QWidget {
     ControllerScreenPreview(QWidget* parent,
             const LegacyControllerMapping::ScreenInfo& screen);
   public slots:
-    void updateFrame(const LegacyControllerMapping::ScreenInfo& screen, QImage frame);
+    void updateFrame(const LegacyControllerMapping::ScreenInfo& screen, const QImage& frame);
 
   private:
     LegacyControllerMapping::ScreenInfo m_screenInfo;

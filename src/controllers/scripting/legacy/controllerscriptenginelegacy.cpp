@@ -71,8 +71,7 @@ bool ControllerScriptEngineLegacy::callFunctionOnObjects(
                 argList << "QVariant";
             int methodIdx =
                     metaObject->indexOfMethod(QString("%1(%2)")
-                                                      .arg(function)
-                                                      .arg(argList.join(','))
+                                                      .arg(function, argList.join(','))
                                                       .toUtf8());
             if (methodIdx == -1) {
                 qCWarning(m_logger) << "QML Scene " << i.key() << "has no"
@@ -319,7 +318,7 @@ bool ControllerScriptEngineLegacy::initialize() {
             break;
         case LegacyControllerMapping::ScriptFileInfo::Type::QML:
             if (script.identifier.isEmpty()) {
-                while (availableScreens.size()) {
+                while (!availableScreens.isEmpty()) {
                     QString screenIdentifier(availableScreens.firstKey());
                     if (!bindSceneToScreen(script,
                                 screenIdentifier,
@@ -343,7 +342,7 @@ bool ControllerScriptEngineLegacy::initialize() {
                 << "Found screen with no QMl scene able to run on it. Ignoring"
                 << availableScreens.size() << "screens";
 
-        while (availableScreens.size()) {
+        while (!availableScreens.isEmpty()) {
             auto orphanScreen = availableScreens.take(availableScreens.firstKey());
             std::move(orphanScreen)->deleteLater();
         }
@@ -372,7 +371,7 @@ bool ControllerScriptEngineLegacy::initialize() {
             m_logger().isDebugEnabled(),
     };
 
-    for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+    for (ControllerRenderingEngine* pScreen : qAsConst(m_renderingScreens)) {
         pScreen->start();
     }
 
@@ -415,7 +414,7 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
 
 void ControllerScriptEngineLegacy::handleScreenFrame(
         const LegacyControllerMapping::ScreenInfo& screeninfo,
-        QImage frame,
+        const QImage& frame,
         const QDateTime& timestamp) {
     VERIFY_OR_DEBUG_ASSERT(
             m_transformScreenFrameFunctions.contains(screeninfo.identifier) ||
@@ -466,7 +465,6 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     }
 
     QVariant returnedValue;
-    QVariant inputVariant(input);
 
     bool isSuccessful = tranformMethod.invoke(m_rootItems.value(screeninfo.identifier).get(),
             Qt::DirectConnection,
@@ -506,7 +504,7 @@ void ControllerScriptEngineLegacy::shutdown() {
     // Wait for up to 4 frames to allow screens to display a shutdown
     // splash/idle screen or simply clear themselves
     uint maxSplashOffDuration = 0;
-    for (const ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+    for (const ControllerRenderingEngine* pScreen : qAsConst(m_renderingScreens)) {
         maxSplashOffDuration = qMax(maxSplashOffDuration, pScreen->info().splash_off);
     }
 
@@ -519,7 +517,7 @@ void ControllerScriptEngineLegacy::shutdown() {
 
     m_rootItems.clear();
     if (!m_bTesting) {
-        for (ControllerRenderingEngine* pScreen : m_renderingScreens.values()) {
+        for (ControllerRenderingEngine* pScreen : qAsConst(m_renderingScreens)) {
             VERIFY_OR_DEBUG_ASSERT(!pScreen->isValid() || pScreen->stop()){};
         }
     }

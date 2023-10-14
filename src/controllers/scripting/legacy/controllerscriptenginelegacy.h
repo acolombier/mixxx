@@ -38,7 +38,7 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
   private slots:
     void handleScreenFrame(
             const LegacyControllerMapping::ScreenInfo& screeninfo,
-            QImage frame,
+            const QImage& frame,
             const QDateTime& timestamp);
 
   signals:

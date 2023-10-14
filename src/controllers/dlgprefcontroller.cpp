@@ -852,7 +852,7 @@ ControllerScreenPreview::ControllerScreenPreview(
     aLayout->addItem(aBottomLayout);
 }
 void ControllerScreenPreview::updateFrame(
-        const LegacyControllerMapping::ScreenInfo& screen, QImage frame) {
+        const LegacyControllerMapping::ScreenInfo& screen, const QImage& frame) {
     if (m_screenInfo.identifier != screen.identifier) {
         return;
     }
