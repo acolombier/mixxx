@@ -141,7 +141,7 @@ if(QML_UI AND NOT QML)
 endif()
 
 # Using a dedicated library for QML library if building with the legacy UI
-# THis allow working around a bug where CMake is expecting each class to generate
+# This allow working around a bug where CMake is expecting each class to generate
 # a JSON QML definition, even for non-QML classes
 if(QML_UI)
   set(MIXXX_QML_LIB "mixxx-lib")
@@ -189,6 +189,7 @@ if(APPLE)
 endif()
 
 project(mixxx VERSION 2.5.0)
+enable_language(C CXX)
 # Work around missing version suffixes support https://gitlab.kitware.com/cmake/cmake/-/issues/16716
 set(MIXXX_VERSION_PRERELEASE "alpha") # set to "alpha" "beta" or ""
 
@@ -1214,6 +1215,166 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/widget/wwidgetgroup.cpp
   src/widget/wwidgetstack.cpp
 )
+target_precompile_headers(mixxx-lib PUBLIC
+  src/audio/frame.h
+  src/audio/signalinfo.h
+  src/audio/streaminfo.h
+  src/audio/types.h
+  src/control/control.h
+  src/control/controlaudiotaperpot.h
+  src/control/controlbehavior.h
+  src/control/controlcompressingproxy.h
+  src/control/controleffectknob.h
+  src/control/controlencoder.h
+  src/control/controlindicator.h
+  src/control/controlindicatortimer.h
+  src/control/controllinpotmeter.h
+  src/control/controllogpotmeter.h
+  src/control/controlmodel.h
+  src/control/controlobject.h
+  src/control/controlobjectscript.h
+  src/control/controlpotmeter.h
+  src/control/controlproxy.h
+  src/control/controlpushbutton.h
+  src/control/controlsortfiltermodel.h
+  src/control/controlttrotary.h
+  src/control/controlvalue.h
+  src/control/convert.h
+  src/control/pollingcontrolproxy.h
+  src/controllers/defs_controllers.h
+  src/defs_urls.h
+  src/effects/defs.h
+  src/engine/channelhandle.h
+  src/engine/engine.h
+  src/errordialoghandler.h
+  src/track/track.h
+  src/track/track_decl.h
+  src/track/trackid.h
+  src/track/trackinfo.h
+  src/track/trackiterator.h
+  src/track/trackmetadata.h
+  src/track/tracknumbers.h
+  src/track/trackrecord.h
+  src/track/trackref.h
+  src/util/alphabetafilter.h
+  src/util/assert.h
+  src/util/battery/battery.h
+  src/util/cache.h
+  src/util/circularbuffer.h
+  src/util/class.h
+  src/util/cmdlineargs.h
+  src/util/color/color.h
+  src/util/color/colorpalette.h
+  src/util/color/predefinedcolorpalettes.h
+  src/util/color/rgbcolor.h
+  src/util/colorcomponents.h
+  src/util/compatibility/qatomic.h
+  src/util/compatibility/qbytearray.h
+  src/util/compatibility/qhash.h
+  src/util/compatibility/qmutex.h
+  src/util/console.h
+  src/util/counter.h
+  src/util/datetime.h
+  src/util/db/dbconnection.h
+  src/util/db/dbconnectionpool.h
+  src/util/db/dbconnectionpooled.h
+  src/util/db/dbconnectionpooler.h
+  src/util/db/dbentity.h
+  src/util/db/dbfieldindex.h
+  src/util/db/dbid.h
+  src/util/db/dbnamedentity.h
+  src/util/db/fwdsqlquery.h
+  src/util/db/fwdsqlqueryselectresult.h
+  src/util/db/sqlite.h
+  src/util/db/sqllikewildcards.h
+  src/util/db/sqlqueryfinisher.h
+  src/util/db/sqlstorage.h
+  src/util/db/sqlstringformatter.h
+  src/util/db/sqlsubselectmode.h
+  src/util/db/sqltransaction.h
+  src/util/debug.h
+  src/util/defs.h
+  src/util/denormalsarezero.h
+  src/util/desktophelper.h
+  src/util/dnd.h
+  src/util/duration.h
+  src/util/event.h
+  src/util/experiment.h
+  src/util/fifo.h
+  src/util/file.h
+  src/util/fileaccess.h
+  src/util/fileinfo.h
+  src/util/filename.h
+  src/util/font.h
+  src/util/fpclassify.h
+  src/util/gitinfostore.h
+  src/util/imagefiledata.h
+  src/util/imageutils.h
+  src/util/indexrange.h
+  src/util/itemiterator.h
+  src/util/lcs.h
+  src/util/logger.h
+  src/util/logging.h
+  src/util/mac.h
+  src/util/macros.h
+  src/util/math.h
+  src/util/memory.h
+  src/util/messagepipe.h
+  src/util/movinginterquartilemean.h
+  src/util/mutex.h
+  src/util/optional.h
+  src/util/painterscope.h
+  src/util/parented_ptr.h
+  src/util/path.h
+  src/util/performancetimer.h
+  src/util/platform.h
+  src/util/qt.h
+  src/util/quuid.h
+  src/util/rampingvalue.h
+  src/util/rangelist.h
+  src/util/readaheadsamplebuffer.h
+  src/util/reference.h
+  src/util/regex.h
+  src/util/rescaler.h
+  src/util/ringdelaybuffer.h
+  src/util/rotary.h
+  src/util/runtimeloggingcategory.h
+  src/util/safelywritablefile.h
+  src/util/sample.h
+  src/util/sample_autogen.h
+  src/util/samplebuffer.h
+  src/util/sandbox.h
+  src/util/scopedoverridecursor.h
+  src/util/screensaver.h
+  src/util/screensavermanager.h
+  src/util/semanticversion.h
+  src/util/singleton.h
+  src/util/span.h
+  src/util/stat.h
+  src/util/statmodel.h
+  src/util/statsmanager.h
+  src/util/string.h
+  src/util/tapfilter.h
+  src/util/task.h
+  src/util/taskmonitor.h
+  src/util/thread_affinity.h
+  src/util/thread_annotations.h
+  src/util/threadcputimer.h
+  src/util/time.h
+  src/util/timer.h
+  src/util/trace.h
+  src/util/translations.h
+  src/util/types.h
+  src/util/unique_ptr_vector.h
+  src/util/valuetransformer.h
+  src/util/versionstore.h
+  src/util/widgethelper.h
+  src/util/workerthread.h
+  src/util/workerthreadscheduler.h
+  src/util/xml.h
+)
+
+set_source_files_properties(src/util/moc_included_test.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 set_target_properties(mixxx-lib PROPERTIES AUTOMOC ON AUTOUIC ON CXX_CLANG_TIDY "${CLANG_TIDY}")
 target_include_directories(mixxx-lib PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/src")
@@ -1223,6 +1384,8 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if(APPLE)
+  enable_language(OBJC OBJCXX)
+
   # Enable Automatic Reference Counting (ARC) when compiling Objective-C(++).
   # This frees us from having to worry about memory management when interfacing
   # with Apple frameworks (e.g. as in itunesmacosimporter.mm) since the compiler
@@ -1422,7 +1585,6 @@ if(QT6)
 else()
   add_executable(mixxx WIN32 src/main.cpp)
 endif()
-
 set_target_properties(mixxx-lib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
 target_link_libraries(mixxx PRIVATE mixxx-lib mixxx-gitinfostore)
 
@@ -1739,6 +1901,7 @@ add_executable(mixxx-test
   src/test/controlobjecttest.cpp
   src/test/controlobjectaliastest.cpp
   src/test/controlobjectscripttest.cpp
+  src/test/controlpotmetertest.cpp
   src/test/coreservicestest.cpp
   src/test/coverartcache_test.cpp
   src/test/coverartutils_test.cpp
@@ -2334,9 +2497,11 @@ if(QML)
       Qt${QT_VERSION_MAJOR}::Test
       Qt${QT_VERSION_MAJOR}::Widgets
       Qt${QT_VERSION_MAJOR}::Xml)
-    foreach(COMPONENT ${QT6_NEW_COMPONENTS})
-      target_link_libraries(mixxx-qml-lib PUBLIC Qt6::${COMPONENT})
-    endforeach()
+    if(QT_EXTRA_COMPONENTS)
+      foreach(COMPONENT ${QT_EXTRA_COMPONENTS})
+        target_link_libraries(mixxx-qml-lib PUBLIC Qt6::${COMPONENT})
+      endforeach()
+    endif()
   endif()
   set_target_properties(${MIXXX_QML_LIB} PROPERTIES AUTOMOC ON)
   qt_add_qml_module(${MIXXX_QML_LIB}
@@ -2371,8 +2536,166 @@ if(QML)
   # See: https://bugreports.qt.io/browse/QTBUG-87221
   target_include_directories(${MIXXX_QML_LIB} PRIVATE src/control src/qml)
   if (NOT QML_UI)
-    target_include_directories(${MIXXX_QML_LIB} PRIVATE src/ "${CMAKE_CURRENT_BINARY_DIR}/mixxx-lib_autogen/include" ${CMAKE_BINARY_DIR}/src)
+    target_include_directories(${MIXXX_QML_LIB} PUBLIC src/ ${CMAKE_BINARY_DIR}/src)
     target_include_directories(${MIXXX_QML_LIB} SYSTEM PUBLIC lib/rigtorp/SPSCQueue/include lib/portaudio)
+    target_precompile_headers(${MIXXX_QML_LIB} PUBLIC
+      src/audio/frame.h
+      src/audio/signalinfo.h
+      src/audio/streaminfo.h
+      src/audio/types.h
+      src/control/control.h
+      src/control/controlaudiotaperpot.h
+      src/control/controlbehavior.h
+      src/control/controlcompressingproxy.h
+      src/control/controleffectknob.h
+      src/control/controlencoder.h
+      src/control/controlindicator.h
+      src/control/controlindicatortimer.h
+      src/control/controllinpotmeter.h
+      src/control/controllogpotmeter.h
+      src/control/controlmodel.h
+      src/control/controlobject.h
+      src/control/controlobjectscript.h
+      src/control/controlpotmeter.h
+      src/control/controlproxy.h
+      src/control/controlpushbutton.h
+      src/control/controlsortfiltermodel.h
+      src/control/controlttrotary.h
+      src/control/controlvalue.h
+      src/control/convert.h
+      src/control/pollingcontrolproxy.h
+      src/controllers/defs_controllers.h
+      src/defs_urls.h
+      src/effects/defs.h
+      src/engine/channelhandle.h
+      src/engine/engine.h
+      src/errordialoghandler.h
+      src/track/track.h
+      src/track/track_decl.h
+      src/track/trackid.h
+      src/track/trackinfo.h
+      src/track/trackiterator.h
+      src/track/trackmetadata.h
+      src/track/tracknumbers.h
+      src/track/trackrecord.h
+      src/track/trackref.h
+      src/util/alphabetafilter.h
+      src/util/assert.h
+      src/util/battery/battery.h
+      src/util/cache.h
+      src/util/circularbuffer.h
+      src/util/class.h
+      src/util/cmdlineargs.h
+      src/util/color/color.h
+      src/util/color/colorpalette.h
+      src/util/color/predefinedcolorpalettes.h
+      src/util/color/rgbcolor.h
+      src/util/colorcomponents.h
+      src/util/compatibility/qatomic.h
+      src/util/compatibility/qbytearray.h
+      src/util/compatibility/qhash.h
+      src/util/compatibility/qmutex.h
+      src/util/console.h
+      src/util/counter.h
+      src/util/datetime.h
+      src/util/db/dbconnection.h
+      src/util/db/dbconnectionpool.h
+      src/util/db/dbconnectionpooled.h
+      src/util/db/dbconnectionpooler.h
+      src/util/db/dbentity.h
+      src/util/db/dbfieldindex.h
+      src/util/db/dbid.h
+      src/util/db/dbnamedentity.h
+      src/util/db/fwdsqlquery.h
+      src/util/db/fwdsqlqueryselectresult.h
+      src/util/db/sqlite.h
+      src/util/db/sqllikewildcards.h
+      src/util/db/sqlqueryfinisher.h
+      src/util/db/sqlstorage.h
+      src/util/db/sqlstringformatter.h
+      src/util/db/sqlsubselectmode.h
+      src/util/db/sqltransaction.h
+      src/util/debug.h
+      src/util/defs.h
+      src/util/denormalsarezero.h
+      src/util/desktophelper.h
+      src/util/dnd.h
+      src/util/duration.h
+      src/util/event.h
+      src/util/experiment.h
+      src/util/fifo.h
+      src/util/file.h
+      src/util/fileaccess.h
+      src/util/fileinfo.h
+      src/util/filename.h
+      src/util/font.h
+      src/util/fpclassify.h
+      src/util/gitinfostore.h
+      src/util/imagefiledata.h
+      src/util/imageutils.h
+      src/util/indexrange.h
+      src/util/itemiterator.h
+      src/util/lcs.h
+      src/util/logger.h
+      src/util/logging.h
+      src/util/mac.h
+      src/util/macros.h
+      src/util/math.h
+      src/util/memory.h
+      src/util/messagepipe.h
+      src/util/movinginterquartilemean.h
+      src/util/mutex.h
+      src/util/optional.h
+      src/util/painterscope.h
+      src/util/parented_ptr.h
+      src/util/path.h
+      src/util/performancetimer.h
+      src/util/platform.h
+      src/util/qt.h
+      src/util/quuid.h
+      src/util/rampingvalue.h
+      src/util/rangelist.h
+      src/util/readaheadsamplebuffer.h
+      src/util/reference.h
+      src/util/regex.h
+      src/util/rescaler.h
+      src/util/ringdelaybuffer.h
+      src/util/rotary.h
+      src/util/runtimeloggingcategory.h
+      src/util/safelywritablefile.h
+      src/util/sample.h
+      src/util/sample_autogen.h
+      src/util/samplebuffer.h
+      src/util/sandbox.h
+      src/util/scopedoverridecursor.h
+      src/util/screensaver.h
+      src/util/screensavermanager.h
+      src/util/semanticversion.h
+      src/util/singleton.h
+      src/util/span.h
+      src/util/stat.h
+      src/util/statmodel.h
+      src/util/statsmanager.h
+      src/util/string.h
+      src/util/tapfilter.h
+      src/util/task.h
+      src/util/taskmonitor.h
+      src/util/thread_affinity.h
+      src/util/thread_annotations.h
+      src/util/threadcputimer.h
+      src/util/time.h
+      src/util/timer.h
+      src/util/trace.h
+      src/util/translations.h
+      src/util/types.h
+      src/util/unique_ptr_vector.h
+      src/util/valuetransformer.h
+      src/util/versionstore.h
+      src/util/widgethelper.h
+      src/util/workerthread.h
+      src/util/workerthreadscheduler.h
+      src/util/xml.h
+    )
   endif()
   target_link_libraries(${MIXXX_QML_LIB} PRIVATE ${MIXXX_QML_LIB}plugin)
 
