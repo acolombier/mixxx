@@ -1422,6 +1422,9 @@ if(QT6)
 else()
   add_executable(mixxx WIN32 src/main.cpp)
 endif()
+# ugly hack to get #include "preferences/dialog/ui_dlgpreferencesdlg.h" to work in
+# src/qmldlgpreferencesproxy.h, which is #included from src/qmlapplication.h.
+target_include_directories(mixxx PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/mixxx-lib_autogen/include")
 set_target_properties(mixxx-lib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
 target_link_libraries(mixxx PRIVATE mixxx-lib mixxx-gitinfostore)
 
@@ -2370,7 +2373,7 @@ if(QML)
   # See: https://bugreports.qt.io/browse/QTBUG-87221
   target_include_directories(${MIXXX_QML_LIB} PRIVATE src/control src/qml)
   if (NOT QML_UI)
-    target_include_directories(${MIXXX_QML_LIB} PRIVATE src/ ${CMAKE_BINARY_DIR}/src)
+    target_include_directories(${MIXXX_QML_LIB} PRIVATE src/ "${CMAKE_CURRENT_BINARY_DIR}/mixxx-lib_autogen/include" ${CMAKE_BINARY_DIR}/src)
     target_include_directories(${MIXXX_QML_LIB} SYSTEM PUBLIC lib/rigtorp/SPSCQueue/include lib/portaudio)
   endif()
   target_link_libraries(${MIXXX_QML_LIB} PRIVATE ${MIXXX_QML_LIB}plugin)

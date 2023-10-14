@@ -10,6 +10,7 @@
 #include "control/controlpushbutton.h"
 #include "preferences/constants.h"
 #include "preferences/dialog/dlgpreferencepage.h"
+#include "preferences/dialog/ui_dlgpreferencesdlg.h"
 #include "preferences/settingsmanager.h"
 #include "preferences/usersettings.h"
 
@@ -52,12 +53,7 @@ class SkinLoader;
 }
 } // namespace mixxx
 
-namespace Ui {
-class DlgPreferencesDlg;
-}
-class QTreeWidgetItem;
-
-class DlgPreferences : public QDialog {
+class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     Q_OBJECT
   public:
     struct PreferencesPage {
@@ -114,8 +110,6 @@ class DlgPreferences : public QDialog {
     void resizeEvent(QResizeEvent* e);
 
   private:
-    Ui::DlgPreferencesDlg* m_pUi;
-
     DlgPreferencePage* currentPage();
     void fixSliderStyle();
     QList<PreferencesPage> m_allPages;
