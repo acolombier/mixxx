@@ -5,6 +5,7 @@
 #include "control/controlsortfiltermodel.h"
 #include "controllers/controllermanager.h"
 #include "moc_qmlapplication.cpp"
+#include "preferences/dialog/dlgpreferences.h"
 #include "qml/asyncimageprovider.h"
 #include "qml/qmlconfigproxy.h"
 #include "qml/qmlcontrolproxy.h"
@@ -56,19 +57,11 @@ QmlApplication::QmlApplication(
 
     // FIXME: DlgPreferences has some initialization logic that must be executed
     // before the GUI is shown, at least for the effects system.
-    m_pDlgPreferences = std::make_shared<DlgPreferences>(
-            m_pCoreServices->getScreensaverManager(),
-            nullptr,
-            m_pCoreServices->getSoundManager(),
-            m_pCoreServices->getControllerManager(),
-            m_pCoreServices->getVinylControlManager(),
-            m_pCoreServices->getEffectsManager(),
-            m_pCoreServices->getSettingsManager(),
-            m_pCoreServices->getLibrary());
+    std::shared_ptr<QDialog> pDlgPreferences = m_pCoreServices->makeDlgPreferences();
     // Without this, QApplication will quit when the last QWidget QWindow is
     // closed because it does not take into account the window created by
     // the QQmlApplicationEngine.
-    m_pDlgPreferences->setAttribute(Qt::WA_QuitOnClose, false);
+    pDlgPreferences->setAttribute(Qt::WA_QuitOnClose, false);
 
     loadQml(m_mainFilePath);
 
