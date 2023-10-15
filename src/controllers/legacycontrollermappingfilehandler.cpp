@@ -215,7 +215,7 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping( // TODO(ac) Un
             splashoff = MAX_SPLASHOFF_DURATION;
         }
 
-        if (!kSupportedPixelFormat.contains(pixelFormatName)){
+        if (!kSupportedPixelFormat.contains(pixelFormatName)) {
             qWarning() << "Unsupported pixel format" << pixelFormatName;
             return;
         }

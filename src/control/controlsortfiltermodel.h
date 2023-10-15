@@ -4,8 +4,7 @@
 #include <QString>
 #ifdef MIXXX_USE_QML
 #include <QtQml>
-#endif
-#ifndef QML_ELEMENT
+#elif !defined(QML_ELEMENT)
 #define QML_ELEMENT
 #endif
 

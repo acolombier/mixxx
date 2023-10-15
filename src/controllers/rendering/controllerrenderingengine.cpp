@@ -158,18 +158,18 @@ void ControllerRenderingEngine::finish() {
 }
 
 void ControllerRenderingEngine::renderFrame() {
-    VERIFY_OR_DEBUG_ASSERT(m_offscreenSurface->isValid()){
-        qDebug() << "OffscrenSurface isn't valid anymore.";
+    VERIFY_OR_DEBUG_ASSERT(m_offscreenSurface->isValid()) {
+        qWarning() << "OffscrenSurface isn't valid anymore.";
         finish();
         return;
     };
-    VERIFY_OR_DEBUG_ASSERT(m_context->isValid()){
-        qDebug() << "GLContext isn't valid anymore.";
+    VERIFY_OR_DEBUG_ASSERT(m_context->isValid()) {
+        qWarning() << "GLContext isn't valid anymore.";
         finish();
         return;
     };
-    VERIFY_OR_DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get())){
-        qDebug() << "Couldn't set the OffscrenSurface has GLContext.";
+    VERIFY_OR_DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get())) {
+        qWarning() << "Couldn't make the GLContext current to the OffscrenSurface.";
         finish();
         return;
     };
@@ -195,12 +195,12 @@ void ControllerRenderingEngine::renderFrame() {
 
     m_renderControl->beginFrame();
     VERIFY_OR_DEBUG_ASSERT(m_renderControl->sync()) {
-        qDebug() << "Couldn't sync the render control.";
+        qWarning() << "Couldn't sync the render control.";
     };
     QImage fboImage(m_screenInfo.size, m_screenInfo.pixelFormat);
 
-    VERIFY_OR_DEBUG_ASSERT(m_fbo->bind()){
-        qDebug() << "Couldn't bind the FBO.";
+    VERIFY_OR_DEBUG_ASSERT(m_fbo->bind()) {
+        qWarning() << "Couldn't bind the FBO.";
     }
     GLenum glError;
     m_context->functions()->glFlush();
@@ -213,7 +213,7 @@ void ControllerRenderingEngine::renderFrame() {
         m_context->functions()->glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
     }
     glError = m_context->functions()->glGetError();
-    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
+    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
         qWarning() << "GLError: " << glError;
         finish();
     }
@@ -222,7 +222,8 @@ void ControllerRenderingEngine::renderFrame() {
     m_renderControl->render();
     m_renderControl->endFrame();
 
-    while (m_context->functions()->glGetError());
+    while (m_context->functions()->glGetError())
+        ;
     m_context->functions()->glReadPixels(0,
             0,
             m_screenInfo.size.width(),
@@ -231,14 +232,14 @@ void ControllerRenderingEngine::renderFrame() {
             m_GLDataType,
             fboImage.bits());
     glError = m_context->functions()->glGetError();
-    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR){
+    VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
         qWarning() << "GLError: " << glError;
         finish();
     }
     VERIFY_OR_DEBUG_ASSERT(!fboImage.isNull()) {
         qWarning() << "Screen frame is null!";
     }
-    VERIFY_OR_DEBUG_ASSERT(m_fbo->release()){
+    VERIFY_OR_DEBUG_ASSERT(m_fbo->release()) {
         qDebug() << "Couldn't release the FBO.";
     }
 

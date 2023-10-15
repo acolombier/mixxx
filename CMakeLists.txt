@@ -2827,7 +2827,7 @@ if(NOT QML_UI)
       src/widget/wvumeterglsl.cpp
     )
   else()
-    target_sources(${MIXXX_QML_LIB} PRIVATE
+    target_sources(mixxx-lib PRIVATE
       src/waveform/renderers/qtvsynctestrenderer.cpp
       src/waveform/renderers/qtwaveformrendererfilteredsignal.cpp
       src/waveform/renderers/qtwaveformrenderersimplesignal.cpp
@@ -3497,6 +3497,9 @@ endif()
 find_package(Microsoft.GSL CONFIG)
 if(Microsoft.GSL_FOUND)
   target_link_libraries(mixxx-lib PRIVATE Microsoft.GSL::GSL)
+  if(NOT QML_UI)
+    target_link_libraries(mixxx-qml-lib PRIVATE Microsoft.GSL::GSL)
+  endif()
 else()
   # check if the headers have been installed without cmake config (< 3.1.0)
   check_include_file_cxx(gsl/gsl HAVE_GSL_GSL)

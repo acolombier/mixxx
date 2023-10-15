@@ -394,7 +394,7 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
     const QMetaObject* metaObject = pScene->metaObject();
 
     // TODO support typed QML with (ArrayBuffer, Date)
-    int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant, QVariant)");
+    int methodIdx = metaObject->indexOfMethod("transformFrame(QVariant,QVariant)");
     if (methodIdx == -1 || !metaObject->method(methodIdx).isValid()) {
         qDebug() << "QML Scene for screen" << screenIdentifier
                  << "has no transformFrame method. The frame data will be sent "

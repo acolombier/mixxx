@@ -42,14 +42,15 @@ bool ControllerScriptEngineBase::initialize() {
         // TODO (ac) Do we need to register clones of QML singletons for that
         // engine to prevent multi-thread risks?
         //           There is currently a DEBUG_ASSERT(pJsEngine->thread() ==
-        //           s_pInstance->thread()) that we fail
+        //           s_pInstance->thread()) that would fail
         // TODO (ac) How do we get CoreServices? Should initialize() take it as
-        // argument? No memory leak here, the QQmlEngine takes ownership of the
-        // provider QQuickAsyncImageProvider* pImageProvider =
+        // argument?
+        // QQuickAsyncImageProvider* pImageProvider =
         // std::make_unique<AsyncImageProvider>(
         //         m_pCoreServices->getTrackCollectionManager());
         // m_qmlEngine->addImageProvider(AsyncImageProvider::kProviderName,
         // pImageProvider);
+        // No memory leak here, the QQmlEngine takes ownership of the provider
     }
 
     QJSValue engineGlobalObject = m_pJSEngine->globalObject();

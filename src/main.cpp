@@ -58,7 +58,7 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
                 &mixxx::CoreServices::initializationProgressUpdate,
                 &mainWindow,
                 &MixxxMainWindow::initializationProgressUpdate);
-        
+
         pCoreServices->initialize(pApp);
 
 #ifdef MIXXX_USE_QOPENGL

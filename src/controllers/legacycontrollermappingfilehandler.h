@@ -41,10 +41,10 @@ class LegacyControllerMappingFileHandler {
     void parseMappingInfo(const QDomElement& root,
             std::shared_ptr<LegacyControllerMapping> mapping) const;
 
-    /// Adds script and render files from XML to the LegacyControllerMapping.
+    /// Adds script files and QML scenes from XML to the LegacyControllerMapping.
     ///
     /// This function parses the supplied QDomElement structure, finds the
-    /// matching script files and render file inside the search paths and adds them to
+    /// matching script files and QML scenes inside the search paths and adds them to
     /// LegacyControllerMapping.
     ///
     /// @param root The root node of the XML document for the mapping.

@@ -56,7 +56,7 @@ Item {
             Image {
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectFit
-                source: "../images/templates/logo_mixxx.png" // loads cat.png
+                source: "../images/templates/logo_mixxx.png"
             }
         }
     }
