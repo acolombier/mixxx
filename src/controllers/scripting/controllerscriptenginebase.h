@@ -14,6 +14,7 @@ class QJSEngine;
 #ifdef MIXXX_USE_QML
 class TrackCollectionManager;
 #endif
+class ControllerRuntimeData;
 
 /// ControllerScriptEngineBase manages the JavaScript engine for controller scripts.
 /// ControllerScriptModuleEngine implements the current system using JS modules.
@@ -54,6 +55,13 @@ class ControllerScriptEngineBase : public QObject {
     static void registerTrackCollectionManager(
             std::shared_ptr<TrackCollectionManager> pTrackCollectionManager);
 #endif
+    void setRuntimeData(std::shared_ptr<ControllerRuntimeData> runtimeData) {
+        m_pRuntimeData = std::move(runtimeData);
+    }
+
+    std::shared_ptr<ControllerRuntimeData> getRuntimeData() const {
+        return m_pRuntimeData;
+    }
 
   protected:
     virtual void shutdown();
@@ -81,6 +89,7 @@ class ControllerScriptEngineBase : public QObject {
     bool m_bErrorsAreFatal;
 #endif
     std::shared_ptr<QJSEngine> m_pJSEngine;
+    std::shared_ptr<ControllerRuntimeData> m_pRuntimeData;
 
     Controller* m_pController;
     const RuntimeLoggingCategory m_logger;
