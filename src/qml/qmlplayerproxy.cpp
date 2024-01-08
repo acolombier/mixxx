@@ -30,7 +30,8 @@ namespace qml {
 QmlPlayerProxy::QmlPlayerProxy(BaseTrackPlayer* pTrackPlayer, QObject* parent)
         : QObject(parent),
           m_pTrackPlayer(pTrackPlayer),
-          m_pBeatsModel(new QmlBeatsModel(this)) {
+          m_pBeatsModel(new QmlBeatsModel(this)),
+          m_pHotcuesModel(new QmlCuesModel(this)) {
     connect(m_pTrackPlayer,
             &BaseTrackPlayer::loadingTrack,
             this,
@@ -125,7 +126,12 @@ void QmlPlayerProxy::slotTrackLoaded(TrackPointer pTrack) {
                 &Track::beatsUpdated,
                 this,
                 &QmlPlayerProxy::slotBeatsChanged);
+        connect(pTrack.get(),
+                &Track::cuesUpdated,
+                this,
+                &QmlPlayerProxy::slotHotcuesChanged);
         slotBeatsChanged();
+        slotHotcuesChanged();
     }
     emit trackChanged();
     emit trackLoaded();
@@ -209,6 +215,25 @@ void QmlPlayerProxy::slotBeatsChanged() {
     } else {
         m_pBeatsModel->setBeats(nullptr, audio::kStartFramePos);
     }
+}
+
+void QmlPlayerProxy::slotHotcuesChanged() {
+    VERIFY_OR_DEBUG_ASSERT(m_pHotcuesModel != nullptr) {
+        return;
+    }
+
+    QList<CuePointer> hotcues;
+
+    const TrackPointer pTrack = m_pCurrentTrack;
+    if (pTrack) {
+        for (const auto& cuePoint : pTrack->getCuePoints()) {
+            if (cuePoint->getHotCue() == Cue::kNoHotCue)
+                continue;
+            hotcues.append(cuePoint);
+        }
+    }
+    m_pHotcuesModel->setCues(hotcues);
+    emit cuesChanged();
 }
 
 int QmlPlayerProxy::getWaveformLength() const {
