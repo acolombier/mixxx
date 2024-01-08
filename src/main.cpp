@@ -5,6 +5,9 @@
 #include <QStringList>
 #include <QTextCodec>
 #include <QThread>
+#ifdef MIXXX_USE_QML
+#include <QSurfaceFormat>
+#endif
 #include <QtDebug>
 #include <cstdio>
 #include <stdexcept>
@@ -56,6 +59,9 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
     int exitCode;
 #ifdef MIXXX_USE_QML
     if (args.isQml()) {
+        QSurfaceFormat format;
+        format.setSamples(16);
+        QSurfaceFormat::setDefaultFormat(format);
         mixxx::qml::QmlApplication qmlApplication(pApp, pCoreServices);
         exitCode = pApp->exec();
     } else
