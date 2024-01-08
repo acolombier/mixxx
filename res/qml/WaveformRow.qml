@@ -1,3 +1,4 @@
+import "." as Skin
 import Mixxx 1.0 as Mixxx
 import QtQuick 2.14
 import QtQuick.Shapes 1.12
@@ -56,6 +57,13 @@ Item {
 
             group: root.group
             key: "waveform_zoom"
+        }
+
+        Mixxx.ControlProxy {
+            id: mainCuePosition
+
+            group: root.group
+            key: "cue_point"
         }
 
         Item {
@@ -140,6 +148,38 @@ Item {
                     x: (framePosition * 2 / samplesControl.value) * waveform.width
                     color: Theme.waveformBeatColor
                 }
+            }
+
+            Repeater {
+                model: root.deckPlayer.hotcuesModel
+
+                Item {
+                    id: cue
+
+                    required property int startPosition
+                    required property int endPosition
+                    required property string label
+                    required property bool isLoop
+                    required property int hotcueNumber
+
+                    Skin.WaveformHotcue {
+                        group: root.group
+                        hotcueNumber: cue.hotcueNumber + 1
+                        label: cue.label
+                        isLoop: cue.isLoop
+
+                        x: (startPosition * 2 / samplesControl.value) * waveform.width
+                        width: cue.isLoop ? ((endPosition - startPosition) * 2 / samplesControl.value) * waveform.width : null
+                        height: waveform.height
+                    }
+                }
+            }
+
+            Skin.WaveformCue {
+                id: maincue
+
+                height: waveform.height
+                x: (mainCuePosition.value / samplesControl.value) * waveform.width
             }
         }
     }
