@@ -28,7 +28,11 @@ namespace mixxx {
 namespace qml {
 
 QmlPlayerProxy::QmlPlayerProxy(BaseTrackPlayer* pTrackPlayer, QObject* parent)
-        : QObject(parent), m_pTrackPlayer(pTrackPlayer), m_pBeatsModel(new QmlBeatsModel(this)) {
+        : QObject(parent),
+          m_pTrackPlayer(pTrackPlayer),
+          m_pCurrentTrack(
+                  pTrackPlayer ? pTrackPlayer->getLoadedTrack() : nullptr),
+          m_pBeatsModel(new QmlBeatsModel(this)) {
     connect(m_pTrackPlayer,
             &BaseTrackPlayer::loadingTrack,
             this,
@@ -126,13 +130,23 @@ void QmlPlayerProxy::slotTrackLoaded(TrackPointer pTrack) {
 }
 
 void QmlPlayerProxy::slotLoadingTrack(TrackPointer pNewTrack, TrackPointer pOldTrack) {
-    Q_UNUSED(pNewTrack);
-    Q_UNUSED(pOldTrack);
+    VERIFY_OR_DEBUG_ASSERT(pOldTrack == m_pCurrentTrack) {
+        qWarning() << "QML Player proxy was expected to contain "
+                   << pOldTrack.get() << "as active track but got"
+                   << m_pCurrentTrack.get();
+    }
+
+    if (pNewTrack.get() == m_pCurrentTrack.get()) {
+        emit trackLoading();
+        return;
+    }
+
     const TrackPointer pTrack = m_pCurrentTrack;
     if (pTrack != nullptr) {
         disconnect(pTrack.get(), nullptr, this, nullptr);
     }
     m_pCurrentTrack.reset();
+    m_pCurrentTrack = pNewTrack;
     m_waveformTexture = QImage();
     emit trackChanged();
     emit trackLoading();
