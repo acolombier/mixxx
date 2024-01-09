@@ -118,7 +118,9 @@ Item {
         Item {
             id: waveform
 
-            property real effectiveZoomFactor: rateRatioControl.value * zoomControl.value * 100
+            property real constantRate: Mixxx.Config.getBool("[Waveform]", "ConstantRate", true)
+
+            property real effectiveZoomFactor: (waveform.constantRate ? 1 / rateRatioControl.value : 1.0) * (200 / zoomControl.value)
 
             width: waveformContainer.duration * effectiveZoomFactor
             height: parent.height
@@ -207,7 +209,7 @@ Item {
                     width: 1
                     height: waveform.height
                     x: (framePosition * 2 / samplesControl.value) * waveform.width
-                    color: Theme.waveformBeatColor
+                    color: Qt.alpha(Theme.waveformBeatColor, alpha)
                 }
             }
 
@@ -285,7 +287,7 @@ Item {
         ShapePath {
             id: playMarker
 
-            property real screenPosition: 0.5
+            property real screenPosition: Mixxx.Config.getDouble("[Waveform]", "PlayMarkerPosition", 0.5)
 
             startX: playMarkerShape.width * playMarker.screenPosition
             startY: 0
