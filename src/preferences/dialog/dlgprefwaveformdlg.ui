@@ -43,6 +43,9 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>Highlight the waveforms when the last seconds of a track remains.</string>
+       </property>
        <property name="minimum">
         <number>0</number>
        </property>
@@ -97,7 +100,7 @@
       </widget>
      </item>
      <item row="14" column="0">
-      <widget class="QLabel" name="openGlStatusLabel_2">
+      <widget class="QLabel" name="frameRateAverageLabel">
        <property name="toolTip">
         <string/>
        </property>
@@ -521,12 +524,12 @@ Select from different types of displays for the waveform, which differ primarily
      </item>
      <item row="5" column="0">
       <widget class="QLabel" name="label">
-      <property name="text">
-       <string>Play marker position</string>
-      </property>
+       <property name="text">
+        <string>Play marker position</string>
+       </property>
       </widget>
-      </item>
-      <item row="5" column="1" colspan="3">
+     </item>
+     <item row="5" column="1" colspan="3">
       <widget class="QSlider" name="playMarkerPositionSlider">
        <property name="toolTip">
         <string>Moves the play marker position on the waveforms to the left, right or center (default).</string>
@@ -554,6 +557,19 @@ Select from different types of displays for the waveform, which differ primarily
        </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QCheckBox" name="constantScrollingRateCheckBox">
+       <property name="toolTip">
+        <string>Waveform will always scroll at the same speed. This means that if the track play rate is changed, the zoom level will be adjusted to keep the scrolling pace. If disabled, playback ratio will change the scrolling speed.</string>
+       </property>
+       <property name="text">
+        <string>Waveform always scroll at the same speed</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

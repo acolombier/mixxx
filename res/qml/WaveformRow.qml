@@ -118,11 +118,14 @@ Item {
         Item {
             id: waveform
 
-            property real effectiveZoomFactor: rateRatioControl.value * zoomControl.value * 100
+            property real constantRate: Mixxx.Config.getBool("[Waveform]", "ConstantRate", true)
+            property real screenPos: Mixxx.Config.getDouble("[Waveform]", "PlayMarkerPosition", 0.5)
+
+            property real effectiveZoomFactor: (waveform.constantRate ? rateRatioControl.value : 1.0) * zoomControl.value * 100
 
             width: waveformContainer.duration * effectiveZoomFactor
             height: parent.height
-            x: 0.5 * waveformContainer.width - playPositionControl.value * width
+            x: screenPos * waveformContainer.width - playPositionControl.value * width
             visible: root.deckPlayer.isLoaded
 
             WaveformShader {
@@ -191,11 +194,13 @@ Item {
             Repeater {
                 model: root.deckPlayer.beatsModel
 
+                property real alpha: Mixxx.Config.getInt("[Waveform]", "beatGridAlpha", 90) / 100
+
                 Rectangle {
                     width: 1
                     height: waveform.height
                     x: (framePosition * 2 / samplesControl.value) * waveform.width
-                    color: Theme.waveformBeatColor
+                    color: Qt.alpha(Theme.waveformBeatColor, alpha)
                 }
             }
 
@@ -273,7 +278,9 @@ Item {
         ShapePath {
             id: playMarkerPath
 
-            startX: parent.width / 2
+            property real screenPos: Mixxx.Config.getDouble("[Waveform]", "PlayMarkerPosition", 0.5)
+
+            startX: parent.width * playMarkerPath.screenPos
             startY: 0
             strokeColor: Theme.waveformCursorColor
             strokeWidth: 1
