@@ -121,7 +121,7 @@ Item {
             property real constantRate: Mixxx.Config.getBool("[Waveform]", "ConstantRate", true)
             property real screenPos: Mixxx.Config.getDouble("[Waveform]", "PlayMarkerPosition", 0.5)
 
-            property real effectiveZoomFactor: (waveform.constantRate ? rateRatioControl.value : 1.0) * zoomControl.value * 100
+            property real effectiveZoomFactor: (waveform.constantRate ? 1 / rateRatioControl.value : 1.0) * zoomControl.value * 20
 
             width: waveformContainer.duration * effectiveZoomFactor
             height: parent.height
@@ -194,9 +194,9 @@ Item {
             Repeater {
                 model: root.deckPlayer.beatsModel
 
-                property real alpha: Mixxx.Config.getInt("[Waveform]", "beatGridAlpha", 90) / 100
-
                 Rectangle {
+                    property real alpha: Mixxx.Config.getInt("[Waveform]", "beatGridAlpha", 90) / 100
+
                     width: 1
                     height: waveform.height
                     x: (framePosition * 2 / samplesControl.value) * waveform.width
@@ -210,8 +210,8 @@ Item {
                 visible: introStartPosition.value != -1 || introEndPosition.value != -1
 
                 height: waveform.height
-                x: (introStartPosition.value / samplesControl.value) * waveform.width
-                width: ((introEndPosition.value - introStartPosition.value) / samplesControl.value) * waveform.width
+                x: ((introStartPosition.value != -1 ? introStartPosition.value : introEndPosition.value) / samplesControl.value) * waveform.width
+                width: introEndPosition.value == -1 ? 0 : ((introEndPosition.value - introStartPosition.value) / samplesControl.value) * waveform.width
             }
 
             Skin.WaveformIntroOutro {
@@ -221,8 +221,8 @@ Item {
                 isIntro: false
 
                 height: waveform.height
-                x: (outroStartPosition.value / samplesControl.value) * waveform.width
-                width: ((outroEndPosition.value - outroStartPosition.value) / samplesControl.value) * waveform.width
+                x: ((outroStartPosition.value != -1 ? outroStartPosition.value : outroEndPosition.value) / samplesControl.value) * waveform.width
+                width: outroEndPosition.value == -1 || outroStartPosition.value == -1 ? 0 : ((outroEndPosition.value - outroStartPosition.value) / samplesControl.value) * waveform.width
             }
 
             Skin.WaveformLoop {
@@ -288,7 +288,7 @@ Item {
             PathLine {
                 id: marker
 
-                x: playMarkerPath.startX
+                x: playMarkerShape.width * playMarkerPath.screenPos
                 y: playMarkerShape.height
             }
         }

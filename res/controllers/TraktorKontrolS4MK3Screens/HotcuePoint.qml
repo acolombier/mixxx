@@ -4,10 +4,14 @@ import QtQuick.Window 2.15
 
 import QtQuick.Controls 2.15
 
+import Mixxx 1.0 as Mixxx
+
 Item {
     required property real position
     required property int type
+
     property int number: 1
+    property color color: 'blue'
 
     enum Type {
         OneShot,
@@ -37,7 +41,7 @@ Item {
         ShapePath {
             strokeWidth: 1
             strokeColor: Qt.rgba(0, 0, 0, 0.5)
-            fillColor: "#f3dc6e"
+            fillColor: color
             strokeStyle: ShapePath.SolidLine
             // dashPattern: [ 1, 4 ]
             startX: 0; startY: 0

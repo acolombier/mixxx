@@ -923,10 +923,10 @@ class BeatLoopRollButton extends TriggerButton {
             options.onShortRelease = function() {
                 engine.setValue(this.group, this.inKey, false);
                 if (this.deck.beatloop) {
-                    engine.setValue(this.group, "loop_start_position", this.deck.beatloop.start),
-                    engine.setValue(this.group, "loop_end_position", this.deck.beatloop.end),
-                    engine.setValue(this.group, "beatloop_size", this.deck.beatloop.size),
-                    engine.setValue(this.group, "loop_enabled", this.deck.beatloop.enabled),
+                    engine.setValue(this.group, "loop_start_position", this.deck.beatloop.start);
+                    engine.setValue(this.group, "loop_end_position", this.deck.beatloop.end);
+                    engine.setValue(this.group, "beatloop_size", this.deck.beatloop.size);
+                    engine.setValue(this.group, "loop_enabled", this.deck.beatloop.enabled);
                     this.deck.beatloop = undefined;
                 }
             };
@@ -1924,9 +1924,15 @@ class S4Mk3Deck extends Deck {
                     if (this.deck.selectedHotcue === null) {
                         return;
                     }
-                    const color = engine.getValue(this.deck.group, `hotcue_${this.deck.selectedHotcue}_color`);
-                    let currentColorIdx = Object.values(LedColors).indexOf(Button.prototype.colorMap.getValueForNearestColor(color));
-                    currentColorIdx = (currentColorIdx + (right ? 1:-1)) % Object.keys(LedColorMap).length;
+                    const currentColor = Button.prototype.colorMap.getValueForNearestColor(engine.getValue(this.deck.group, `hotcue_${this.deck.selectedHotcue}_color`));
+                    let currentColorIdx = Object.keys(LedColorMap).indexOf(Object.keys(LedColorMap).find(key => LedColorMap[key] === currentColor));
+                    currentColorIdx = Math.max(
+                        Math.min(
+                            Object.keys(LedColorMap).length - 2, // Last color is reserved for loop hotcue
+                            currentColorIdx + (right ? 1:-1)
+                        ),
+                        0
+                    );
                     engine.setValue(this.deck.group, `hotcue_${this.deck.selectedHotcue}_color`, Object.keys(LedColorMap)[currentColorIdx]);
                     break;
                 }
@@ -1981,6 +1987,12 @@ class S4Mk3Deck extends Deck {
                     const valueOut = engine.getValue(this.group, "loop_end_position") + (right ? moveFactor : -moveFactor);
                     engine.setValue(this.group, "loop_start_position", valueIn);
                     engine.setValue(this.group, "loop_end_position", valueOut);
+                } else if (this.shifted && this.deck.samplesPadModeButton.pressed) {
+                    const position = engine.getValue(this.group, "loop_start_position");
+                    const size = engine.getValue(this.group, "beatloop_size");
+                    const delta = engine.getValue(this.group, "loop_end_position") - position;
+                    engine.setValue(this.group, "loop_start_position", right ?  position - delta : position + delta / 2);
+                    engine.setValue(this.group, "beatloop_size", right ? size * 2 : size / 2);
                 } else if (this.shifted) {
                     script.triggerControl(this.group, right ? "loop_move_1_forward" : "loop_move_1_backward");
                 } else {
@@ -1989,14 +2001,19 @@ class S4Mk3Deck extends Deck {
             }
         });
         this.rightEncoderPress = new PushButton({
-            samplerButtonPressed: false,
+            deck: this,
             input: function(pressed) {
                 if (!pressed) {
                     return;
                 }
-                if (this.samplerButtonPressed) {
-                    engine.setValue(this.group, "loop_end_position", engine.getValue(this.group, "playposition"));
-                    script.triggerControl(this.group, "reloop_toggle");
+                if (this.deck.samplesPadModeButton.pressed) {
+                    const position = engine.getValue(this.group, "quantize") ?
+                        engine.getValue(this.group, "beat_closest")
+                        : engine.getValue(this.group, "playposition") * engine.getValue(this.group, "track_samples");
+                    const delta = engine.getValue(this.group, "loop_end_position") - engine.getValue(this.group, "loop_start_position");
+                    engine.setValue(this.group, "loop_start_position", position - delta);
+                    engine.setValue(this.group, "loop_end_position", position);
+                    engine.setValue(this.group, "loop_enabled", 1);
                 } else if (!this.shifted) {
                     script.triggerControl(this.group, "beatloop_activate");
                 } else {
@@ -2309,9 +2326,10 @@ class S4Mk3Deck extends Deck {
             }
         });
         this.samplesPadModeButton = new Button({
+            pressed: false,
             deck: this,
             onShortRelease: function() {
-                this.deck.rightEncoderPress.samplerButtonPressed = false;
+                this.pressed = false;
                 if (this.deck.currentPadLayer !== this.deck.padLayers.samplerPage) {
                     switchPadLayer(this.deck, samplerOrBeatloopRollPage);
                     engine.setValue("[Samplers]", "show_samplers", true);
@@ -2324,13 +2342,13 @@ class S4Mk3Deck extends Deck {
                 this.deck.lightPadMode();
             },
             onShortPress: function() {
-                this.deck.rightEncoderPress.samplerButtonPressed = true;
+                this.pressed = true;
             },
             onLongPress: function() {
-                this.deck.rightEncoderPress.samplerButtonPressed = true;
+                this.pressed = true;
             },
             onLongRelease: function() {
-                this.deck.rightEncoderPress.samplerButtonPressed = false;
+                this.pressed = false;
             }
         });
         // The mute button doesn't have a mapping by default, but you can add yours here

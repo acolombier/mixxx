@@ -46,6 +46,9 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.rightMargin: 5
+        anchors.topMargin: 2
+
+        horizontalAlignment: Text.AlignHCenter
 
         Mixxx.ControlProxy {
             group: root.group

@@ -49,6 +49,7 @@ Item {
         }
     }
     Shape {
+        visible: root.width != 0
         ShapePath {
             strokeWidth: 0
             strokeColor: 'transparent'
@@ -84,6 +85,7 @@ Item {
         source: `images/mark_${(root.isIntro ? 'intro' : 'outro')}.svg`
     }
     Image {
+        visible: root.width != 0
         x: root.width - 14
         y: 2
         width: 12

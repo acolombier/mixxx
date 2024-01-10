@@ -33,7 +33,13 @@ ControllerScriptEngineLegacy::ControllerScriptEngineLegacy(
     connect(&m_fileWatcher,
             &QFileSystemWatcher::fileChanged,
             this,
-            &ControllerScriptEngineLegacy::reload);
+            [this](const QString& changedFile) {
+                qDebug() << "File" << changedFile << "has been changed. Exist?"
+                         << m_fileWatcher.files().contains(changedFile);
+                if (m_fileWatcher.removePath(changedFile)) {
+                    reload();
+                }
+            });
 #ifdef MIXXX_USE_QML
     connect(&m_fileWatcher,
             &QFileSystemWatcher::directoryChanged,
@@ -273,6 +279,10 @@ bool ControllerScriptEngineLegacy::initialize() {
             if (m_bTesting)
                 continue;
 
+            availableScreens.value(screen.identifier)
+                    ->thread()
+                    ->setObjectName(
+                            QString("CtrlScreen_%1").arg(screen.identifier));
             availableScreens.value(screen.identifier)
                     ->requestSetup(
                             std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine));

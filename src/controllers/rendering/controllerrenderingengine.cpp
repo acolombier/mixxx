@@ -125,6 +125,7 @@ void ControllerRenderingEngine::requestSend(Controller* controller, const QByteA
 
 void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     QSurfaceFormat format;
+    format.setSamples(16);
     format.setDepthBufferSize(16);
     format.setStencilBufferSize(8);
 

@@ -9,6 +9,7 @@ import QtQuick.Window 2.15
 
 import Qt5Compat.GraphicalEffects
 
+import "../qml" as Skin
 import Mixxx 1.0 as Mixxx
 import Mixxx.Controls 1.0 as MixxxControls
 
@@ -46,7 +47,11 @@ Item {
     }
 
     function redraw(component) {
-        _items_needing_redraw.set(component, Date.now())
+        const timestamp = Date.now();
+        if (_items_needing_redraw[component] && _items_needing_redraw[component] < timestamp) {
+            return;
+        }
+        _items_needing_redraw.set(component, timestamp)
     }
 
     function transformFrame(input, timestamp) {
@@ -59,9 +64,11 @@ Item {
 
         const item_requesting_redraw = new Array()
         _items_needing_redraw.forEach(function(value, key, map) {
-                if (value < timestamp) {
+                if (value <= timestamp) {
                     item_requesting_redraw.push(key);
                     _items_needing_redraw.delete(key);
+                } else {
+                    console.log(`Too soon to draw ${key} (in ${value-timestamp} ms)`)
                 }
         })
 
@@ -83,7 +90,7 @@ Item {
             // when it is happening is likely not worth it
         }
 
-        // console.log(`Redrawing ${totalPixelToDraw} the following region: ${areasToDraw}`)
+        console.log(`Redrawing ${totalPixelToDraw} the following region: ${areasToDraw}`)
 
         const screenIdx = screenId === "leftdeck" ? 0 : 1;
 
@@ -246,7 +253,7 @@ Item {
                     width: 100
                     fillMode: Image.PreserveAspectFit
 
-                    opacity: artworkSpacer.visible ? 1 : 0.4
+                    opacity: artworkSpacer.visible ? 1 : 0.2
                     z: -1
 
                     onStatusChanged: {
@@ -273,6 +280,8 @@ Item {
                             group: root.group
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+
+                            scrolling: !scrollingWavefom.visible
 
                             onUpdated: {
                                 root.redraw(this)
@@ -387,39 +396,69 @@ Item {
                     }
                 }
 
+                Repeater {
+                    model: scrollingWavefom.visible ? [
+                        "playposition",
+                        "bpm",
+                        "waveform_zoom",
+                        "loop_start_position",
+                        "loop_end_position",
+                        "loop_enabled",
+                        "total_gain",
+                        "filterHigh",
+                        "filterHighKill",
+                        "filterMid",
+                        "filterMidKill",
+                        "filterLow",
+                        "filterLowKill",
+                        ...Array(16).fill().map((_,i)=>`hotcue_${i+1}_position`),
+                        ...Array(16).fill().map((_,i)=>`hotcue_${i+1}_color`),
+                    ]: []
+
+                    Item {
+                        required property string modelData
+
+                        Mixxx.ControlProxy {
+                            group: root.group
+                            key: modelData
+                            onValueChanged: (value) => {
+                                console.log(`${modelData}: ${value}`)
+                                root.redraw(scrollingWavefom)
+                            }
+                        }
+                    }
+                }
+
                 Item {
                     id: scrollingWavefom
 
                     Layout.fillWidth: true
                     Layout.minimumHeight: scrollingWavefom.visible ? 120 : 0
-                    Layout.leftMargin: 6
-                    Layout.rightMargin: 6
+                    Layout.leftMargin: 0
+                    Layout.rightMargin: 0
 
                     visible: false
 
-                    Mixxx.ControlProxy {
+                    // MixxxControls.WaveformDisplay {
+                    //     anchors.fill: parent
+                    //     group: root.group
+                    //     player: Mixxx.PlayerManager.getPlayer(root.group)
+                    // }
+                    Skin.WaveformRow {
                         group: root.group
-                        key: "playposition"
-                        onValueChanged: (value) => {
-                            if (!scrollingWavefom.visible) return;
-                            root.redraw(scrollingWavefom)
-                        }
+                        x: 0
+                        width: 320
+                        height: 100
                     }
 
-                    MixxxControls.WaveformDisplay {
-                        anchors.fill: parent
-                        group: root.group
-                        player: Mixxx.PlayerManager.getPlayer(root.group)
-                    }
-
-                    Rectangle {
-                        color: "white"
-                        visible: scrollingWavefom.visible
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        x: 153
-                        width: 2
-                    }
+                    // Rectangle {
+                    //     color: "white"
+                    //     visible: scrollingWavefom.visible
+                    //     anchors.top: parent.top
+                    //     anchors.bottom: parent.bottom
+                    //     x: 153
+                    //     width: 2
+                    // }
                 }
 
                 // Spacer
@@ -490,7 +529,7 @@ Item {
 
                     // Hotcue
                     Repeater {
-                        model: 8
+                        model: 16
 
                         S4MK3.HotcuePoint {
                             required property int index
@@ -526,6 +565,15 @@ Item {
                                 }
                             }
 
+                            Mixxx.ControlProxy {
+                                id: hotcueColor
+                                group: root.group
+                                key: `hotcue_${number}_color`
+                                onValueChanged: (value) => {
+                                    redraw(waveform)
+                                }
+                            }
+
                             anchors.top: parent.top
                             // anchors.left: parent.left
                             anchors.bottom: parent.bottom
@@ -534,6 +582,7 @@ Item {
                             number: this.index + 1
                             type: S4MK3.HotcuePoint.Type.OneShot
                             position: hotcuePosition.value / samplesControl.value
+                            color: `#${(hotcueColor.value >> 16).toString(16).padStart(2, '0')}${((hotcueColor.value >> 8) & 255).toString(16).padStart(2, '0')}${(hotcueColor.value & 255).toString(16).padStart(2, '0')}`
                         }
                     }
 

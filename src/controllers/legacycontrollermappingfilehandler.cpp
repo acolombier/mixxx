@@ -146,6 +146,17 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
     QString deviceId = controller.attribute("id", "");
     mapping->setDeviceId(deviceId);
 
+#ifdef MIXXX_USE_QML
+    QString deviceDirection = controller.attribute("direction", "").toLower();
+    if (deviceDirection == "in") {
+        mapping->setDeviceDirection(LegacyControllerMapping::DeviceDirection::IN);
+    } else if (deviceDirection == "out") {
+        mapping->setDeviceDirection(LegacyControllerMapping::DeviceDirection::OUT);
+    } else {
+        mapping->setDeviceDirection(LegacyControllerMapping::DeviceDirection::BIDIRECTIONNAL);
+    }
+#endif
+
     // Build a list of script files to load
     QDomElement scriptFile = controller.firstChildElement("scriptfiles")
                                      .firstChildElement("file");

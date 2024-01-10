@@ -30,8 +30,6 @@ namespace qml {
 QmlPlayerProxy::QmlPlayerProxy(BaseTrackPlayer* pTrackPlayer, QObject* parent)
         : QObject(parent),
           m_pTrackPlayer(pTrackPlayer),
-          m_pCurrentTrack(
-                  pTrackPlayer ? pTrackPlayer->getLoadedTrack() : nullptr),
           m_pBeatsModel(new QmlBeatsModel(this)),
           m_pHotcuesModel(new QmlCuesModel(this)) {
     connect(m_pTrackPlayer,
@@ -47,6 +45,10 @@ QmlPlayerProxy::QmlPlayerProxy(BaseTrackPlayer* pTrackPlayer, QObject* parent)
             this,
             &QmlPlayerProxy::trackUnloaded);
     connect(this, &QmlPlayerProxy::trackChanged, this, &QmlPlayerProxy::slotTrackChanged);
+    if (m_pTrackPlayer && m_pTrackPlayer->getLoadedTrack()) {
+        slotTrackLoaded(pTrackPlayer->getLoadedTrack());
+        slotWaveformChanged();
+    }
 }
 
 void QmlPlayerProxy::loadTrackFromLocation(const QString& trackLocation, bool play) {

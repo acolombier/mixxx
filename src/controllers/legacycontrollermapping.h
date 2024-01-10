@@ -20,7 +20,12 @@
 class LegacyControllerMapping {
   public:
     LegacyControllerMapping()
-            : m_bDirty(false) {
+            : m_bDirty(false)
+#ifdef MIXXX_USE_QML
+              ,
+              m_deviceDirection(DeviceDirection::BIDIRECTIONNAL)
+#endif
+    {
     }
     virtual ~LegacyControllerMapping() = default;
 
@@ -46,6 +51,11 @@ class LegacyControllerMapping {
     };
 
 #ifdef MIXXX_USE_QML
+    enum DeviceDirection {
+        BIDIRECTIONNAL = 0b11,
+        IN = 0b10,
+        OUT = 0b01,
+    };
     struct QMLModuleInfo {
         QMLModuleInfo(const QFileInfo& aDirinfo,
                 bool isBuiltin)
@@ -159,6 +169,14 @@ class LegacyControllerMapping {
 
     const QList<ScreenInfo>& getInfoScreens() const {
         return m_screens;
+    }
+
+    inline void setDeviceDirection(DeviceDirection aDeviceDirection) {
+        m_deviceDirection = aDeviceDirection;
+    }
+
+    inline DeviceDirection getDeviceDirection() const {
+        return m_deviceDirection;
     }
 #endif
 
@@ -303,5 +321,7 @@ class LegacyControllerMapping {
 #ifdef MIXXX_USE_QML
     QList<QMLModuleInfo> m_modules;
     QList<ScreenInfo> m_screens;
+
+    DeviceDirection m_deviceDirection;
 #endif
 };

@@ -8,7 +8,7 @@
             <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" />
         </devices>
     </info>
-    <controller id="Traktor">
+    <controller id="Traktor" direction="out">
         <screens>
             <screen identifier="leftdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="500" />
             <screen identifier="rightdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="500" />

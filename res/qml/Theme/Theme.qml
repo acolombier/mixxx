@@ -41,7 +41,7 @@ QtObject {
     property color waveformBeatColor: lightGray
     property color waveformCursorColor: white
     property color waveformMarkerDefault: '#ff7a01'
-    property color waveformMarkerLabel: Qt.rgbs(255, 255, 255, 0.8)
+    property color waveformMarkerLabel: Qt.rgba(255, 255, 255, 0.8)
     property color waveformMarkerIntroOutroColor: '#2c5c9a'
     property color waveformMarkerLoopColor: '#00b400'
     property color waveformMarkerLoopColorDisabled: '#FFFFFF'

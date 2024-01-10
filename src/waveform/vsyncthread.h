@@ -6,7 +6,6 @@
 #include <mutex>
 
 #include "util/performancetimer.h"
-#include "waveform/isynctimeprovider.h"
 
 class WGLWidget;
 

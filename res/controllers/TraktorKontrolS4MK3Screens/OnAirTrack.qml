@@ -9,6 +9,7 @@ Item {
 
     required property string group
     property var deckPlayer: Mixxx.PlayerManager.getPlayer(root.group)
+    property bool scrolling: true
 
     enum TimerStatus {
         Forward,
@@ -86,6 +87,14 @@ Item {
             root.updated()
         }
         target: text
+    }
+
+    Connections {
+        function onScrollingChanged() {
+            root.state = root.scrolling ? (state == "ScrollingIdle" ? "ScrollingForward" : state) : "ScrollingIdle"
+            root.updated()
+        }
+        target: root
     }
 
     state: "Idle"

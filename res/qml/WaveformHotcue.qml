@@ -21,7 +21,6 @@ Item {
 
         group: root.group
         hotcueNumber: root.hotcueNumber
-        activate: root.down
     }
 
     property real markerHeight: root.height
