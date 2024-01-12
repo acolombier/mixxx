@@ -20,7 +20,8 @@
 class LegacyControllerMapping {
   public:
     LegacyControllerMapping()
-            : m_bDirty(false) {
+            : m_bDirty(false),
+              m_deviceDirection(DeviceDirection::Bidirectionnal) {
     }
     virtual ~LegacyControllerMapping() = default;
 
@@ -86,6 +87,12 @@ class LegacyControllerMapping {
         bool rawData;
     };
 #endif
+    enum class DeviceDirection : uint8_t {
+        Outgoing = 0x1,
+        Incoming = 0x2,
+        Bidirectionnal = 0x3
+    };
+    Q_DECLARE_FLAGS(DeviceDirections, DeviceDirection)
 
     /// Adds a script file to the list of controller scripts for this mapping.
     /// @param filename Name of the script file to add
@@ -161,6 +168,14 @@ class LegacyControllerMapping {
         return m_screens;
     }
 #endif
+
+    inline void setDeviceDirection(DeviceDirections aDeviceDirection) {
+        m_deviceDirection = aDeviceDirection;
+    }
+
+    inline DeviceDirections getDeviceDirection() const {
+        return m_deviceDirection;
+    }
 
     inline void setDirty(bool bDirty) {
         m_bDirty = bDirty;
@@ -304,4 +319,5 @@ class LegacyControllerMapping {
     QList<QMLModuleInfo> m_modules;
     QList<ScreenInfo> m_screens;
 #endif
+    DeviceDirections m_deviceDirection;
 };
