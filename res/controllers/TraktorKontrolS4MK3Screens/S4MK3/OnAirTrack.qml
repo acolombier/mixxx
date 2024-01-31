@@ -62,6 +62,7 @@ Item {
                 (frame.x >= 6 && root.state == "ScrollingForward")
                 || (frame.x <= -maxOffset && root.state == "ScrollingBackward")) {
                 root.state = "ScrollingCooldown"
+                frame.x = root.state == "ScrollingForward" || maxOffset <= 0 ? 6 : -maxOffset
             } else if (root.state == "ScrollingCooldown") {
                 root.state = frame.x >= 6 ? "ScrollingBackward" : "ScrollingForward"
             }

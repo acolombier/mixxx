@@ -340,7 +340,9 @@ bool ControllerScriptEngineLegacy::initialize() {
                 watchFilePath(it.next());
             }
             watchFilePath(path);
-            std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine)->addImportPath(path);
+            auto pQmlEngine = std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine);
+            pQmlEngine->addImportPath(path);
+            qWarning() << pQmlEngine->importPathList();
         }
     } else if (!m_libraryDirectories.isEmpty()) {
         qWarning() << "Controller mapping has QML library definitions but no "
@@ -595,12 +597,11 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     setErrorsAreFatal(false);
 
     if (!isSuccessful) {
-        qWarning() << "Could not transform rendering buffer for sreeen" << screeninfo.identifier;
+        qWarning() << "Could not transform rendering buffer for screen" << screeninfo.identifier;
 
         // We manually stop the screen before we trigger the shutdown procedure
         // as this last one may continue rendering process in order to perform
         // screen splash off
-        m_renderingScreens[screeninfo.identifier]->stop();
         shutdown();
         return;
     }
@@ -608,7 +609,6 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
         qWarning() << "Could not transform rendering buffer. The transform "
                       "function didn't return the expected Array. Stopping "
                       "rendering on this screen";
-        m_renderingScreens[screeninfo.identifier]->stop();
         return;
     }
 

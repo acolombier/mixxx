@@ -9,11 +9,11 @@ import QtQuick.Window 2.15
 
 import Qt5Compat.GraphicalEffects
 
-import "../qml" as Skin
+import "." as Skin
 import Mixxx 1.0 as Mixxx
 import Mixxx.Controls 1.0 as MixxxControls
 
-import "TraktorKontrolS4MK3Screens" as S4MK3
+import S4MK3 as S4MK3
 
 Item {
     id: root
@@ -24,7 +24,7 @@ Item {
 
     property string group: screenId == "rightdeck" ? "[Channel2]" : "[Channel1]"
 
-    property var _items_needing_redraw: new Map()
+    property var _zones_needing_redraw: new Array()
 
     Timer {
         id: timer
@@ -48,60 +48,87 @@ Item {
 
     function redraw(component) {
         const timestamp = Date.now();
-        if (_items_needing_redraw[component] && _items_needing_redraw[component] < timestamp) {
-            return;
+        const pos = component.mapToGlobal(0, 0)
+        const x = Math.min(Math.max(0, pos.x), 320), y = Math.min(Math.max(0, pos.y), 240);
+        const zone = Qt.rect(
+            x,
+            y,
+            Math.min(Math.max(0, component.width), 320 - x),
+            Math.min(Math.max(0, component.height), 240 - y )
+        );
+        if (zone.width * zone.height) {
+            _zones_needing_redraw.push([zone, timestamp])
+        } else {
+            console.log(`Component generated a null rectangle! pos=${pos}, component=${component}, width=${component.width}, height=${component.height}`)
         }
-        _items_needing_redraw.set(component, timestamp)
+    }
+
+    function contains_rect(rect1, rect2) {
+        return rect1.x <= rect2.x &&
+        rect1.y <= rect2.y &&
+        rect1.width >= rect2.width + (rect2.x - rect1.x) &&
+        rect1.height >= rect2.height + (rect2.y - rect1.y);
     }
 
     function transformFrame(input, timestamp) {
+        // First, find all the region that are ready to be redrawn
         const areasToDraw = []
         let totalPixelToDraw = 0;
-
-        if (!_items_needing_redraw.size && root.state === "Live") { // No redraw needed
-            return new ArrayBuffer(0);
-        }
-
-        const item_requesting_redraw = new Array()
-        _items_needing_redraw.forEach(function(value, key, map) {
-                if (value <= timestamp) {
-                    item_requesting_redraw.push(key);
-                    _items_needing_redraw.delete(key);
+        let zone_requesting_redraw = new Array()
+        let zone_not_ready = new Array()
+        _zones_needing_redraw.forEach(function(element, i) {
+                const [zone, zoneTimestamp] = element;
+                console.debug(`zone: ${zone} ${zoneTimestamp}`)
+                if (zoneTimestamp <= timestamp) {
+                    for (let i in zone_requesting_redraw) {
+                        const existingZone = zone_requesting_redraw[i];
+                        if (!existingZone) {
+                        // Already nullified
+                            continue
+                        }
+                        console.debug(`zone_requesting_redraw: ${i} ${existingZone}`)
+                        if (existingZone === zone || contains_rect(existingZone, zone)) return;
+                        if (contains_rect(zone, existingZone)) {
+                            totalPixelToDraw -= zone_requesting_redraw[i].width * zone_requesting_redraw[i].height;
+                            zone_requesting_redraw[i] = null;
+                        }
+                    }
+                    totalPixelToDraw += zone.width * zone.height;
+                    zone_requesting_redraw.push(zone);
+                    if (zoneTimestamp == timestamp) zone_not_ready.push([zone, zoneTimestamp]);
                 } else {
-                    console.log(`Too soon to draw ${key} (in ${value-timestamp} ms)`)
+                    console.log(`Too soon to draw ${zone} (in ${zoneTimestamp-timestamp} cs)`)
+                    zone_not_ready.push([zone, zoneTimestamp])
                 }
         })
+        _zones_needing_redraw = zone_not_ready
 
-        if (!item_requesting_redraw.length && root.state === "Live") { // No redraw needed
-            return new ArrayBuffer(0);
-        } else if (root.state === "Stop" || item_requesting_redraw.indexOf(root) !== -1) { // Full redraw needed
-            areasToDraw.push([0, 0, 320, 240]);
-            totalPixelToDraw += 320 * 240;
-        } else { // Partial redraw needed
-            item_requesting_redraw.forEach(function(item) {
-                    const pos = item.mapToGlobal(0, 0)
-                    console.log(`Redrawing item ${item}`)
-                    let x = pos.x, y = pos.y, width = item.width, height = item.height;
-                    areasToDraw.push([pos.x, pos.y, item.width, item.height])
-                    totalPixelToDraw += item.width * item.height;
-            });
-            // Note: Some area could overlap and this could be optimised, but
-            // the cost of checking that every time vs. the optimisation for
-            // when it is happening is likely not worth it
+        // Depending of the state, force full redraw
+        if (root.state === "Stop") {
+            zone_requesting_redraw = [Qt.rect(0, 0, 320, 240)];
+            totalPixelToDraw = 320 * 240;
         }
 
-        console.log(`Redrawing ${totalPixelToDraw} the following region: ${areasToDraw}`)
+        // No redraw needed, stop right there
+        if (!zone_requesting_redraw.length) {
+            return new ArrayBuffer(0);
+        }
+
+        console.log(`Redrawing ${totalPixelToDraw} the following region: ${zone_requesting_redraw}`)
 
         const screenIdx = screenId === "leftdeck" ? 0 : 1;
 
-        const outputData = new ArrayBuffer(totalPixelToDraw*2 + 20*areasToDraw.length);
+        const outputData = new ArrayBuffer(totalPixelToDraw*2 + 20*zone_requesting_redraw.length); // Number of pixel + 20 (header/footer size) x the number of region
         let offset = 0;
 
-        for (const area of areasToDraw) {
-            const [x, y, width, height] = area;
+        for (const area of zone_requesting_redraw) {
+            if (!area) {
+                // This happens when the area has been nullified because overlapping with an other region
+                continue;
+            }
             const header = new Uint8Array(outputData, offset, 16);
-            const payload = new Uint8Array(outputData, offset + 16, width*height*2);
-            const footer = new Uint8Array(outputData, offset + width*height*2 + 16, 4);
+            const payload = new Uint8Array(outputData, offset + 16, area.width*area.height*2);
+            const footer = new Uint8Array(outputData, offset + area.width*area.height*2 + 16, 4);
 
             header.fill(0)
             footer.fill(0)
@@ -109,31 +136,31 @@ Item {
             header[2] = screenIdx;
             header[3] = 0x21;
 
-            header[8] = x >> 8;
-            header[9] = x & 0xff;
-            header[10] = y >> 8;
-            header[11] = y & 0xff;
+            header[8] = area.x >> 8;
+            header[9] = area.x & 0xff;
+            header[10] = area.y >> 8;
+            header[11] = area.y & 0xff;
 
-            header[12] = width >> 8;
-            header[13] = width & 0xff;
-            header[14] = height >> 8;
-            header[15] = height & 0xff;
+            header[12] = area.width >> 8;
+            header[13] = area.width & 0xff;
+            header[14] = area.height >> 8;
+            header[15] = area.height & 0xff;
 
-            if (x === 0 && width === 320) {
-                payload.set(new Uint8Array(input, y * 320 * 2, width*height*2));
+            if (area.x === 0 && area.width === 320) {
+                payload.set(new Uint8Array(input, area.y * 320 * 2, area.width*area.height*2));
             } else {
-                for (let line = 0; line < height; line++) {
+                for (let line = 0; line < area.height; line++) {
                     payload.set(new Uint8Array(input,
-                            ((y + line) * 320 + x) * 2,
-                            width * 2),
-                        line * width * 2);
+                            ((area.y + line) * 320 + area.x) * 2,
+                            area.width * 2),
+                        line * area.width * 2);
                 }
             }
             footer[0] = 0x40;
             footer[2] = screenIdx;
-            offset += width*height*2 + 20
+            offset += area.width*area.height*2 + 20
         }
-        // console.log(`Generated ${offset} bytes to be sent`)
+        console.log(`Generated ${offset} bytes to be sent`)
         return outputData;
     }
 

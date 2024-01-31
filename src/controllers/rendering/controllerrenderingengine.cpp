@@ -228,10 +228,11 @@ void ControllerRenderingEngine::renderFrame() {
         return;
     };
 
-    const auto lock = lockMutex(&s_glMutex);
+    auto lock = lockMutex(&s_glMutex);
 
     VERIFY_OR_DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get())) {
         qWarning() << "Couldn't make the GLContext current to the OffscrenSurface.";
+        lock.unlock();
         finish();
         return;
     };
@@ -244,6 +245,7 @@ void ControllerRenderingEngine::renderFrame() {
 
         VERIFY_OR_DEBUG_ASSERT(m_renderControl->initialize()) {
             qWarning() << "Failed to initialize redirected Qt Quick rendering";
+            lock.unlock();
             finish();
             return;
         };
@@ -268,6 +270,7 @@ void ControllerRenderingEngine::renderFrame() {
     VERIFY_OR_DEBUG_ASSERT(m_renderControl->sync()) {
         qWarning() << "Couldn't sync the render control.";
         // m_waitCondition.wakeAll();
+        lock.unlock();
         finish();
         if (m_pControllerEngine) {
             m_controllerEnginePausedSema.release();
@@ -291,6 +294,7 @@ void ControllerRenderingEngine::renderFrame() {
     glError = m_context->functions()->glGetError();
     VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
         qWarning() << "GLError: " << glError;
+        lock.unlock();
         finish();
     }
     if (m_screenInfo.endian != std::endian::native) {
@@ -299,6 +303,7 @@ void ControllerRenderingEngine::renderFrame() {
     glError = m_context->functions()->glGetError();
     VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
         qWarning() << "GLError: " << glError;
+        lock.unlock();
         finish();
     }
 
@@ -318,6 +323,7 @@ void ControllerRenderingEngine::renderFrame() {
     glError = m_context->functions()->glGetError();
     VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
         qWarning() << "GLError: " << glError;
+        lock.unlock();
         finish();
     }
     VERIFY_OR_DEBUG_ASSERT(!fboImage.isNull()) {
@@ -335,6 +341,7 @@ void ControllerRenderingEngine::renderFrame() {
 }
 
 bool ControllerRenderingEngine::stop() {
+    m_controllerEnginePausedSema.release();
     emit stopRequested();
     return m_pThread->wait();
 }
