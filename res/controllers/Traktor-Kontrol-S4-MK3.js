@@ -91,7 +91,7 @@ const TempoFaderSoftTakeoverColorHigh = LedColors.green;
 
 // Define whether or not to keep LED that have only one color (reverse, flux, play, shift) dimmed if they are inactive.
 // 'true' will keep them dimmed, 'false' will turn them off. Default: true
-const KeepLEDWithOneColorDimedWhenInactive = true;
+const KeepLEDWithOneColorDimmedWhenInactive = true;
 
 // Keep both deck select buttons backlit and do not fully turn off the inactive deck button.
 // 'true' will keep the unseclected deck dimmed, 'false' to fully turn it off. Default: true
@@ -569,13 +569,19 @@ class Button extends Component {
 
         super(options);
 
-        if (this.input === undefined) {
+        if (this.input === undefined
+                || (typeof this.onLongPress === "function" && this.onLongPress.length === 0)
+                || (typeof this.onLongRelease === "function" && this.onLongRelease.length === 0)
+                || (typeof this.onShortPress === "function" && this.onShortPress.length === 0)
+                || (typeof this.onShortRelease === "function" && this.onShortRelease.length === 0)
+                || (typeof this.onPress === "function" && this.onPress.length === 0)
+                || (typeof this.onRelease === "function" && this.onRelease.length === 0)) {
             this.input = this.defaultInput;
-            if (typeof this.input === "function"
-                && this.inReport instanceof HIDInputReport
-                && this.input.length === 0) {
-                this.inConnect();
-            }
+        }
+        if (typeof this.input === "function"
+            && this.inReport instanceof HIDInputReport
+            && this.input.length === 0) {
+            this.inConnect();
         }
 
         if (this.longPressTimeOutMillis === undefined) {
@@ -635,24 +641,32 @@ class Button extends Component {
         }
     }
     defaultInput(pressed) {
+        this.pressed = pressed;
         if (pressed) {
+            this.isShortPress = true;
             this.isLongPress = false;
+            if (typeof this.onPress === "function" && this.onPress.length === 0) { this.onPress(); }
             if (typeof this.onShortPress === "function" && this.onShortPress.length === 0) { this.onShortPress(); }
             if ((typeof this.onLongPress === "function" && this.onLongPress.length === 0) || (typeof this.onLongRelease === "function" && this.onLongRelease.length === 0)) {
                 this.longPressTimer = engine.beginTimer(this.longPressTimeOutMillis, () => {
                     this.isLongPress = true;
+                    this.isShortPress = false;
                     this.longPressTimer = 0;
                     if (typeof this.onLongPress !== "function") { return; }
                     this.onLongPress(this);
                 }, true);
             }
         } else if (this.isLongPress) {
+            this.isLongPress = false;
+            if (typeof this.onRelease === "function" && this.onRelease.length === 0) { this.onRelease(); }
             if (typeof this.onLongRelease === "function" && this.onLongRelease.length === 0) { this.onLongRelease(); }
         } else {
+            this.isShortPress = false;
             if (this.longPressTimer !== 0) {
                 engine.stopTimer(this.longPressTimer);
                 this.longPressTimer = 0;
             }
+            if (typeof this.onRelease === "function" && this.onRelease.length === 0) { this.onRelease(); }
             if (typeof this.onShortRelease === "function" && this.onShortRelease.length === 0) { this.onShortRelease(); }
         }
     }
@@ -691,8 +705,6 @@ class TriggerButton extends Button {
 class PowerWindowButton extends Button {
     constructor(options) {
         super(options);
-        this.isLongPressed = false;
-        this.longPressTimer = 0;
     }
     onShortPress() {
         script.toggleControl(this.group, this.inKey);
@@ -1188,14 +1200,12 @@ class Mixer extends ComponentContainer {
         this.resetFxSelectorColors();
 
         this.quantizeButton = new Button({
-            input: function(pressed) {
-                if (pressed) {
-                    this.globalQuantizeOn = !this.globalQuantizeOn;
-                    for (let deckIdx = 1; deckIdx <= 4; deckIdx++) {
-                        engine.setValue(`[Channel${deckIdx}]`, "quantize", this.globalQuantizeOn);
-                    }
-                    this.send(this.globalQuantizeOn ? 127 : 0);
+            onPress: function() {
+                this.globalQuantizeOn = !this.globalQuantizeOn;
+                for (let deckIdx = 1; deckIdx <= 4; deckIdx++) {
+                    engine.setValue(`[Channel${deckIdx}]`, "quantize", this.globalQuantizeOn);
                 }
+                this.send(this.globalQuantizeOn ? 127 : 0);
             },
             globalQuantizeOn: false,
             inByte: 11,
@@ -1450,20 +1460,29 @@ class S4Mk3EffectUnit extends ComponentContainer {
                 this.group = undefined;
                 this.output(false);
             },
-            input: function(pressed) {
+            onPress: function() {
                 if (!this.shifted) {
                     for (const index of [0, 1, 2]) {
                         const effectGroup = `[EffectRack1_EffectUnit${unitNumber}_Effect${index + 1}]`;
-                        engine.setValue(effectGroup, "enabled", pressed);
+                        engine.setValue(effectGroup, "enabled", true);
                     }
-                    this.output(pressed);
-                } else if (pressed) {
+                    this.output(true);
+                } else {
                     if (this.unit.focusedEffect !== null) {
                         this.unit.setFocusedEffect(null);
                     } else {
                         script.toggleControl(this.unit.group, "group_[Master]_enable");
                         this.shift();
                     }
+                }
+            },
+            onRelease: function() {
+                if (!this.shifted) {
+                    for (const index of [0, 1, 2]) {
+                        const effectGroup = `[EffectRack1_EffectUnit${unitNumber}_Effect${index + 1}]`;
+                        engine.setValue(effectGroup, "enabled", false);
+                    }
+                    this.output(false);
                 }
             }
         });
@@ -1559,7 +1578,7 @@ class S4Mk3Deck extends Deck {
         super(decks, colors);
 
         this.playButton = new PlayButton({
-            output: KeepLEDWithOneColorDimedWhenInactive ? undefined : Button.prototype.uncoloredOutput
+            output: KeepLEDWithOneColorDimmedWhenInactive ? undefined : Button.prototype.uncoloredOutput
         });
 
         this.cueButton = new CueButton({
@@ -1661,7 +1680,7 @@ class S4Mk3Deck extends Deck {
             shift: function() {
                 this.setKey("loop_enabled");
             },
-            output: KeepLEDWithOneColorDimedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
+            output: KeepLEDWithOneColorDimmedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
             onShortRelease: function() {
                 if (!this.shifted) {
                     engine.setValue(this.group, this.key, false);
@@ -1745,7 +1764,7 @@ class S4Mk3Deck extends Deck {
                     }
                 }
             },
-            output: KeepLEDWithOneColorDimedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
+            output: KeepLEDWithOneColorDimmedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
             onShortRelease: function() {
                 if (!this.shifted) {
                     engine.setValue(this.group, this.key, false);
@@ -1757,7 +1776,7 @@ class S4Mk3Deck extends Deck {
                     this.indicator(false);
                     const wheelOutput = new Uint8Array(40).fill(0);
                     wheelOutput[0] = decks[0] - 1;
-                    controller.sendOutputReport(wheelOutput.buffer, null, 50, true);
+                    controller.sendOutputReport(50, wheelOutput.buffer, true);
                     if (!skipRestore) {
                         this.deck.wheelMode = this.previousWheelMode;
                     }
@@ -1814,14 +1833,11 @@ class S4Mk3Deck extends Deck {
                 this.output(false);
             } : undefined,
             onShortPress: function() {
-                this.deck.libraryEncoder.gridButtonPressed = true;
-
                 if (this.shift) {
                     engine.setValue(this.group, "bpm_tap", true);
                 }
             },
             onLongPress: function() {
-                this.deck.libraryEncoder.gridButtonPressed = true;
                 this.previousMoveMode = this.deck.moveMode;
 
                 if (this.shifted) {
@@ -1833,7 +1849,6 @@ class S4Mk3Deck extends Deck {
                 this.indicator(true);
             },
             onLongRelease: function() {
-                this.deck.libraryEncoder.gridButtonPressed = false;
                 if (this.previousMoveMode !== null) {
                     this.deck.moveMode = this.previousMoveMode;
                     this.previousMoveMode = null;
@@ -1841,7 +1856,6 @@ class S4Mk3Deck extends Deck {
                 this.indicator(false);
             },
             onShortRelease: function() {
-                this.deck.libraryEncoder.gridButtonPressed = false;
                 script.triggerControl(this.group, "beats_translate_curpos");
 
                 if (this.shift) {
@@ -1852,26 +1866,22 @@ class S4Mk3Deck extends Deck {
 
         this.deckButtonLeft = new Button({
             deck: this,
-            input: function(value) {
-                if (value) {
-                    this.deck.switchDeck(decks[0]);
-                    this.outReport.data[io.deckButtonOutputByteOffset] = colors[0] + this.brightnessOn;
-                    // turn off the other deck selection button's LED
-                    this.outReport.data[io.deckButtonOutputByteOffset + 1] = KeepDeckSelectDimmed ? colors[1] + this.brightnessOff : 0;
-                    this.outReport.send();
-                }
+            onPress: function() {
+                this.deck.switchDeck(decks[0]);
+                this.outReport.data[io.deckButtonOutputByteOffset] = colors[0] + this.brightnessOn;
+                // turn off the other deck selection button's LED
+                this.outReport.data[io.deckButtonOutputByteOffset + 1] = KeepDeckSelectDimmed ? colors[1] + this.brightnessOff : 0;
+                this.outReport.send();
             },
         });
         this.deckButtonRight = new Button({
             deck: this,
-            input: function(value) {
-                if (value) {
-                    this.deck.switchDeck(decks[1]);
-                    // turn off the other deck selection button's LED
-                    this.outReport.data[io.deckButtonOutputByteOffset] = KeepDeckSelectDimmed ? colors[0] + this.brightnessOff : 0;
-                    this.outReport.data[io.deckButtonOutputByteOffset + 1] = colors[1] + this.brightnessOn;
-                    this.outReport.send();
-                }
+            onPress: function() {
+                this.deck.switchDeck(decks[1]);
+                // turn off the other deck selection button's LED
+                this.outReport.data[io.deckButtonOutputByteOffset] = KeepDeckSelectDimmed ? colors[0] + this.brightnessOff : 0;
+                this.outReport.data[io.deckButtonOutputByteOffset + 1] = colors[1] + this.brightnessOn;
+                this.outReport.send();
             },
         });
 
@@ -1881,21 +1891,15 @@ class S4Mk3Deck extends Deck {
         outReport.send();
 
         this.shiftButton = new PushButton({
-            deck: this,
-            output: KeepLEDWithOneColorDimedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
+            output: KeepLEDWithOneColorDimmedWhenInactive ? undefined : Button.prototype.uncoloredOutput,
             unshift: function() {
                 this.output(false);
             },
             shift: function() {
                 this.output(true);
             },
-            input: function(pressed) {
-                if (pressed) {
-                    this.deck.shift();
-                } else {
-                    this.deck.unshift();
-                }
-            }
+            onPress: this.shift.bind(this),
+            onRelease: this.unshift.bind(this),
         });
 
         this.leftEncoder = new Encoder({
@@ -1965,17 +1969,22 @@ class S4Mk3Deck extends Deck {
             }
         });
         this.leftEncoderPress = new PushButton({
-            input: function(pressed) {
-                this.pressed = pressed;
-                if (pressed) { // TODO (ac) and shifted?
+            onPress: function() {
+                if (this.shifted) {
                     script.toggleControl(this.group, "pitch_adjust_set_default");
                 }
 
                 const data = engine.getRuntimeData() || {};
                 if (!data.displayBeatloopSize) { return; }
-                data.displayBeatloopSize[this.group] = !!pressed;
+                data.displayBeatloopSize[this.group] = true;
                 engine.setRuntimeData(data);
             },
+            onRelease: function() {
+                const data = engine.getRuntimeData() || {};
+                if (!data.displayBeatloopSize) { return; }
+                data.displayBeatloopSize[this.group] = false;
+                engine.setRuntimeData(data);
+            }
         });
 
         this.rightEncoder = new Encoder({
@@ -2002,10 +2011,7 @@ class S4Mk3Deck extends Deck {
         });
         this.rightEncoderPress = new PushButton({
             deck: this,
-            input: function(pressed) {
-                if (!pressed) {
-                    return;
-                }
+            onPress: function() {
                 if (this.deck.samplesPadModeButton.pressed) {
                     const position = engine.getValue(this.group, "quantize") ?
                         engine.getValue(this.group, "beat_closest")
@@ -2023,26 +2029,22 @@ class S4Mk3Deck extends Deck {
         });
 
         this.libraryEncoder = new Encoder({
-            libraryPlayButtonPressed: false,
-            gridButtonPressed: false,
-            starButtonPressed: false,
-            libraryViewButtonPressed: false,
-            libraryPlaylistButtonPressed: false,
+            deck: this,
             currentSortedColumnIdx: -1,
             onChange: function(right) {
-                if (this.libraryViewButtonPressed) {
+                if (this.deck.libraryViewButton.pressed) {
                     this.currentSortedColumnIdx = (LibrarySortableColumns.length + this.currentSortedColumnIdx + (right ? 1 : -1)) % LibrarySortableColumns.length;
                     engine.setValue("[Library]", "sort_column", LibrarySortableColumns[this.currentSortedColumnIdx]);
-                } else if (this.starButtonPressed) {
+                } else if (this.deck.libraryStarButton.pressed) {
                     if (this.shifted) {
                         // FIXME doesn't exist, feature request needed
                         script.triggerControl(this.group, right ? "track_color_prev" : "track_color_next");
                     } else {
                         script.triggerControl(this.group, right ? "stars_up" : "stars_down");
                     }
-                } else if (this.gridButtonPressed) {
+                } else if (this.deck.gridButton.pressed) {
                     script.triggerControl(this.group, right ? "waveform_zoom_up" : "waveform_zoom_down");
-                } else if (this.libraryPlayButtonPressed) {
+                } else if (this.deck.libraryPlayButton.pressed) {
                     script.triggerControl("[PreviewDeck1]", right ? "beatjump_16_forward" : "beatjump_16_backward");
                 } else {
                     // FIXME there is a bug where this action has no effect when the Mixxx window has no focused. https://github.com/mixxxdj/mixxx/issues/11285
@@ -2062,9 +2064,9 @@ class S4Mk3Deck extends Deck {
             }
         });
         this.libraryEncoderPress = new Button({
-            libraryViewButtonPressed: false,
+            deck: this,
             onShortPress: function() {
-                if (this.libraryViewButtonPressed) {
+                if (this.deck.libraryViewButton.pressed) {
                     script.toggleControl("[Library]", "sort_order");
                 } else {
                     const currentlyFocusWidget = engine.getValue("[Library]", "focused_widget");
@@ -2085,15 +2087,12 @@ class S4Mk3Deck extends Deck {
         });
         this.libraryPlayButton = new PushButton({
             group: "[PreviewDeck1]",
-            libraryEncoder: this.libraryEncoder,
-            input: function(pressed) {
-                if (pressed) {
-                    script.triggerControl(this.group, "LoadSelectedTrackAndPlay");
-                } else {
-                    engine.setValue(this.group, "play", 0);
-                    script.triggerControl(this.group, "eject");
-                }
-                this.libraryEncoder.libraryPlayButtonPressed = pressed;
+            onPress: function() {
+                script.triggerControl(this.group, "LoadSelectedTrackAndPlay");
+            },
+            onRelease: function() {
+                engine.setValue(this.group, "play", 0);
+                script.triggerControl(this.group, "eject");
             },
             outKey: "play",
         });
@@ -2102,12 +2101,6 @@ class S4Mk3Deck extends Deck {
             libraryEncoder: this.libraryEncoder,
             onShortRelease: function() {
                 script.triggerControl(this.group, this.shifted ? "track_color_prev" : "track_color_next");
-            },
-            onLongPress: function() {
-                this.libraryEncoder.starButtonPressed = true;
-            },
-            onLongRelease: function() {
-                this.libraryEncoder.starButtonPressed = false;
             },
         });
         // FIXME there is no feature about playlist at the moment, so we use this button to control the context menu, which has playlist control
@@ -2134,17 +2127,10 @@ class S4Mk3Deck extends Deck {
                     return;
                 }
                 script.toggleControl("[Library]", "show_track_menu");
-                this.libraryEncoder.libraryPlayButtonPressed = false;
 
                 if (currentlyFocusWidget === 4) {
                     engine.setValue("[Library]", "focused_widget", 3);
                 }
-            },
-            onShortPress: function() {
-                this.libraryEncoder.libraryPlayButtonPressed = true;
-            },
-            onLongRelease: function() {
-                this.libraryEncoder.libraryPlayButtonPressed = false;
             },
             onLongPress: function() {
                 engine.setValue("[Library]", "clear_search", 1);
@@ -2158,14 +2144,7 @@ class S4Mk3Deck extends Deck {
             onShortRelease: function() {
                 script.toggleControl(this.group, this.inKey, true);
             },
-            onLongPress: function() {
-                this.libraryEncoder.libraryViewButtonPressed = true;
-                this.libraryEncoderPress.libraryViewButtonPressed = true;
-            },
-            onLongRelease: function() {
-                this.libraryEncoder.libraryViewButtonPressed = false;
-                this.libraryEncoderPress.libraryViewButtonPressed = false;
-            }
+            onLongPress: function() {}, // This is needed to make difference between a shot and long press
         });
 
         this.keyboardPlayMode = null;
@@ -2245,6 +2224,7 @@ class S4Mk3Deck extends Deck {
             for (let pad of deck.pads) {
                 pad.outDisconnect();
                 pad.inDisconnect();
+                const shifted = pad.shifted;
 
                 pad = newLayer[index];
                 Object.assign(pad, io.pads[index]);
@@ -2257,6 +2237,11 @@ class S4Mk3Deck extends Deck {
                 }
                 if (pad.inReport === undefined) {
                     pad.inReport = inReports[1];
+                }
+                if (shifted && typeof pad.shift === "function" && pad.shift.length === 0) {
+                    pad.shift();
+                } else if (typeof pad.unshift === "function" && pad.unshift.length === 0) {
+                    pad.unshift();
                 }
                 pad.outReport = outReport;
                 pad.inConnect();
@@ -2329,27 +2314,17 @@ class S4Mk3Deck extends Deck {
             pressed: false,
             deck: this,
             onShortRelease: function() {
-                this.pressed = false;
                 if (this.deck.currentPadLayer !== this.deck.padLayers.samplerPage) {
                     switchPadLayer(this.deck, samplerOrBeatloopRollPage);
-                    engine.setValue("[Samplers]", "show_samplers", true);
+                    engine.setValue("[Skin]", "show_samplers", true);
                     this.deck.currentPadLayer = this.deck.padLayers.samplerPage;
                 } else {
                     switchPadLayer(this.deck, defaultPadLayer);
-                    engine.setValue("[Samplers]", "show_samplers", false);
+                    engine.setValue("[Skin]", "show_samplers", false);
                     this.deck.currentPadLayer = this.deck.padLayers.defaultLayer;
                 }
                 this.deck.lightPadMode();
             },
-            onShortPress: function() {
-                this.pressed = true;
-            },
-            onLongPress: function() {
-                this.pressed = true;
-            },
-            onLongRelease: function() {
-                this.pressed = false;
-            }
         });
         // The mute button doesn't have a mapping by default, but you can add yours here
         this.mutePadModeButton = new Button({
@@ -2416,23 +2391,21 @@ class S4Mk3Deck extends Deck {
         };
         this.turntableButton = UseMotors ? new Button({
             deck: this,
-            input: function(press) {
-                if (press) {
-                    this.deck.reverseButton.loopModeOff(true);
-                    this.deck.fluxButton.loopModeOff(true);
-                    if (this.deck.wheelMode === wheelModes.motor) {
-                        this.deck.wheelMode = wheelModes.vinyl;
-                        motorWindDownTimer = engine.beginTimer(MotorWindDownMilliseconds, motorWindDownTimerCallback, true);
-                        engine.setValue(this.group, "scratch2_enable", false);
-                    } else {
-                        this.deck.wheelMode = wheelModes.motor;
-                        const group = this.group;
-                        engine.beginTimer(MotorWindUpMilliseconds, () => {
-                            engine.setValue(group, "scratch2_enable", true);
-                        }, true);
-                    }
-                    this.outTrigger();
+            onPress: function() {
+                this.deck.reverseButton.loopModeOff(true);
+                this.deck.fluxButton.loopModeOff(true);
+                if (this.deck.wheelMode === wheelModes.motor) {
+                    this.deck.wheelMode = wheelModes.vinyl;
+                    motorWindDownTimer = engine.beginTimer(MotorWindDownMilliseconds, motorWindDownTimerCallback, true);
+                    engine.setValue(this.group, "scratch2_enable", false);
+                } else {
+                    this.deck.wheelMode = wheelModes.motor;
+                    const group = this.group;
+                    engine.beginTimer(MotorWindUpMilliseconds, () => {
+                        engine.setValue(group, "scratch2_enable", true);
+                    }, true);
                 }
+                this.outTrigger();
             },
             outTrigger: function() {
                 const motorOn = this.deck.wheelMode === wheelModes.motor;
@@ -2443,21 +2416,19 @@ class S4Mk3Deck extends Deck {
         }) : undefined;
         this.jogButton = new Button({
             deck: this,
-            input: function(press) {
-                if (press) {
-                    this.deck.reverseButton.loopModeOff(true);
-                    this.deck.fluxButton.loopModeOff(true);
-                    if (this.deck.wheelMode === wheelModes.vinyl) {
-                        this.deck.wheelMode = wheelModes.jog;
-                    } else {
-                        if (this.deck.wheelMode === wheelModes.motor) {
-                            motorWindDownTimer = engine.beginTimer(MotorWindDownMilliseconds, motorWindDownTimerCallback, true);
-                        }
-                        this.deck.wheelMode = wheelModes.vinyl;
+            onPress: function() {
+                this.deck.reverseButton.loopModeOff(true);
+                this.deck.fluxButton.loopModeOff(true);
+                if (this.deck.wheelMode === wheelModes.vinyl) {
+                    this.deck.wheelMode = wheelModes.jog;
+                } else {
+                    if (this.deck.wheelMode === wheelModes.motor) {
+                        motorWindDownTimer = engine.beginTimer(MotorWindDownMilliseconds, motorWindDownTimerCallback, true);
                     }
-                    engine.setValue(this.group, "scratch2_enable", false);
-                    this.outTrigger();
+                    this.deck.wheelMode = wheelModes.vinyl;
                 }
+                engine.setValue(this.group, "scratch2_enable", false);
+                this.outTrigger();
             },
             outTrigger: function() {
                 const vinylOn = this.deck.wheelMode === wheelModes.vinyl;

@@ -279,7 +279,11 @@ void SyncControl::reinitLeaderParams(
         kLogger.trace() << "SyncControl::reinitLeaderParams" << getGroup()
                         << beatDistance << baseBpm << bpm;
     }
-    m_leaderBpmAdjustFactor = determineBpmMultiplier(fileBpm(), baseBpm);
+    auto currentBpm = getBpm();
+    if (!currentBpm.isValid()) {
+        bpm = fileBpm();
+    }
+    m_leaderBpmAdjustFactor = determineBpmMultiplier(currentBpm, baseBpm);
     updateLeaderBpm(bpm);
     updateLeaderBeatDistance(beatDistance);
 }
@@ -434,7 +438,11 @@ void SyncControl::slotControlBeatSyncTempo(double value) {
         return;
     }
 
-    double multiplier = determineBpmMultiplier(fileBpm(), target->getBaseBpm());
+    auto bpm = getBpm();
+    if (!bpm.isValid()) {
+        bpm = fileBpm();
+    }
+    double multiplier = determineBpmMultiplier(bpm, target->getBaseBpm());
     m_pRateRatio->set(target->getBpm() * multiplier / localBpm);
 }
 
