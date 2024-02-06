@@ -2012,15 +2012,7 @@ class S4Mk3Deck extends Deck {
         this.rightEncoderPress = new PushButton({
             deck: this,
             onPress: function() {
-                if (this.deck.samplesPadModeButton.pressed) {
-                    const position = engine.getValue(this.group, "quantize") ?
-                        engine.getValue(this.group, "beat_closest")
-                        : engine.getValue(this.group, "playposition") * engine.getValue(this.group, "track_samples");
-                    const delta = engine.getValue(this.group, "loop_end_position") - engine.getValue(this.group, "loop_start_position");
-                    engine.setValue(this.group, "loop_start_position", position - delta);
-                    engine.setValue(this.group, "loop_end_position", position);
-                    engine.setValue(this.group, "loop_enabled", 1);
-                } else if (!this.shifted) {
+                if (!this.shifted) {
                     script.triggerControl(this.group, "beatloop_activate");
                 } else {
                     script.triggerControl(this.group, "reloop_toggle");
@@ -2325,6 +2317,13 @@ class S4Mk3Deck extends Deck {
                 }
                 this.deck.lightPadMode();
             },
+            onLongPress: function() {
+                engine.setValue(this.deck.group, "beatloop_anchor", 1);
+
+            },
+            onLongRelease: function() {
+                engine.setValue(this.deck.group, "beatloop_anchor", 0);
+            }
         });
         // The mute button doesn't have a mapping by default, but you can add yours here
         this.mutePadModeButton = new Button({
@@ -3216,6 +3215,13 @@ class S4MK3 {
         controller.sendOutputReport(48, wheelLEDinitReport.buffer, true);
         wheelLEDinitReport[0] = 1;
         controller.sendOutputReport(48, wheelLEDinitReport.buffer);
+
+        const motorData = new Uint8Array([
+            1, 0x20, 1, 0, 0,
+            1, 0x20, 1, 0, 0,
+
+        ]);
+        controller.sendOutputReport(49, motorData.buffer);
 
         // Init wheel timer data
         wheelTimer = null;
