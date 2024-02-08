@@ -1,6 +1,6 @@
 import "." as Skin
 import Mixxx 1.0 as Mixxx
-import QtQuick 2.14
+import QtQuick 2.15
 import QtQuick.Shapes 1.12
 import "Theme"
 
@@ -15,6 +15,16 @@ Item {
 
     property string group // required
     property var deckPlayer: Mixxx.PlayerManager.getPlayer(group)
+
+    // Enable smooth curves. For QtQuick Shapes, this currently only works
+    // by enabling multisampling, so we use 4xMSAA here.
+    //
+    // See https://www.qt.io/blog/2017/07/07/let-there-be-shapes for details.
+    property int multiSamplingLevel: Mixxx.Config.getMultiSamplingLevel()
+    layer.enabled: multiSamplingLevel > 1
+    layer.samples: multiSamplingLevel
+    layer.format: ShaderEffectSource.Alpha
+    layer.smooth: true
 
     Item {
         id: waveformContainer
@@ -56,6 +66,13 @@ Item {
             id: zoomControl
 
             group: root.group
+            key: "waveform_zoom"
+        }
+
+        Mixxx.ControlProxy {
+            id: globalZoomControl
+
+            group: "[App]"
             key: "waveform_zoom"
         }
 
@@ -119,8 +136,9 @@ Item {
             id: waveform
 
             property real constantRate: Mixxx.Config.getBool("[Waveform]", "ConstantRate", true)
+            property real zoomSynchronization: Mixxx.Config.getBool("[Waveform]", "ZoomSynchronization", true)
 
-            property real effectiveZoomFactor: (waveform.constantRate ? 1 / rateRatioControl.value : 1.0) * (200 / zoomControl.value)
+            property real effectiveZoomFactor: (waveform.constantRate ? 1 / rateRatioControl.value : 1.0) * (200 / (zoomSynchronization ? globalZoomControl.value : zoomControl.value))
 
             width: waveformContainer.duration * effectiveZoomFactor
             height: parent.height
@@ -155,9 +173,9 @@ Item {
                             for (let i = 0; i < preroll.numTriangles; i++) {
                                 p.push([
                                         Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2),
-                                        Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, 0),
-                                        Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, preroll.triangleHeight),
-                                        Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2),
+                                        Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, preroll.triangleHeight / 4),
+                                        Qt.point(preroll.width - (i + 1) * preroll.triangleWidth, 3 *(preroll.triangleHeight / 4)),
+                                        Qt.point(preroll.width - i * preroll.triangleWidth, preroll.triangleHeight / 2)
                                 ]);
                             }
                             return p;
@@ -189,9 +207,9 @@ Item {
                             for (let i = 0; i < postroll.numTriangles; i++) {
                                 p.push([
                                         Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2),
-                                        Qt.point((i + 1) * postroll.triangleWidth, 0),
-                                        Qt.point((i + 1) * postroll.triangleWidth, postroll.triangleHeight),
-                                        Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2),
+                                        Qt.point((i + 1) * postroll.triangleWidth, postroll.triangleHeight / 4),
+                                        Qt.point((i + 1) * postroll.triangleWidth, 3 * postroll.triangleHeight / 4),
+                                        Qt.point(i * postroll.triangleWidth, postroll.triangleHeight / 2)
                                 ]);
                             }
                             return p;
@@ -204,7 +222,7 @@ Item {
                 model: root.deckPlayer.beatsModel
 
                 Rectangle {
-                    property real alpha: 0.9 // TODO: Make this configurable (i.e., "[Waveform],beatGridAlpha" config option)
+                    property real alpha: Mixxx.Config.getInt("[Waveform]", "beatGridAlpha", 90) / 100
 
                     width: 1
                     height: waveform.height
