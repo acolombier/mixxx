@@ -33,6 +33,9 @@ QtObject {
     property color deckLineColor: darkGray2
     property color deckTextColor: lightGray2
     property color embeddedBackgroundColor: "#a0000000"
+    property color libraryPanelSplitterBackground: "#1e1e1e"
+    property color libraryPanelSplitterHandleActive: "#7a7a7a"
+    property color libraryPanelSplitterHandle: "#5f5f5f"
     property color buttonNormalColor: midGray
     property color textColor: lightGray2
     property color toolbarActiveColor: white

@@ -168,6 +168,43 @@ qsizetype QmlTableFromListModel::columns_count(
     const QmlTableFromListModel* pModel = static_cast<QmlTableFromListModel*>(pProperty->object);
     return pModel->m_columns.count();
 }
+bool QmlTableFromListModel::moveColumns(const QModelIndex& sourceParent,
+        int sourceColumn,
+        int count,
+        const QModelIndex& destinationParent,
+        int destinationChild) {
+    // beginMoveColumns(sourceParent, sourceColumn, sourceColumn+count,
+    // destinationParent, destinationChild); 5 7 1
+    // m_columnMetadata.swapItemsAt(5, 6); 0 1 2 3 4 6 5 7
+    // m_columnMetadata.swapItemsAt(6, 7); 0 1 2 3 4 6 7 5
+    // 5 7 2
+    // m_columnMetadata.swapItemsAt(5, 7); 0 1 2 3 4 7 6 5 8
+    // m_columnMetadata.swapItemsAt(6, 8); 0 1 2 3 4 7 8 5 6
+
+    // 7 5 1
+    // m_columnMetadata.swapItemsAt(6, 7); 0 1 2 3 4 5 7 6
+    // m_columnMetadata.swapItemsAt(5, 6); 0 1 2 3 4 7 5 6
+
+    // 7 5 2
+    // m_columnMetadata.swapItemsAt(6, 8); 0 1 2 3 4 5 8 7 6
+    // m_columnMetadata.swapItemsAt(5, 7); 0 1 2 3 4 7 8 5 6
+
+    if (sourceColumn < destinationChild) {
+        for (int i = sourceColumn; i < destinationChild; i++) {
+            m_columnMetadata.swapItemsAt(i, i + count);
+        }
+    } else {
+        for (int i = sourceColumn; i > destinationChild; --i) {
+            m_columnMetadata.swapItemsAt(i, i + count);
+        }
+    }
+
+    // endMoveColumns();
+
+    emit layoutChanged();
+
+    return true;
+}
 QmlTableFromListModelColumn* QmlTableFromListModel::columns_at(
         QQmlListProperty<QmlTableFromListModelColumn>* pProperty, qsizetype index) {
     const QmlTableFromListModel* pModel = static_cast<QmlTableFromListModel*>(pProperty->object);

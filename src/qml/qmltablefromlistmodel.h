@@ -49,6 +49,12 @@ class QmlTableFromListModel : public QAbstractTableModel, public QQmlParserStatu
             const QVariant& value,
             int role = Qt::DisplayRole) override;
 
+    Q_INVOKABLE bool moveColumns(const QModelIndex& sourceParent,
+            int sourceColumn,
+            int count,
+            const QModelIndex& destinationParent,
+            int destinationChild) override;
+
   signals:
     void columnCountChanged();
     void sourceModelChanged();
