@@ -134,7 +134,7 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     m_context = std::make_unique<QOpenGLContext>();
     m_context->setFormat(format);
     VERIFY_OR_DEBUG_ASSERT(m_context->create()) {
-        qWarning() << "Unable to intiliaze controller screen rendering. Giving up";
+        qWarning() << "Unable to initialize controller screen rendering. Giving up";
         m_waitCondition.wakeAll();
         return;
     }
@@ -147,13 +147,20 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     m_offscreenSurface = std::make_unique<QOffscreenSurface>();
     m_offscreenSurface->setFormat(m_context->format());
 
-    QMetaObject::invokeMethod(
-            qApp,
-            [this] {
-                m_offscreenSurface->create();
-            },
-            // This invocation will block the current thread!
-            Qt::BlockingQueuedConnection);
+    VERIFY_OR_DEBUG_ASSERT(QMetaObject::invokeMethod(
+                                   qApp,
+                                   [this] {
+                                       m_offscreenSurface->create();
+                                   },
+                                   // This invocation will block the current thread!
+                                   Qt::BlockingQueuedConnection) &&
+            m_offscreenSurface->isValid()) {
+        qWarning() << "Unable to create the OffscreenSurface for controller "
+                      "screen rendering. Giving up";
+        m_offscreenSurface.reset();
+        m_waitCondition.wakeAll();
+        return;
+    }
 
     m_renderControl = std::make_unique<QQuickRenderControl>(this);
     m_quickWindow = std::make_unique<QQuickWindow>(m_renderControl.get());
@@ -218,7 +225,7 @@ void ControllerRenderingEngine::renderFrame() {
         return;
 
     VERIFY_OR_DEBUG_ASSERT(m_offscreenSurface->isValid()) {
-        qWarning() << "OffscrenSurface isn't valid anymore.";
+        qWarning() << "OffscreenSurface isn't valid anymore.";
         finish();
         return;
     };
@@ -231,15 +238,39 @@ void ControllerRenderingEngine::renderFrame() {
     auto lock = lockMutex(&s_glMutex);
 
     VERIFY_OR_DEBUG_ASSERT(m_context->makeCurrent(m_offscreenSurface.get())) {
-        qWarning() << "Couldn't make the GLContext current to the OffscrenSurface.";
+        qWarning() << "Couldn't make the GLContext current to the OffscreenSurface.";
         lock.unlock();
         finish();
         return;
     };
 
     if (!m_fbo) {
+        VERIFY_OR_DEBUG_ASSERT(QOpenGLFramebufferObject::hasOpenGLFramebufferObjects()) {
+            qWarning() << "OpenGL doesn't support FBO";
+            lock.unlock();
+            finish();
+            return;
+        };
+
         m_fbo = std::make_unique<QOpenGLFramebufferObject>(
                 m_screenInfo.size, QOpenGLFramebufferObject::CombinedDepthStencil);
+
+        GLenum glError;
+        glError = m_context->functions()->glGetError();
+
+        VERIFY_OR_DEBUG_ASSERT(glError == GL_NO_ERROR) {
+            qWarning() << "GLError: " << glError;
+            lock.unlock();
+            finish();
+            return;
+        };
+
+        VERIFY_OR_DEBUG_ASSERT(m_fbo->isValid()) {
+            qWarning() << "Failed to initialize FBO";
+            lock.unlock();
+            finish();
+            return;
+        };
 
         m_quickWindow->setGraphicsDevice(QQuickGraphicsDevice::fromOpenGLContext(m_context.get()));
 
@@ -296,6 +327,7 @@ void ControllerRenderingEngine::renderFrame() {
         qWarning() << "GLError: " << glError;
         lock.unlock();
         finish();
+        return;
     }
     if (m_screenInfo.endian != std::endian::native) {
         m_context->functions()->glPixelStorei(GL_PACK_SWAP_BYTES, GL_TRUE);
@@ -305,6 +337,7 @@ void ControllerRenderingEngine::renderFrame() {
         qWarning() << "GLError: " << glError;
         lock.unlock();
         finish();
+        return;
     }
 
     QDateTime timestamp = QDateTime::currentDateTime();
@@ -325,6 +358,7 @@ void ControllerRenderingEngine::renderFrame() {
         qWarning() << "GLError: " << glError;
         lock.unlock();
         finish();
+        return;
     }
     VERIFY_OR_DEBUG_ASSERT(!fboImage.isNull()) {
         qWarning() << "Screen frame is null!";

@@ -2318,11 +2318,11 @@ class S4Mk3Deck extends Deck {
                 this.deck.lightPadMode();
             },
             onLongPress: function() {
-                engine.setValue(this.deck.group, "beatloop_anchor", 1);
+                engine.setValue(this.deck.group, "loop_anchor", 1);
 
             },
             onLongRelease: function() {
-                engine.setValue(this.deck.group, "beatloop_anchor", 0);
+                engine.setValue(this.deck.group, "loop_anchor", 0);
             }
         });
         // The mute button doesn't have a mapping by default, but you can add yours here
