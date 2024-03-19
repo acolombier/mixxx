@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.8)
 
 message(STATUS "CMAKE_VERSION: ${CMAKE_VERSION}")
 
@@ -17,6 +17,11 @@ if(POLICY CMP0057)
   cmake_policy(SET CMP0057 NEW)
 endif()
 
+# Honor visibility properties for all target
+if(POLICY CMP0063)
+  cmake_policy(SET CMP0063 NEW)
+endif()
+
 # Enforce interprocedural optimization
 if(POLICY CMP0069)
   cmake_policy(SET CMP0069 NEW)
@@ -25,6 +30,11 @@ endif()
 # Let AUTOMOC and AUTOUIC process GENERATED files
 if(POLICY CMP0071)
   cmake_policy(SET CMP0071 NEW)
+endif()
+
+# Allow custom Qt6_ROOT
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
 endif()
 
 # Propagate interface link properties
@@ -909,6 +919,11 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/library/browse/browsetablemodel.cpp
   src/library/browse/browsethread.cpp
   src/library/browse/foldertreemodel.cpp
+  src/library/plugins/pluginfeature.cpp
+  src/library/plugins/pluginclient.cpp
+  src/library/plugins/plugintablemodel.cpp
+  src/library/plugins/pluginplaylistmodel.cpp
+  src/library/plugins/plugintreemodel.cpp
   src/library/columncache.cpp
   src/library/coverart.cpp
   src/library/coverartcache.cpp
@@ -1285,6 +1300,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/widget/wlibrarysidebar.cpp
   src/widget/wlibrarytableview.cpp
   src/widget/wlibrarytextbrowser.cpp
+  src/widget/wlibrarypluginview.cpp
   src/widget/wmainmenubar.cpp
   src/widget/wnumber.cpp
   src/widget/wnumberdb.cpp
@@ -2641,6 +2657,24 @@ if(PORTMIDI)
   )
 endif()
 
+# gRPC
+set(protobuf_INSTALL OFF)
+set(utf8_range_ENABLE_INSTALL OFF)
+find_package(Threads REQUIRED)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/lib/grpc")
+message(STATUS "Using gRPC via add_subdirectory.")
+
+# After using add_subdirectory, we can now use the grpc targets directly from
+# this build.
+set(_PROTOBUF_LIBPROTOBUF libprotobuf)
+set(_REFLECTION grpc++_reflection)
+set(_ORCA_SERVICE grpcpp_orca_service)
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+set(_GRPC_GRPCPP grpc++)
+set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
+
+add_compile_definitions(PROTOBUF_ENABLE_DEBUG_LOGGING_MAY_LEAK_PII)
+
 # Protobuf
 add_subdirectory(src/proto)
 target_link_libraries(mixxx-lib PUBLIC mixxx-proto)
@@ -2734,8 +2768,8 @@ if(QML)
   target_include_directories(mixxx-qml-lib PUBLIC src/ ${CMAKE_BINARY_DIR}/src)
   target_include_directories(mixxx-qml-lib SYSTEM PUBLIC lib/rigtorp/SPSCQueue/include lib/portaudio)
 
-  target_link_libraries(mixxx-qml-lib PUBLIC mixxx-proto)
-  target_link_libraries(mixxx-qml-libplugin PUBLIC mixxx-proto)
+  target_link_libraries(mixxx-qml-lib PUBLIC mixxx-proto mixxx-grpc)
+  target_link_libraries(mixxx-qml-libplugin PUBLIC mixxx-proto mixxx-grpc)
 
   target_precompile_headers(mixxx-qml-lib PUBLIC
     ${MIXXX_COMMON_PRECOMPILED_HEADER}

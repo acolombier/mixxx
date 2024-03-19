@@ -56,7 +56,7 @@ SoundSourceOggVorbis::~SoundSourceOggVorbis() {
 SoundSource::OpenResult SoundSourceOggVorbis::tryOpen(
         OpenMode /*mode*/,
         const OpenParams& /*config*/) {
-    m_pFile = std::make_unique<QFile>(getLocalFileName());
+    m_pFile = mixxx::FileInfo(getUrl()).toQIODevice();
     if (!m_pFile->open(QFile::ReadOnly)) {
         kLogger.warning()
                 << "Failed to open file for"
@@ -78,7 +78,7 @@ SoundSource::OpenResult SoundSourceOggVorbis::tryOpen(
     default:
         kLogger.warning()
                 << "Failed to initialize decoder for"
-                << getUrlString();
+                << getUrlString() << "with code" << initDecoderResult;
         return OpenResult::Failed;
     }
 
@@ -190,11 +190,15 @@ ReadableSampleFrames SoundSourceOggVorbis::readSampleFramesClamped(
                     }
                 }
             }
-            numberOfFramesRemaining -= readResult;
+        } else if (readResult == OV_HOLE) {
+            kLogger.warning() << "Garbage between pages, loss of sync followed "
+                                 "by recapture, or a corrupt page";
+            continue; // ignore
         } else {
             kLogger.warning() << "Failed to read from file:" << readResult;
             break; // abort
         }
+        numberOfFramesRemaining -= readResult;
     }
 
     DEBUG_ASSERT(isValidFrameIndex(m_curFrameIndex));
@@ -214,10 +218,13 @@ size_t SoundSourceOggVorbis::ReadCallback(void* ptr, size_t size, size_t nmemb, 
     if (!size || !nmemb) {
         return 0;
     }
-    QFile* pFile = static_cast<QFile*>(datasource);
+    QIODevice* pFile = static_cast<QIODevice*>(datasource);
     if (!pFile) {
         return 0;
     }
+    VERIFY_OR_DEBUG_ASSERT(pFile->openMode() | QIODevice::ReadOnly) {
+        return -1;
+    };
 
     nmemb = math_min<size_t>((pFile->size() - pFile->pos()) / size, nmemb);
     pFile->read((char*)ptr, nmemb * size);
@@ -226,10 +233,13 @@ size_t SoundSourceOggVorbis::ReadCallback(void* ptr, size_t size, size_t nmemb, 
 
 //static
 int SoundSourceOggVorbis::SeekCallback(void* datasource, ogg_int64_t offset, int whence) {
-    QFile* pFile = static_cast<QFile*>(datasource);
+    QIODevice* pFile = static_cast<QIODevice*>(datasource);
     if (!pFile) {
         return 0;
     }
+    VERIFY_OR_DEBUG_ASSERT(pFile->openMode() | QIODevice::ReadOnly) {
+        return -1;
+    };
 
     switch (whence) {
     case SEEK_SET:
@@ -237,7 +247,7 @@ int SoundSourceOggVorbis::SeekCallback(void* datasource, ogg_int64_t offset, int
     case SEEK_CUR:
         return pFile->seek(pFile->pos() + offset) ? 0 : -1;
     case SEEK_END:
-        return pFile->seek(pFile->size() + offset) ? 0 : -1;
+        return pFile->seek(pFile->size() - offset) ? 0 : -1;
     default:
         return -1;
     }
@@ -245,7 +255,7 @@ int SoundSourceOggVorbis::SeekCallback(void* datasource, ogg_int64_t offset, int
 
 //static
 int SoundSourceOggVorbis::CloseCallback(void* datasource) {
-    QFile* pFile = static_cast<QFile*>(datasource);
+    QIODevice* pFile = static_cast<QIODevice*>(datasource);
     if (!pFile) {
         return 0;
     }
@@ -255,7 +265,7 @@ int SoundSourceOggVorbis::CloseCallback(void* datasource) {
 
 //static
 long SoundSourceOggVorbis::TellCallback(void* datasource) {
-    QFile* pFile = static_cast<QFile*>(datasource);
+    QIODevice* pFile = static_cast<QIODevice*>(datasource);
     if (!pFile) {
         return 0;
     }

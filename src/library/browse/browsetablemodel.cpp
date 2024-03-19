@@ -223,7 +223,7 @@ TrackPointer BrowseTableModel::getTrackByRef(const TrackRef& trackRef) const {
                 tr("Mixxx Library"),
                 tr("Could not load the following file because it is in use by "
                    "Mixxx or another application.") +
-                        "\n" + trackRef.getLocation());
+                        "\n" + trackRef.getLocation().toString());
         return TrackPointer();
     }
     // NOTE(uklotzde, 2015-12-08): Accessing tracks from the browse view

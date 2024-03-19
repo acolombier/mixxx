@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QUrl>
+
 #include "track/trackid.h"
 #include "util/compatibility/qhash.h"
 #include "util/fileinfo.h"
@@ -17,9 +19,9 @@ class TrackRef final {
     /// This involves and intermediate creation of mixxx::FileInfo
     /// and accessing the file system!
     static TrackRef fromFilePath(
-            const QString& filePath,
+            const QUrl& filePath,
             TrackId id = TrackId()) {
-        return fromFileInfo(mixxx::FileInfo(filePath), id);
+        return fromFileInfo(mixxx::FileInfo::fromQUrl(filePath), id);
     }
 
     /// Converts a mixxx::FileInfo and an optional TrackId into a TrackRef.
@@ -35,7 +37,7 @@ class TrackRef final {
         auto canonicalLocation = fileInfo.resolveCanonicalLocation();
         // All properties of the file info are now considered fresh
         return TrackRef(
-                fileInfo.location(),
+                fileInfo.toQUrl(),
                 std::move(canonicalLocation),
                 std::move(id));
     }
@@ -65,7 +67,7 @@ class TrackRef final {
 
     // The human-readable identifier of a track in Mixxx. The location is
     // immutable and the starting point for accessing a track's file.
-    const QString& getLocation() const {
+    const QUrl& getLocation() const {
         return m_location;
     }
     bool hasLocation() const {
@@ -98,21 +100,21 @@ class TrackRef final {
 
 protected:
     // Initializing constructor
-    TrackRef(
-            const QString& location,
-            const QString& canonicalLocation,
-            TrackId id = TrackId())
-        : m_location(location),
-          m_canonicalLocation(canonicalLocation),
-          m_id(id) {
+  TrackRef(
+          const QUrl& location,
+          const QString& canonicalLocation,
+          TrackId id = TrackId())
+          : m_location(location),
+            m_canonicalLocation(canonicalLocation),
+            m_id(id) {
         DEBUG_ASSERT(verifyConsistency());
-    }
+  }
 
 private:
     // Checks if all class invariants are met
     bool verifyConsistency() const;
 
-    QString m_location;
+    QUrl m_location;
     QString m_canonicalLocation;
     TrackId m_id;
 };

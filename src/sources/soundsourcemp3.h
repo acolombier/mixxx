@@ -10,8 +10,7 @@
 #endif
 #include <mad.h>
 
-#include <QFile>
-
+#include <QIODevice>
 #include <vector>
 
 namespace mixxx {
@@ -32,7 +31,7 @@ class SoundSourceMp3 final : public SoundSource {
             OpenMode mode,
             const OpenParams& params) override;
 
-    QFile m_file;
+    std::unique_ptr<QIODevice> m_file;
     quint64 m_fileSize;
     unsigned char* m_pFileData;
 

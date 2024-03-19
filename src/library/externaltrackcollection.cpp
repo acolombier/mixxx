@@ -11,7 +11,7 @@ void ExternalTrackCollection::relocateTracks(
     updatedTracks.reserve(relocatedTracks.size());
     for (const auto& relocatedTrack : relocatedTracks) {
         if (!relocatedTrack.deletedTrackLocation().isEmpty()) {
-            purgedTracks.append(relocatedTrack.deletedTrackLocation());
+            purgedTracks.append(relocatedTrack.deletedTrackLocation().toString());
         }
         DEBUG_ASSERT(relocatedTrack.updatedTrackRef().isValid());
         updatedTracks.append(relocatedTrack.updatedTrackRef());

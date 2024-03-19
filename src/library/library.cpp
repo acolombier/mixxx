@@ -10,6 +10,7 @@
 #include "library/autodj/autodjfeature.h"
 #include "library/banshee/bansheefeature.h"
 #include "library/browse/browsefeature.h"
+#include "library/plugins/pluginfeature.h"
 #ifdef __ENGINEPRIME__
 #include "library/export/libraryexporter.h"
 #endif
@@ -19,6 +20,7 @@
 #include "library/librarycontrol.h"
 #include "library/libraryfeature.h"
 #include "library/mixxxlibraryfeature.h"
+#include "library/plugins/pluginclient.h"
 #include "library/recording/recordingfeature.h"
 #include "library/rekordbox/rekordboxfeature.h"
 #include "library/rhythmbox/rhythmboxfeature.h"
@@ -33,6 +35,7 @@
 #include "library/traktor/traktorfeature.h"
 #include "mixer/playermanager.h"
 #include "moc_library.cpp"
+#include "track/track.h"
 #include "util/assert.h"
 #include "util/logger.h"
 #include "util/sandbox.h"
@@ -215,6 +218,8 @@ Library::Library(
                            << "is not available";
         }
     }
+
+    addFeature(new PluginFeature(this, m_pConfig));
 
     // On startup we need to check if all of the user's library folders are
     // accessible to us. If the user is using a database from <1.12.0 with
@@ -548,7 +553,7 @@ void Library::slotLoadTrack(TrackPointer pTrack) {
     emit loadTrack(pTrack);
 }
 
-void Library::slotLoadLocationToPlayer(const QString& location, const QString& group, bool play) {
+void Library::slotLoadLocationToPlayer(const QUrl& location, const QString& group, bool play) {
     auto trackRef = TrackRef::fromFilePath(location);
     TrackPointer pTrack = m_pTrackCollectionManager->getOrAddTrack(trackRef);
     if (pTrack) {

@@ -46,7 +46,7 @@ class RelocatedTrack final {
 
     // The old track location was missing and has been removed
     // after merging.
-    const QString& deletedTrackLocation() const {
+    const QUrl& deletedTrackLocation() const {
         return m_missingTrackRef.getLocation();
     }
 

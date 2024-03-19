@@ -200,12 +200,12 @@ QDrag* DragAndDropHelper::dragTrack(
 
 //static
 QDrag* DragAndDropHelper::dragTrackLocations(
-        const QList<QString>& locations,
+        const QList<QUrl>& locations,
         QWidget* pDragSource,
         const QString& sourceIdentifier) {
     QList<QUrl> trackUrls;
-    foreach (QString location, locations) {
-        trackUrls.append(mixxx::FileInfo(location).toQUrl());
+    for (QUrl location : locations) {
+        trackUrls.append(location);
     }
     return dragUrls(trackUrls, pDragSource, sourceIdentifier);
 }
@@ -240,7 +240,7 @@ void DragAndDropHelper::handleTrackDropEvent(
                     *event->mimeData(), group, true, false);
             if (!files.isEmpty()) {
                 event->accept();
-                target.emitTrackDropped(files.at(0).location(), group);
+                target.emitTrackDropped(files.at(0).toQUrl(), group);
                 return;
             }
         }

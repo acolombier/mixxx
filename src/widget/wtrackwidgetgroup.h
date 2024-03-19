@@ -21,7 +21,7 @@ class WTrackWidgetGroup : public WWidgetGroup, public TrackDropTarget {
     void setup(const QDomNode& node, const SkinContext& context) override;
 
   signals:
-    void trackDropped(const QString& fileName, const QString& group) override;
+    void trackDropped(const QUrl& fileName, const QString& group) override;
     void cloneDeck(const QString& sourceGroup, const QString& targetGroup) override;
 
   public slots:

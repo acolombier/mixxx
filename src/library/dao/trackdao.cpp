@@ -138,17 +138,20 @@ void TrackDAO::finish() {
     transaction.commit();
 }
 
-TrackId TrackDAO::getTrackIdByLocation(const QString& location) const {
-    if (location.isEmpty()) {
+TrackId TrackDAO::getTrackIdByLocation(const QUrl& location) const {
+    if (location.isEmpty() || !location.isValid()) {
+        qDebug() << "TrackDAO::getTrackId(): location is empty or invalid" << location;
         return {};
     }
 
     QSqlQuery query(m_database);
+    QString normaliseLocation = location.isLocalFile() ? location.toLocalFile()
+                                                       : location.toString();
     query.prepare(
             "SELECT library.id FROM library "
             "INNER JOIN track_locations ON library.location = track_locations.id "
             "WHERE track_locations.location=:location");
-    query.bindValue(":location", location);
+    query.bindValue(":location", normaliseLocation);
     if (!query.exec()) {
         LOG_FAILED_QUERY(query);
         DEBUG_ASSERT(!"Failed query");
@@ -684,7 +687,7 @@ TrackId TrackDAO::addTracksAddTrack(const TrackPointer& pTrack, bool unremove) {
         qDebug() << "TrackDAO::addTracksAddTrack: needed SqlQuerys have not "
                     "been prepared. Skipping track"
                  << fileInfo.location();
-        DEBUG_ASSERT("Failed query");
+        DEBUG_ASSERT(!"Failed query");
         return TrackId();
     }
 
@@ -1410,7 +1413,10 @@ TrackPointer TrackDAO::getTrackById(TrackId trackId) const {
     {
         // Location is the first column.
         DEBUG_ASSERT(queryRecord.count() > 0);
-        const auto trackLocation = queryRecord.value(0).toString();
+        auto trackLocation = QUrl(queryRecord.value(0).toString());
+        if (trackLocation.scheme() != "plugin") {
+            trackLocation = QUrl::fromLocalFile(queryRecord.value(0).toString());
+        }
         const auto fileInfo = mixxx::FileInfo(trackLocation);
         const auto fileAccess = mixxx::FileAccess(fileInfo);
         const auto cacheResolver = GlobalTrackCacheResolver(fileAccess, trackId);
@@ -1844,6 +1850,22 @@ bool TrackDAO::detectMovedTracks(
         if (*pCancel) {
             return false;
         }
+        TrackId oldTrackId(oldTrackQuery.value(oldTrackIdColumn));
+        QUrl oldNormalisedTrackLocation = QUrl(oldTrackQuery.value(oldLocationColumn).toString());
+        if (oldNormalisedTrackLocation.scheme() == "plugin") {
+            auto missingTrackRef = TrackRef::fromFilePath(
+                    oldNormalisedTrackLocation,
+                    oldTrackId);
+            auto addedTrackRef = TrackRef::fromFilePath(
+                    oldNormalisedTrackLocation,
+                    oldTrackId);
+            auto relocatedTrack = RelocatedTrack(
+                    std::move(missingTrackRef),
+                    std::move(addedTrackRef));
+            pRelocatedTracks->append(std::move(relocatedTrack));
+            qDebug() << "Keeping plugin track" << oldNormalisedTrackLocation;
+            continue;
+        }
         QString oldTrackLocation = oldTrackQuery.value(oldLocationColumn).toString();
         QString filename = oldTrackQuery.value(filenameColumn).toString();
         // rather use duration then filesize as an indicator of changes. The filesize
@@ -1901,7 +1923,6 @@ bool TrackDAO::detectMovedTracks(
                 << "->"
                 << newTrackLocation;
 
-        TrackId oldTrackId(oldTrackQuery.value(oldTrackIdColumn));
         DEBUG_ASSERT(oldTrackId.isValid());
         DbId oldTrackLocationId(oldTrackQuery.value(oldLocationIdColumn));
         DEBUG_ASSERT(oldTrackLocationId.isValid());

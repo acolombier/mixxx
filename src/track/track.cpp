@@ -4,6 +4,7 @@
 #include <atomic>
 
 #include "library/library_prefs.h"
+#include "library/plugins/pluginclient.h"
 #include "moc_track.cpp"
 #include "sources/metadatasource.h"
 #include "util/assert.h"
@@ -93,6 +94,15 @@ Track::Track(
                 << "->"
                 << numberOfInstancesBefore + 1;
     }
+    if (!m_fileAccess.info().isLocalFile()) {
+        m_plugintrack = PluginTrack::fetch(m_fileAccess.info().toQUrl());
+    }
+}
+mixxx::FileInfo Track::getFileInfo() const {
+    // Copying mixxx::FileInfo based on QFileInfo is thread-safe due to implicit sharing,
+    // i.e. no locking needed.
+    static_assert(mixxx::FileInfo::isQFileInfo());
+    return m_fileAccess.info();
 }
 
 Track::~Track() {
@@ -1456,6 +1466,10 @@ CoverInfoRelative Track::getCoverInfo() const {
 
 CoverInfo Track::getCoverInfoWithLocation() const {
     const auto locked = lockMutex(&m_qMutex);
+    if (m_plugintrack) {
+        // TODO
+        return CoverInfo();
+    }
     return CoverInfo(m_record.getCoverInfo(), m_fileAccess.info().location());
 }
 
@@ -1508,6 +1522,9 @@ ExportTrackMetadataResult Track::exportMetadata(
     // be called after all references to the object have been dropped.
     // But it doesn't hurt much, so let's play it safe ;)
     auto locked = lockMutex(&m_qMutex);
+    if (m_plugintrack) {
+        return ExportTrackMetadataResult::Skipped;
+    }
     const auto sourceSyncStatus = m_record.checkSourceSyncStatus(m_fileAccess.info());
     switch (sourceSyncStatus) {
     case mixxx::TrackRecord::SourceSyncStatus::Void:
@@ -1526,8 +1543,7 @@ ExportTrackMetadataResult Track::exportMetadata(
         // loaded from the database. Otherwise the metadata would have been
         // detected as outdated when loading the track which in turn would
         // have triggered a re-import.
-        const auto fileSynchronizedAt =
-                mixxx::MetadataSource::getFileSynchronizedAt(m_fileAccess.info().toQFile());
+        const auto fileSynchronizedAt = m_fileAccess.info().lastModified();
         DEBUG_ASSERT(fileSynchronizedAt.isValid());
         const auto sourceSynchronizedAt = m_record.getSourceSynchronizedAt();
         DEBUG_ASSERT(sourceSynchronizedAt.isValid());

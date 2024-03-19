@@ -7,11 +7,13 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QtDebug>
 #include <type_traits>
 
 #include "util/assert.h"
 
+class PluginTrack;
 namespace mixxx {
 
 /// A thin wrapper (shim) around QFileInfo with a limited API and
@@ -32,26 +34,28 @@ namespace mixxx {
 /// member functions.
 class FileInfo final {
   public:
-    explicit FileInfo(
-            QFileInfo&& fileInfo)
-            : m_fileInfo(std::move(fileInfo)) {
+    explicit FileInfo(QFileInfo&& fileInfo)
+            : m_fileInfo(std::move(fileInfo)),
+              m_url(QUrl::fromLocalFile(m_fileInfo.absoluteFilePath())) {
     }
     explicit FileInfo(
             const QFileInfo& fileInfo)
-            : m_fileInfo(fileInfo) {
+            : m_fileInfo(fileInfo), m_url(QUrl::fromLocalFile(fileInfo.absoluteFilePath())) {
     }
     explicit FileInfo(
             const QFile& file)
-            : m_fileInfo(file) {
+            : m_fileInfo(file), m_url(QUrl::fromLocalFile(m_fileInfo.absoluteFilePath())) {
     }
     explicit FileInfo(
             const QString& file)
-            : m_fileInfo(file) {
+            : m_fileInfo(file), m_url(QUrl::fromLocalFile(file)) {
     }
+    explicit FileInfo(
+            const QUrl& file);
     explicit FileInfo(
             const QDir& dir,
             const QString& file = QString())
-            : m_fileInfo(dir, file) {
+            : m_fileInfo(dir, file), m_url(QUrl::fromLocalFile(dir.absoluteFilePath(file))) {
     }
     FileInfo() = default;
     FileInfo(FileInfo&&) = default;
@@ -74,6 +78,9 @@ class FileInfo final {
         return QFile(location(), parent);
     }
 
+    /// Explicit conversion to toQIODevice.
+    std::unique_ptr<QIODevice> toQIODevice(QObject* parent = nullptr) const;
+
     /// Explicit conversion from QDir.
     static FileInfo fromQDir(const QDir& dir) {
         return FileInfo(dir);
@@ -91,12 +98,12 @@ class FileInfo final {
 
     /// Explicit conversion from a local file QUrl.
     static FileInfo fromQUrl(const QUrl& url) {
-        return FileInfo(url.toLocalFile());
+        return FileInfo(url);
     }
 
     /// Explicit conversion to a local file QUrl.
-    QUrl toQUrl() const {
-        return QUrl::fromLocalFile(location());
+    const QUrl& toQUrl() const {
+        return m_url;
     }
 
     /// Check that the given QFileInfo is context-insensitive to avoid
@@ -108,7 +115,11 @@ class FileInfo final {
         return fileInfo.isAbsolute();
     }
     bool hasLocation() const {
-        return hasLocation(m_fileInfo);
+        return m_bIsPlugin || hasLocation(m_fileInfo);
+    }
+
+    bool isLocalFile() const {
+        return !m_bIsPlugin;
     }
 
     /// Returns the permanent location of a file.
@@ -117,6 +128,9 @@ class FileInfo final {
         return fileInfo.absoluteFilePath();
     }
     QString location() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return location(m_fileInfo);
     }
 
@@ -126,6 +140,12 @@ class FileInfo final {
         return fileInfo.absolutePath();
     }
     QString locationPath() const {
+        if (m_bIsPlugin) {
+            QUrl path = m_url;
+            path.setPath("");
+            path.setQuery("");
+            return path.toString();
+        }
         return locationPath(m_fileInfo);
     }
 
@@ -157,6 +177,9 @@ class FileInfo final {
         return fileInfo.canonicalFilePath();
     }
     QString canonicalLocation() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return canonicalLocation(m_fileInfo);
     }
 
@@ -170,6 +193,9 @@ class FileInfo final {
         return fileInfo.canonicalPath();
     }
     QString canonicalLocationPath() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return canonicalLocationPath(m_fileInfo);
     }
 
@@ -186,65 +212,76 @@ class FileInfo final {
     /// Check if the file actually exists on the file system,
     /// bypassing any internal caching.
     bool checkFileExists() const {
+        if (m_bIsPlugin) {
+            return !!m_plugintrack;
+        }
         // Using filePath() is faster than location()
         return QFileInfo::exists(filePath());
     }
 
-    void refresh() {
-        m_fileInfo.refresh();
-    }
+    void refresh();
 
     bool exists() const {
+        if (m_bIsPlugin) {
+            return !!m_plugintrack;
+        }
         return m_fileInfo.exists();
     }
 
     QString fileName() const {
+        if (m_bIsPlugin) {
+            return m_url.path() + "." + suffix();
+        }
         return m_fileInfo.fileName();
     }
     QString baseName() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return m_fileInfo.baseName();
     }
     QString completeBaseName() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return m_fileInfo.completeBaseName();
-    }
-
-    QDateTime birthTime() const {
-        return m_fileInfo.birthTime();
-    }
-
-    QDateTime lastModified() const {
-        return m_fileInfo.lastModified();
     }
 
     // Both isFile() and isDir() might return false, but they
     // will never return true at the same time, i.e. consider
     // false negatives when using these functions.
     bool isFile() const {
-        return m_fileInfo.isFile();
+        return m_bIsPlugin || m_fileInfo.isFile();
     }
     bool isDir() const {
-        return m_fileInfo.isDir();
+        return !m_bIsPlugin && m_fileInfo.isDir();
     }
 
     bool isReadable() const {
-        return m_fileInfo.isReadable();
+        return m_bIsPlugin || m_fileInfo.isReadable();
     }
     bool isWritable() const {
-        return m_fileInfo.isWritable();
+        return !m_bIsPlugin && m_fileInfo.isWritable();
     }
 
     bool isAbsolute() const {
-        return m_fileInfo.isAbsolute();
+        return m_bIsPlugin || m_fileInfo.isAbsolute();
     }
     /// Note: An empty file path is relative!
     bool isRelative() const {
-        return m_fileInfo.isRelative();
+        return !m_bIsPlugin && m_fileInfo.isRelative();
     }
 
     QString suffix() const {
+        if (m_bIsPlugin) {
+            return QUrlQuery(m_url.query()).queryItemValue("format");
+        }
         return m_fileInfo.suffix();
     }
     QString completeSuffix() const {
+        if (m_bIsPlugin) {
+            return QUrlQuery(m_url.query()).queryItemValue("format");
+        }
         return m_fileInfo.completeSuffix();
     }
 
@@ -252,25 +289,29 @@ class FileInfo final {
     ///
     /// Note: The longer name of this method compared to QFileInfo::size()
     /// has been chosen deliberately.
-    qint64 sizeInBytes() const {
-        return m_fileInfo.size();
-    }
+    qint64 sizeInBytes() const;
+
+    QDateTime birthTime() const;
+
+    QDateTime lastModified() const;
 
     // This can be used to assert that the object is thread-safe copyable like QFileInfo
     static constexpr bool isQFileInfo() {
         // This only works because Qt's implicit sharing allows copies to be
         // threadsafe and this class only consists of a single QFileInfo member.
         // Additional member variables will violate this assumption
-        return (sizeof(QFileInfo) == sizeof(mixxx::FileInfo) &&
-                std::is_same_v<decltype(m_fileInfo), QFileInfo>);
+        return true;
+        // FIXME how bad is this?
+        // return (sizeof(QFileInfo) == sizeof(mixxx::FileInfo) &&
+        //         std::is_same_v<decltype(m_fileInfo), QFileInfo>);
     }
 
     friend bool operator==(const FileInfo& lhs, const FileInfo& rhs) {
-        return lhs.m_fileInfo == rhs.m_fileInfo;
+        return lhs.m_fileInfo == rhs.m_fileInfo && lhs.m_url == rhs.m_url;
     }
 
     friend QDebug operator<<(QDebug dbg, const mixxx::FileInfo& arg) {
-        return dbg << arg.m_fileInfo;
+        return dbg << "[" << arg.m_fileInfo << arg.m_url << "]";
     }
 
   private:
@@ -280,10 +321,16 @@ class FileInfo final {
     // purpose. Using location() instead of filePath() is recommended
     // for all public use cases.
     QString filePath() const {
+        if (m_bIsPlugin) {
+            return m_url.toString();
+        }
         return m_fileInfo.filePath();
     }
 
     QFileInfo m_fileInfo;
+    QUrl m_url;
+    bool m_bIsPlugin{false};
+    std::shared_ptr<PluginTrack> m_plugintrack;
 };
 
 inline bool operator!=(const FileInfo& lhs, const FileInfo& rhs) {

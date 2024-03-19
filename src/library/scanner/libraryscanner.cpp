@@ -570,8 +570,15 @@ void LibraryScanner::slotAddNewTrack(const QString& trackPath) {
     //kLogger.debug() << "slotAddNewTrack" << trackPath;
     ScopedTimer timer(u"LibraryScanner::addNewTrack");
     // For statistics tracking and to detect moved tracks
+    QUrl location(trackPath);
+    if (location.scheme() != "plugin") {
+        location = QUrl::fromLocalFile(trackPath);
+    }
+    kLogger.warning()
+            << "Adding track to library"
+            << location;
     TrackPointer pTrack = m_trackDao.addTracksAddFile(
-            trackPath,
+            location,
             false);
     if (pTrack) {
         DEBUG_ASSERT(!pTrack->isDirty());

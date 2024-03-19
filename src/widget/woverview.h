@@ -35,7 +35,7 @@ class WOverview : public WWidget, public TrackDropTarget {
             AnalyzerProgress analyzerProgress);
 
   signals:
-    void trackDropped(const QString& filename, const QString& group) override;
+    void trackDropped(const QUrl& filename, const QString& group) override;
     void cloneDeck(const QString& sourceGroup, const QString& targetGroup) override;
 
   protected:

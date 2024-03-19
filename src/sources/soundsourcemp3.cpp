@@ -1,10 +1,11 @@
 #include "sources/soundsourcemp3.h"
-#include "sources/mp3decoding.h"
-
-#include "util/logger.h"
-#include "util/math.h"
 
 #include <id3tag.h>
+
+#include "library/plugins/pluginclient.h"
+#include "sources/mp3decoding.h"
+#include "util/logger.h"
+#include "util/math.h"
 
 namespace mixxx {
 
@@ -191,7 +192,6 @@ QString SoundSourceProviderMp3::getVersionString() const {
 
 SoundSourceMp3::SoundSourceMp3(const QUrl& url)
         : SoundSource(url),
-          m_file(getLocalFileName()),
           m_fileSize(0),
           m_pFileData(nullptr),
           m_avgSeekFrameCount(0),
@@ -223,21 +223,38 @@ void SoundSourceMp3::finishDecoding() {
 SoundSource::OpenResult SoundSourceMp3::tryOpen(
         OpenMode /*mode*/,
         const OpenParams& /*config*/) {
-    DEBUG_ASSERT(!m_file.isOpen());
-    if (!m_file.open(QIODevice::ReadOnly)) {
-        kLogger.warning() << "Failed to open file:" << m_file.fileName();
+    qDebug() << "SoundSourceMp3::tryOpen" << getUrl();
+    DEBUG_ASSERT(!m_file || !m_file->isOpen());
+
+    m_file = mixxx::FileInfo(getUrl()).toQIODevice();
+
+    if (!m_file || !m_file->open(QIODevice::ReadOnly)) {
+        kLogger.warning() << "Failed to open file:" << getUrl();
         return OpenResult::Failed;
     }
 
     // Get a pointer to the file using memory mapped IO
-    m_fileSize = m_file.size();
-    m_pFileData = m_file.map(0, m_fileSize);
-    // NOTE(uklotzde): If the file disappears unexpectedly while mapped
-    // a SIGBUS error might occur that is not handled and will terminate
-    // Mixxx immediately. This behavior is documented in the manpage of
-    // mmap(). It has already appeared due to hardware errors and is
-    // described in the following bug report:
-    // https://github.com/mixxxdj/mixxx/issues/8011
+    m_fileSize = m_file->size();
+    if (getUrl().isLocalFile()) {
+        m_pFileData = static_cast<QFile*>(m_file.get())->map(0, m_fileSize);
+        // NOTE(uklotzde): If the file disappears unexpectedly while mapped
+        // a SIGBUS error might occur that is not handled and will terminate
+        // Mixxx immediately. This behavior is documented in the manpage of
+        // mmap(). It has already appeared due to hardware errors and is
+        // described in the following bug report:
+        // https://github.com/mixxxdj/mixxx/issues/8011
+    } else {
+        // FIXME If the file is large, this might cause big issue
+        qDebug() << "Allocation" << m_fileSize << "to read the non-local file";
+        m_pFileData = new unsigned char[m_fileSize];
+        if (m_pFileData) {
+            VERIFY_OR_DEBUG_ASSERT(m_file->read((char*)m_pFileData, m_fileSize) == m_fileSize) {
+                qWarning() << "Could not read the non-local file";
+                delete[] m_pFileData;
+                return OpenResult::Failed;
+            }
+        }
+    }
 
     // Transfer it to the mad stream-buffer:
     mad_stream_options(&m_madStream, MAD_OPTION_IGNORECRC);
@@ -307,7 +324,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
         if (0 >= madFrameLength) {
             kLogger.warning() << "Skipping MP3 frame with invalid length"
                               << madFrameLength
-                              << "in:" << m_file.fileName();
+                              << "in:" << getUrl();
             // Skip frame
             continue;
         }
@@ -354,18 +371,18 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
                         << "Differing number of channels"
                         << madChannelCount << "<>" << maxChannelCount
                         << "in MP3 frame headers:"
-                        << m_file.fileName();
+                        << getUrl();
             }
             maxChannelCount = math_max(madChannelCount, maxChannelCount);
         } else {
             kLogger.warning()
                     << "Missing number of channels in MP3 frame header:"
-                    << m_file.fileName();
+                    << getUrl();
         }
 
         const int sampleRateIndex = getIndexBySampleRate(madSampleRate);
         if (sampleRateIndex >= kSampleRateCount) {
-            kLogger.warning() << "Invalid sample rate:" << m_file.fileName()
+            kLogger.warning() << "Invalid sample rate:" << getUrl()
                               << madSampleRate;
             // Abort
             mad_header_finish(&madHeader);
@@ -408,7 +425,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
     if (m_seekFrameList.empty()) {
         // This is not a working MP3 file.
         kLogger.warning() << "This is not a working MP3 file:"
-                          << m_file.fileName();
+                          << getUrl();
         // Abort
         return OpenResult::Failed;
     }
@@ -428,7 +445,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
 
     if (differentRates > 1) {
         kLogger.warning() << "Differing sample rate in some headers:"
-                          << m_file.fileName();
+                          << getUrl();
         for (int i = 0; i < kSampleRateCount; ++i) {
             if (0 < headerPerSampleRate[i]) {
                 kLogger.warning() << headerPerSampleRate[i] << "MP3 headers with sample rate" << getSampleRateByIndex(i);
@@ -446,7 +463,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
                 << "Invalid number of channels"
                 << maxChannelCount
                 << "in MP3 file:"
-                << m_file.fileName();
+                << getUrl();
         // Abort
         return OpenResult::Failed;
     }
@@ -454,7 +471,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
     if (mostCommonSampleRateIndex > kSampleRateCount) {
         kLogger.warning()
                 << "Unknown sample rate in MP3 file:"
-                << m_file.fileName();
+                << getUrl();
         // Abort
         return OpenResult::Failed;
     }
@@ -479,7 +496,7 @@ SoundSource::OpenResult SoundSourceMp3::tryOpen(
     restartDecoding(m_seekFrameList.front());
 
     if (m_curFrameIndex != frameIndexMin()) {
-        kLogger.warning() << "Failed to start decoding:" << m_file.fileName();
+        kLogger.warning() << "Failed to start decoding:" << getUrl();
         // Abort
         return OpenResult::Failed;
     }
@@ -491,11 +508,17 @@ void SoundSourceMp3::close() {
     finishDecoding();
 
     if (m_pFileData) {
-        m_file.unmap(m_pFileData);
+        if (getUrl().isLocalFile()) {
+            static_cast<QFile*>(m_file.get())->unmap(m_pFileData);
+        } else {
+            delete m_pFileData;
+        }
         m_pFileData = nullptr;
     }
 
-    m_file.close();
+    if (m_file) {
+        m_file->close();
+    }
 
     m_seekFrameList.clear();
 

@@ -32,7 +32,7 @@ class WCoverArt : public QWidget, public WBaseWidget, public TrackDropTarget {
     void slotEnable(bool);
 
   signals:
-    void trackDropped(const QString& filename, const QString& group) override;
+    void trackDropped(const QUrl& filename, const QString& group) override;
     void cloneDeck(const QString& sourceGroup, const QString& targetGroup) override;
 
   private slots:

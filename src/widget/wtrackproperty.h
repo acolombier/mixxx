@@ -25,7 +25,7 @@ class WTrackProperty : public WLabel, public TrackDropTarget {
     void setup(const QDomNode& node, const SkinContext& context) override;
 
   signals:
-    void trackDropped(const QString& filename, const QString& group) override;
+    void trackDropped(const QUrl& filename, const QString& group) override;
     void cloneDeck(const QString& sourceGroup, const QString& targetGroup) override;
     void setAndConfirmTrackMenuControl(bool visible);
 

@@ -27,6 +27,10 @@ QMap<QString, mixxx::FileInfo> createCopylist(const TrackPointerList& tracks) {
     QMap<QString, mixxx::FileInfo> copylist;
     for (const auto& pTrack : tracks) {
         auto fileInfo = pTrack->getFileInfo();
+
+        if (fileInfo.toQUrl().scheme() == "plugin") {
+            continue;
+        }
         if (fileInfo.resolveCanonicalLocation().isEmpty()) {
             qWarning()
                     << "File not found or inaccessible while exporting"

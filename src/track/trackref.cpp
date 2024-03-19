@@ -19,7 +19,7 @@ bool TrackRef::verifyConsistency() const {
 std::ostream& operator<<(std::ostream& os, const TrackRef& trackRef) {
     return os
             << "TrackRef{"
-            << trackRef.getLocation().toStdString()
+            << trackRef.getLocation().toString().toStdString()
             << ','
             << trackRef.getCanonicalLocation().toStdString()
             << ','

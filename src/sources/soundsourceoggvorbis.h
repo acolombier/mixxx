@@ -32,7 +32,7 @@ class SoundSourceOggVorbis final : public SoundSource {
     static long TellCallback(void *datasource);
     static ov_callbacks s_callbacks;
 
-    std::unique_ptr<QFile> m_pFile;
+    std::unique_ptr<QIODevice> m_pFile;
 
     OggVorbis_File m_vf;
 

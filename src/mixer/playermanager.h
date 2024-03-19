@@ -186,23 +186,23 @@ class PlayerManager : public QObject, public PlayerManagerInterface {
   public slots:
     // Slots for loading tracks into a Player, which is either a Sampler or a Deck
     void slotLoadTrackToPlayer(TrackPointer pTrack, const QString& group, bool play);
-    void slotLoadLocationToPlayer(const QString& location, const QString& group, bool play);
-    void slotLoadLocationToPlayerMaybePlay(const QString& location, const QString& group);
+    void slotLoadLocationToPlayer(const QUrl& location, const QString& group, bool play);
+    void slotLoadLocationToPlayerMaybePlay(const QUrl& location, const QString& group);
 
     void slotCloneDeck(const QString& source_group, const QString& target_group);
 
     // Slots for loading tracks to decks
     void slotLoadTrackIntoNextAvailableDeck(TrackPointer pTrack);
-    void slotLoadLocationIntoNextAvailableDeck(const QString& location, bool play = false);
+    void slotLoadLocationIntoNextAvailableDeck(const QUrl& location, bool play = false);
     // Loads the location to the deck. deckNumber is 1-indexed
-    void slotLoadToDeck(const QString& location, int deckNumber);
+    void slotLoadToDeck(const QUrl& location, int deckNumber);
 
     // Loads the location to the preview deck. previewDeckNumber is 1-indexed
-    void slotLoadToPreviewDeck(const QString& location, int previewDeckNumber);
+    void slotLoadToPreviewDeck(const QUrl& location, int previewDeckNumber);
     // Slots for loading tracks to samplers
     void slotLoadTrackIntoNextAvailableSampler(TrackPointer pTrack);
     // Loads the location to the sampler. samplerNumber is 1-indexed
-    void slotLoadToSampler(const QString& location, int samplerNumber);
+    void slotLoadToSampler(const QUrl& location, int samplerNumber);
 
     void slotChangeNumDecks(double v);
     void slotChangeNumSamplers(double v);
@@ -221,7 +221,7 @@ class PlayerManager : public QObject, public PlayerManagerInterface {
     void onTrackAnalysisFinished();
 
   signals:
-    void loadLocationToPlayer(const QString& location, const QString& group, bool play);
+    void loadLocationToPlayer(const QUrl& location, const QString& group, bool play);
 
     // Emitted when the user tries to enable a microphone talkover control when
     // there is no input configured.

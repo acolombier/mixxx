@@ -18,7 +18,7 @@ class TrackDropTarget {
         emit cloneDeck(sourceGroup, targetGroup); // clazy:exclude=incorrect-emit
     }
 
-    void emitTrackDropped(const QString& filename, const QString& group) {
+    void emitTrackDropped(const QUrl& filename, const QString& group) {
         emit trackDropped(filename, group); // clazy:exclude=incorrect-emit
     }
 
@@ -28,6 +28,6 @@ class TrackDropTarget {
     }
 
   signals:
-    virtual void trackDropped(const QString& filename, const QString& group) = 0;
+    virtual void trackDropped(const QUrl& filename, const QString& group) = 0;
     virtual void cloneDeck(const QString& sourceGroup, const QString& targetGroup) = 0;
 };

@@ -1191,7 +1191,10 @@ void WTrackMenu::slotOpenInFileBrowser() {
     QStringList locations;
     locations.reserve(trackRefs.size());
     for (const auto& trackRef : trackRefs) {
-        locations << trackRef.getLocation();
+        const QUrl& location = trackRef.getLocation();
+        if (!location.isLocalFile())
+            continue;
+        locations << location.toLocalFile();
     }
     mixxx::DesktopHelper::openInFileBrowser(locations);
 }
@@ -2098,8 +2101,10 @@ void WTrackMenu::slotRemoveFromDisk() {
         const auto trackRefs = getTrackRefs();
         locations.reserve(trackRefs.size());
         for (const auto& trackRef : trackRefs) {
-            QString location = trackRef.getLocation();
-            locations.append(location);
+            const QUrl& location = trackRef.getLocation();
+            if (!location.isLocalFile())
+                continue;
+            locations.append(location.toLocalFile());
         }
         locations.removeDuplicates();
     } else if (m_pTrack) {

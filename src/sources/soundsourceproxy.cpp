@@ -284,7 +284,7 @@ bool SoundSourceProxy::isUrlSupported(const QUrl& url) {
 
 // static
 bool SoundSourceProxy::isFileSupported(const mixxx::FileInfo& fileInfo) {
-    return isFileNameSupported(fileInfo.fileName());
+    return !fileInfo.isLocalFile() || isFileNameSupported(fileInfo.fileName());
 }
 
 // static

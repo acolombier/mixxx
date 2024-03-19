@@ -572,14 +572,14 @@ void WTrackTableView::mouseMoveEvent(QMouseEvent* pEvent) {
     }
     //qDebug() << "MouseMoveEvent";
     // Iterate over selected rows and append each item's location url to a list.
-    QList<QString> locations;
+    QList<QUrl> locations;
     const QModelIndexList indices = getSelectedRows();
 
     for (const QModelIndex& index : indices) {
         if (!index.isValid()) {
             continue;
         }
-        locations.append(trackModel->getTrackLocation(index));
+        locations.append(trackModel->getTrackUrl(index));
     }
     DragAndDropHelper::dragTrackLocations(locations, this, "library");
 }

@@ -4,6 +4,7 @@
 
 #include "sources/audiosource.h"
 #include "sources/metadatasourcetaglib.h"
+#include "util/fileinfo.h"
 
 namespace mixxx {
 
@@ -19,7 +20,7 @@ class SoundSource
     static QString getTypeFromUrl(const QUrl& url);
 
     /// Determine the type from a (local) file.
-    static QString getTypeFromFile(const QFileInfo& fileInfo);
+    static QString getTypeFromFile(const mixxx::FileInfo& fileInfo);
 
     /// The type of the source.
     ///

@@ -1,6 +1,7 @@
 #include "library/baseexternalplaylistmodel.h"
 
 #include "library/dao/trackschema.h"
+#include "library/plugins/pluginclient.h"
 #include "library/queryutil.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -33,7 +34,11 @@ BaseExternalPlaylistModel::~BaseExternalPlaylistModel() {
 
 TrackPointer BaseExternalPlaylistModel::getTrack(const QModelIndex& index) const {
     QString nativeLocation = index.sibling(index.row(), fieldIndex("location")).data().toString();
-    QString location = QDir::fromNativeSeparators(nativeLocation);
+    // qWarning() << "BaseExternalPlaylistModel::getTrack" << nativeLocation;
+    QUrl location = nativeLocation.startsWith("plugin://")
+            ? QUrl(nativeLocation)
+            : QUrl::fromLocalFile(nativeLocation);
+    // qWarning() << "BaseExternalPlaylistModel::getTrack" << location;
 
     if (location.isEmpty()) {
         // Track is lost
@@ -127,7 +132,7 @@ void BaseExternalPlaylistModel::setPlaylistById(int playlistId) {
     }
 
     const auto playlistIdNumber =
-            QString::number(playlistId);
+            QString::number(playlistId).replace("-", "_");
     const auto playlistViewTable =
             QStringLiteral("%1_%2")
                     .arg(

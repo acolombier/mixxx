@@ -37,7 +37,7 @@ class WWaveformViewer : public WWidget, public TrackDropTarget {
     void leaveEvent(QEvent* /*unused*/) override;
 
   signals:
-    void trackDropped(const QString& filename, const QString& group) override;
+    void trackDropped(const QUrl& filename, const QString& group) override;
     void cloneDeck(const QString& sourceGroup, const QString& targetGroup) override;
     void passthroughChanged(double value);
 

@@ -19,6 +19,9 @@ class BaseExternalPlaylistModel : public BaseSqlTableModel {
 
     void setPlaylist(const QString& path_name);
     void setPlaylistById(int playlistId);
+    int getPlaylistId() const {
+        return m_currentPlaylistId;
+    }
 
     TrackPointer getTrack(const QModelIndex& index) const override;
     TrackId getTrackId(const QModelIndex& index) const override;

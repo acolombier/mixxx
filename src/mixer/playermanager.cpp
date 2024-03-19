@@ -718,14 +718,14 @@ void PlayerManager::slotLoadTrackToPlayer(TrackPointer pTrack, const QString& gr
 }
 
 void PlayerManager::slotLoadLocationToPlayer(
-        const QString& location, const QString& group, bool play) {
+        const QUrl& location, const QString& group, bool play) {
     // The library will get the track and then signal back to us to load the
     // track via slotLoadTrackToPlayer.
     emit loadLocationToPlayer(location, group, play);
 }
 
 void PlayerManager::slotLoadLocationToPlayerMaybePlay(
-        const QString& location, const QString& group) {
+        const QUrl& location, const QString& group) {
     bool play = false;
     LoadWhenDeckPlaying loadWhenDeckPlaying = m_pConfig->getValue(
             kConfigKeyLoadWhenDeckPlaying, kDefaultLoadWhenDeckPlaying);
@@ -743,15 +743,15 @@ void PlayerManager::slotLoadLocationToPlayerMaybePlay(
     slotLoadLocationToPlayer(location, group, play);
 }
 
-void PlayerManager::slotLoadToDeck(const QString& location, int deck) {
+void PlayerManager::slotLoadToDeck(const QUrl& location, int deck) {
     slotLoadLocationToPlayer(location, groupForDeck(deck - 1), false);
 }
 
-void PlayerManager::slotLoadToPreviewDeck(const QString& location, int previewDeck) {
+void PlayerManager::slotLoadToPreviewDeck(const QUrl& location, int previewDeck) {
     slotLoadLocationToPlayer(location, groupForPreviewDeck(previewDeck - 1), false);
 }
 
-void PlayerManager::slotLoadToSampler(const QString& location, int sampler) {
+void PlayerManager::slotLoadToSampler(const QUrl& location, int sampler) {
     slotLoadLocationToPlayer(location, groupForSampler(sampler - 1), false);
 }
 
@@ -766,7 +766,7 @@ void PlayerManager::slotLoadTrackIntoNextAvailableDeck(TrackPointer pTrack) {
     pDeck->slotLoadTrack(pTrack, false);
 }
 
-void PlayerManager::slotLoadLocationIntoNextAvailableDeck(const QString& location, bool play) {
+void PlayerManager::slotLoadLocationIntoNextAvailableDeck(const QUrl& location, bool play) {
     auto locker = lockMutex(&m_mutex);
     BaseTrackPlayer* pDeck = findFirstStoppedPlayerInList(m_decks);
     if (pDeck == nullptr) {

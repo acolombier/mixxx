@@ -135,6 +135,7 @@ void CoverArtDelegate::paintItem(
                     // This happens if we have the legacy hash
                     // The CoverArtCache will take care of the update
                     const auto pTrack = loadTrackByLocation(coverInfo.trackLocation);
+                    DEBUG_ASSERT(pTrack);
                     CoverArtCache::requestUncachedCover(
                             this,
                             pTrack,

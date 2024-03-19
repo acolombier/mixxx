@@ -37,7 +37,7 @@ class DragAndDropHelper final {
             const QString& sourceIdentifier);
 
     static QDrag* dragTrackLocations(
-            const QList<QString>& locations,
+            const QList<QUrl>& locations,
             QWidget* pDragSource,
             const QString& sourceIdentifier);
 

@@ -17,6 +17,8 @@
 #include "util/memory.h"
 #include "waveform/waveform.h"
 
+class PluginTrack;
+
 class Track : public QObject {
     Q_OBJECT
 
@@ -78,12 +80,7 @@ class Track : public QObject {
     Q_PROPERTY(QString titleInfo READ getTitleInfo STORED false NOTIFY infoChanged)
     Q_PROPERTY(QDateTime sourceSynchronizedAt READ getSourceSynchronizedAt STORED false)
 
-    mixxx::FileInfo getFileInfo() const {
-        // Copying mixxx::FileInfo based on QFileInfo is thread-safe due to implicit sharing,
-        // i.e. no locking needed.
-        static_assert(mixxx::FileInfo::isQFileInfo());
-        return m_fileAccess.info();
-    }
+    mixxx::FileInfo getFileInfo() const;
 
     TrackId getId() const;
 
@@ -545,6 +542,7 @@ class Track : public QObject {
 
     // The file
     mixxx::FileAccess m_fileAccess;
+    std::shared_ptr<PluginTrack> m_plugintrack;
 
     mixxx::TrackRecord m_record;
 

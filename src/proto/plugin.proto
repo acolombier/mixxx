@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package mixxx.plugin;
+
+// Plugin service definition.
+service PluginService {
+  // Sends a greeting
+  rpc Manifest(ManifestRequest) returns (ManifestReply);
+  rpc Browse(BrowseRequest) returns (BrowseReply);
+  rpc Event(ViewEvent) returns (SideEffect);
+}
+
+message ManifestRequest {}
+message ManifestReply {
+  string name = 1;
+  string version = 2;
+  bytes icon = 4;
+}
+
+message BrowseRequest {
+  optional Node node = 1;
+}
+message BrowseReply {
+  repeated Node nodes = 1;
+  Tracklist tracklist = 2;
+  string view = 3;
+}
+
+enum NodeType {
+  LEAF = 0;
+  NODE = 1;
+  LAZY_NODE = 2;
+}
+message Node {
+  NodeType type = 1;
+  string id = 2;
+  string label = 3;
+  bytes icon = 4;
+}
+
+message ViewEvent {
+  message Click {
+    int32 x = 1;
+    int32 y = 2;
+  }
+  message Submit {
+    string id = 1;
+    bytes payload = 2;
+  }
+  oneof view_event_oneof { 
+    Click click = 1;
+    Submit submit = 2;
+  }
+}
+message SideEffect {
+  message Invalidate {}
+  message Message {
+    bytes data = 1;
+  }
+  oneof side_effect_oneof { 
+    Invalidate invalidate = 1;
+  }
+}
+
+message Tracklist {
+  int64 id = 1;
+  string ref = 4;
+  int32 track_count = 2;
+  SearchMode search = 3;
+}
+
+enum SearchMode {
+  NONE = 0;
+  DELEGATED = 1;
+}
+
+// Tracklist service
+service TracklistService {
+  // Sends a greeting
+//   rpc Fetch() returns (Definition) {}
+  rpc FetchContent(FetchContentRequest) returns (stream Track) {}
+}
+
+message FetchContentRequest {
+  Tracklist tracklist = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+// Track service
+service TrackService {
+  rpc Get(TrackRequest) returns (TrackResponse) {}
+  rpc Open(OpenRequest) returns (OpenResponse) {}
+  rpc Read(ReadRequest) returns (stream  ReadChunk) {}
+  rpc Seek(SeekRequest) returns (SeekResponse) {}
+  rpc Close(CloseRequest) returns (CloseResponse) {}
+}
+
+message TrackRequest {
+  string ref = 1;
+}
+
+message TrackResponse {
+  Track track = 1;
+}
+
+message OpenRequest {
+  Track track = 1;
+}
+
+message OpenResponse {
+  int64 filesize = 1;
+  string mime = 2;
+}
+
+message ReadRequest {
+  Track track = 1;
+  int64 chunk_size = 2;
+  uint64 offset = 3;
+  int64 limit = 4;
+}
+
+message ReadChunk {
+  bytes data = 1;
+  bool eof = 2;
+}
+
+message SeekRequest {
+  Track track = 1;
+  uint64 position = 2;
+}
+
+message SeekResponse {
+  uint64 position = 1;
+}
+
+message CloseRequest {
+  Track track = 1;
+}
+
+message CloseResponse {}
+
+
+// The response message containing the greetings
+message Track {
+  int64 id = 1;
+  string ref = 6;
+  string title = 2;
+  string artist = 3;
+  string album = 4;
+  bytes artwork = 5;
+}

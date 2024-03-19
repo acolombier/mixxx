@@ -424,7 +424,7 @@ void TrackCollectionManager::purgeTracks(const QList<TrackRef>& trackRefs) const
     trackLocations.reserve(trackLocations.size());
     for (const auto& trackRef : trackRefs) {
         DEBUG_ASSERT(trackRef.hasLocation());
-        trackLocations.append(trackRef.getLocation());
+        trackLocations.append(trackRef.getLocation().toString());
     }
     kLogger.debug()
             << "Purging"

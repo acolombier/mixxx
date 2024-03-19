@@ -236,6 +236,9 @@ SecurityTokenPointer Sandbox::openSecurityToken(mixxx::FileInfo* pFileInfo, bool
     VERIFY_OR_DEBUG_ASSERT(pFileInfo) {
         return nullptr;
     }
+    if (!pFileInfo->isLocalFile()) {
+        return nullptr;
+    }
     const auto canonicalLocation = pFileInfo->resolveCanonicalLocation();
     if (canonicalLocation.isEmpty()) {
         return nullptr;

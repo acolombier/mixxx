@@ -2,7 +2,9 @@
 
 #include <QMimeDatabase>
 #include <QMimeType>
+#include <QUrlQuery>
 
+#include "library/plugins/pluginclient.h"
 #include "sources/soundsourceproxy.h"
 #include "util/logger.h"
 
@@ -14,7 +16,7 @@ const Logger kLogger("SoundSource");
 
 inline QUrl validateLocalFileUrl(QUrl url) {
     DEBUG_ASSERT(url.isValid());
-    VERIFY_OR_DEBUG_ASSERT(url.isLocalFile()) {
+    VERIFY_OR_DEBUG_ASSERT(url.isLocalFile() || url.scheme() == "plugin") {
         kLogger.warning()
                 << "Unsupported URL:"
                 << url.toString();
@@ -26,12 +28,11 @@ inline QUrl validateLocalFileUrl(QUrl url) {
 
 //static
 QString SoundSource::getTypeFromUrl(const QUrl& url) {
-    const QString filePath = validateLocalFileUrl(url).toLocalFile();
-    return getTypeFromFile(QFileInfo(filePath));
+    return getTypeFromFile(mixxx::FileInfo(url));
 }
 
 //static
-QString SoundSource::getTypeFromFile(const QFileInfo& fileInfo) {
+QString SoundSource::getTypeFromFile(const mixxx::FileInfo& fileInfo) {
     const QString fileSuffix = fileInfo.suffix().toLower().trimmed();
 
     if (fileSuffix == QLatin1String("opus")) {
@@ -53,15 +54,17 @@ QString SoundSource::getTypeFromFile(const QFileInfo& fileInfo) {
         return fileSuffix;
     }
 
-    QMimeType mimeType = QMimeDatabase().mimeTypeForFile(
-            fileInfo, QMimeDatabase::MatchContent);
+    std::shared_ptr<QIODevice> pFile = fileInfo.toQIODevice();
+
+    QMimeType mimeType = QMimeDatabase().mimeTypeForFileNameAndData(
+            fileInfo.fileName(), pFile.get());
     // According to the documentation mimeTypeForFile always returns a valid
     // type, using the generic type application/octet-stream as a fallback.
     // This might also occur for missing files as seen on Qt 5.12.
     if (!mimeType.isValid() || mimeType.isDefault()) {
-        qInfo() << "Unable to detect MIME type from file" << fileInfo.filePath();
+        qInfo() << "Unable to detect MIME type from file" << fileInfo;
         mimeType = QMimeDatabase().mimeTypeForFile(
-                fileInfo, QMimeDatabase::MatchExtension);
+                fileInfo.asQFileInfo(), QMimeDatabase::MatchExtension);
         if (!mimeType.isValid() || mimeType.isDefault()) {
             return fileSuffix;
         }
@@ -76,14 +79,14 @@ QString SoundSource::getTypeFromFile(const QFileInfo& fileInfo) {
                 << "Using type" << fileType
                 << "instead of" << fileSuffix
                 << "according to the detected MIME type" << mimeType
-                << "of file" << fileInfo.filePath();
+                << "of file" << fileInfo;
     }
     return fileType;
 }
 
 SoundSource::SoundSource(const QUrl& url, const QString& type)
         : AudioSource(validateLocalFileUrl(url)),
-          MetadataSourceTagLib(getLocalFileName()),
+          MetadataSourceTagLib(url.isLocalFile() ? url.toLocalFile() : url.toString()),
           m_type(type) {
 }
 

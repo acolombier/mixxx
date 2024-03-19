@@ -130,7 +130,7 @@ class TrackDAO : public QObject, public virtual DAO, public virtual GlobalTrackC
     friend class TrackAnalysisScheduler;
 
     TrackId getTrackIdByLocation(
-            const QString& location) const;
+            const QUrl& location) const;
     TrackPointer getTrackById(
             TrackId trackId) const;
 
@@ -151,10 +151,11 @@ class TrackDAO : public QObject, public virtual DAO, public virtual GlobalTrackC
             const mixxx::FileAccess& fileAccess,
             bool unremove);
     TrackPointer addTracksAddFile(
-            const QString& filePath,
+            const QUrl& location,
             bool unremove) {
         return addTracksAddFile(
-                mixxx::FileAccess(mixxx::FileInfo(filePath)),
+                // mixxx::FileAccess(mixxx::FileInfo(location)),
+                mixxx::FileAccess(mixxx::FileInfo(location)),
                 unremove);
     }
     void addTracksFinish(bool rollback = false);
