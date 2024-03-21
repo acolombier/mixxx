@@ -27,6 +27,8 @@
 #include "util/cmdlineargs.h"
 #include "util/time.h"
 
+#define mixxxApp static_cast<MixxxApplication*>(qApp)
+
 QMutex ControllerRenderingEngine::s_glMutex = QMutex();
 
 ControllerRenderingEngine::ControllerRenderingEngine(
@@ -165,20 +167,20 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     m_renderControl = std::make_unique<QQuickRenderControl>(this);
     m_quickWindow = std::make_unique<QQuickWindow>(m_renderControl.get());
 
-    if (m_pControllerEngine) {
-        connect(
-                m_pControllerEngine,
-                &ControllerScriptEngineLegacy::paused,
-                this,
-                [this](bool isPaused) {
-                    if (isPaused) {
-                        m_controllerEnginePausedSema.release();
-                    } else {
-                        m_controllerEnginePausedSema.acquire();
-                    }
-                },
-                Qt::DirectConnection);
-    }
+    // if (m_pControllerEngine) {
+    //     connect(
+    //             mixxxApp,
+    //             &MixxxApplication::paused,
+    //             this,
+    //             [this](bool isPaused) {
+    //                 if (isPaused) {
+                        // m_controllerEnginePausedSema.release();
+    //                 } else {
+                        // m_controllerEnginePausedSema.acquire();
+    //                 }
+    //             },
+    //             Qt::DirectConnection);
+    // }
 
     if (!qmlEngine->incubationController())
         qmlEngine->setIncubationController(m_quickWindow->incubationController());
@@ -291,10 +293,10 @@ void ControllerRenderingEngine::renderFrame() {
 
     m_renderControl->beginFrame();
 
-    if (m_pControllerEngine) {
-        m_pControllerEngine->requestPause();
-        m_controllerEnginePausedSema.acquire();
-    }
+    // if (m_pControllerEngine) {
+        mixxxApp->pause();
+        // m_controllerEnginePausedSema.acquire();
+    // }
 
     m_renderControl->polishItems();
 
@@ -303,18 +305,18 @@ void ControllerRenderingEngine::renderFrame() {
         // m_waitCondition.wakeAll();
         lock.unlock();
         finish();
-        if (m_pControllerEngine) {
-            m_controllerEnginePausedSema.release();
-            m_pControllerEngine->requestResume();
-        }
+        // if (m_pControllerEngine) {
+            // m_controllerEnginePausedSema.release();
+            mixxxApp->resume();
+        // }
 
         return;
     };
 
-    if (m_pControllerEngine) {
-        m_controllerEnginePausedSema.release();
-        m_pControllerEngine->requestResume();
-    }
+    // if (m_pControllerEngine) {
+        // m_controllerEnginePausedSema.release();
+        mixxxApp->resume();
+    // }
     QImage fboImage(m_screenInfo.size, m_screenInfo.pixelFormat);
 
     VERIFY_OR_DEBUG_ASSERT(m_fbo->bind()) {
@@ -375,7 +377,7 @@ void ControllerRenderingEngine::renderFrame() {
 }
 
 bool ControllerRenderingEngine::stop() {
-    m_controllerEnginePausedSema.release();
+    // m_controllerEnginePausedSema.release();
     emit stopRequested();
     return m_pThread->wait();
 }

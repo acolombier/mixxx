@@ -18,6 +18,9 @@
 #ifdef MIXXX_USE_QML
 #include "util/assert.h"
 #include "util/cmdlineargs.h"
+#include "mixxxapplication.h"
+
+#define mixxxApp static_cast<MixxxApplication*>(qApp)
 
 QByteArray
         ControllerScriptEngineLegacy::kScreenTranformFunctionUntypedSignature =
@@ -432,7 +435,7 @@ bool ControllerScriptEngineLegacy::initialize() {
     };
 
 #ifdef MIXXX_USE_QML
-    setCanPause(true);
+    mixxxApp->setCanPause(true);
     for (const auto& pScreen : qAsConst(m_renderingScreens)) {
         pScreen->start();
     }
@@ -643,7 +646,7 @@ void ControllerScriptEngineLegacy::shutdown() {
     }
 
 #ifdef MIXXX_USE_QML
-    setCanPause(false);
+    mixxxApp->setCanPause(false);
     // Wait till the splash off animation has finished rendering
     uint maxSplashOffDuration = 0;
     for (const auto& pScreen : qAsConst(m_renderingScreens)) {
