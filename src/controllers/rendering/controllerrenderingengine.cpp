@@ -167,21 +167,6 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     m_renderControl = std::make_unique<QQuickRenderControl>(this);
     m_quickWindow = std::make_unique<QQuickWindow>(m_renderControl.get());
 
-    // if (m_pControllerEngine) {
-    //     connect(
-    //             mixxxApp,
-    //             &MixxxApplication::paused,
-    //             this,
-    //             [this](bool isPaused) {
-    //                 if (isPaused) {
-                        // m_controllerEnginePausedSema.release();
-    //                 } else {
-                        // m_controllerEnginePausedSema.acquire();
-    //                 }
-    //             },
-    //             Qt::DirectConnection);
-    // }
-
     if (!qmlEngine->incubationController())
         qmlEngine->setIncubationController(m_quickWindow->incubationController());
 

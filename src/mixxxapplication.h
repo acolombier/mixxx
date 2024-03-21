@@ -19,6 +19,9 @@ class MixxxApplication : public QApplication {
 #endif
 
 #ifdef MIXXX_USE_QML
+    /// Pause the GUI main thread. Pause is required by rendering
+    /// thread (https://doc.qt.io/qt-6/qquickrendercontrol.html#sync). This
+    /// offscreen render thread to pause the main "GUI thread" for onboard screens
   private:
     QWaitCondition m_isPausedCondition;
     QMutex m_pauseMutex;
@@ -28,17 +31,12 @@ class MixxxApplication : public QApplication {
   public slots:
     bool pause();
     void resume();
-    /// Pause the controller engine's thread. Pause is required by rendering
-    /// thread (https://doc.qt.io/qt-6/qquickrendercontrol.html#sync). This
-    /// allows childrend classes to control whether or not they can be requested
-    /// to pause the Controller thread used a "GUI thread" for onboard screens
     void setCanPause(bool canPause);
   private slots:
     void doPause();
 
   signals:
     void pauseRequested();
-    void paused(bool);
 #endif
 
   private:
