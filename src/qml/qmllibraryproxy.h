@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "qml/qmllibrarytracklistmodel.h"
+#include "qml/qmllibrarytreeviewmodel.h"
 #include "util/parented_ptr.h"
 
 class Library;
@@ -15,6 +16,7 @@ class QmlLibraryTrackListModel;
 
 class QmlLibraryProxy : public QObject {
     Q_OBJECT
+    Q_PROPERTY(mixxx::qml::QmlLibraryTreeviewModel* sidebar MEMBER m_pSidebarProperty CONSTANT)
     Q_PROPERTY(mixxx::qml::QmlLibraryTrackListModel* model MEMBER m_pModelProperty CONSTANT)
     QML_NAMED_ELEMENT(Library)
     QML_SINGLETON
@@ -34,6 +36,8 @@ class QmlLibraryProxy : public QObject {
 
     /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
     QmlLibraryTrackListModel* m_pModelProperty;
+    /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
+    QmlLibraryTreeviewModel* m_pSidebarProperty;
 };
 
 } // namespace qml

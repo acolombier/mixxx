@@ -4,6 +4,8 @@
 #include <QString>
 #include <QtDebug>
 
+#include "moc_qmltablefromlistmodelcolumn.cpp"
+
 namespace {
 
 const QString displayRoleName = QStringLiteral("display");
