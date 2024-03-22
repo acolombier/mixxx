@@ -2774,10 +2774,12 @@ if(QML)
     src/qml/qmleffectslotproxy.cpp
     src/qml/qmllibraryproxy.cpp
     src/qml/qmllibrarytracklistmodel.cpp
+    src/qml/qmllibrarytreeviewmodel.cpp
     src/qml/qmlplayermanagerproxy.cpp
     src/qml/qmlplayerproxy.cpp
     src/qml/qmlvisibleeffectsmodel.cpp
     src/qml/qmlwaveformoverview.cpp
+    src/qml/qmltreefromlistmodel.cpp
     src/qml/qmltablefromlistmodel.cpp
     src/qml/qmltablefromlistmodelcolumn.cpp
     # The following sources need to be in this target to get QML_ELEMENT properly interpreted

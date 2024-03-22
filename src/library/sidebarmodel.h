@@ -4,12 +4,15 @@
 #include <QList>
 #include <QModelIndex>
 #include <QVariant>
+#include <QtQml>
 
 class LibraryFeature;
 class QTimer;
 
 class SidebarModel : public QAbstractItemModel {
     Q_OBJECT
+    QML_NAMED_ELEMENT(LibrarySidebarModel)
+    QML_UNCREATABLE("Only accessible via Mixxx.Library.sidebar")
   public:
     // Keep object tree functions from QObject accessible
     // for parented_ptr

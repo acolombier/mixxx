@@ -53,265 +53,146 @@ Skin.LibraryPanel {
                     cursorVisible: true
                 }
             }
-            ListView {
-                id: featureView
-                Layout.fillWidth: true
-                // Layout.fillHeight: true
-                Layout.preferredHeight: contentHeight
-
-                focus: true
-                clip: true
-
-                model: ListModel {
-                    id: treeSection
-                    // ListElement { option: "Missing Tracks"; feature: "Tracks"; icon: "tracks" }
-                    // ListElement { option: "Hidden Tracks"; feature: "Tracks"; icon: "tracks" }
-                    // ListElement { option: "Crates" ; feature: "Auto DJ"; icon: "auto_dj" }
-                    // ListElement { feature: "Playlists" }
-                    // ListElement { feature: "Crates" }
-                    // ListElement { feature: "Computer" }
-                    // ListElement { feature: "Recordings" }
-                    // ListElement { feature: "History" }
-                    // ListElement { feature: "Analyse" }
-                    // ListElement { feature: "iTunes" }
-                    // ListElement { feature: "Traktor" }
-                    // ListElement { feature: "Rekordbox" }
-                    // ListElement { feature: "Serato" }
-                    ListElement {
-                        feature: "Tracks"
-                        icon: "tracks"
-                        options: [
-                            ListElement {
-                                option: "Missing Tracks"
-                            },
-                            ListElement {
-                                option: "Hidden Tracks"
-                            }
-                        ]
-                    }
-                    ListElement {
-                        feature: "Auto DJ"
-                        icon: "autodj"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Playlists"
-                        icon: "playlist"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Crates"
-                        icon: "crates"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Computer"
-                        icon: "computer"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Recordings"
-                        icon: "recordings"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "History"
-                        icon: "history"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Analyse"
-                        icon: "prepare"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "iTunes"
-                        icon: "itunes"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Traktor"
-                        icon: "traktor"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Rekordbox"
-                        icon: "rekordbox"
-                        options: []
-                    }
-                    ListElement {
-                        feature: "Serato"
-                        icon: "serato"
-                        options: []
-                    }
-                }
-
-                // moveDisplaced: Transition {
-                //     NumberAnimation { properties: "x,y"; duration: 1000 }
-                // }
-
-                delegate: Item {
-                    id: featureDelegate
-
-                    required property int index
-                    required property string feature
-                    required property string icon
-                    required property var options
-
-                    property bool expanded: true
-
-                    height: featureLabel.implicitHeight + 6 + (featureDelegate.expanded && options.count ? featureOptionView.contentHeight + 6 : 0)
-
-                    Behavior on height {
-                        NumberAnimation { duration: 200 }
-                    }
-
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                    }
-
-                    signal clicked()
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        MouseArea {
-                            Layout.preferredHeight: featureLabel.implicitHeight + 4
-                            Layout.fillWidth: true
-
-                            onClicked: {
-                                featureView.currentIndex = index
-                            }
-                            Rectangle {
-
-                                anchors.fill: parent
-                                color: featureView.currentItem == featureDelegate ? "#5e4507" : "transparent"
-                                RowLayout {
-                                    anchors {
-                                        leftMargin: 8
-                                        left: parent.left
-                                        right: parent.right
-                                    }
-                                    Text {
-                                        id: indicator
-                                        text: "▸"
-                                        Layout.preferredWidth: indicator.implicitWidth
-                                        height: 16
-
-                                        color: 'white'
-                                        font.pixelSize: 18
-                                        font.weight: Font.Bold
-                                        opacity: featureDelegate.options.count > 0 ? 1 : 0
-                                        rotation: featureDelegate.expanded ? 90 : 0
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            onClicked: {
-                                                featureDelegate.expanded = !featureDelegate.expanded
-                                            }
-                                        }
-                                    }
-
-                                    Item {
-                                        id: icon
-                                        height: 14
-                                        Layout.preferredWidth: 14
-
-                                        Image {
-                                            anchors.fill: parent
-                                            source: `../../res/images/library/ic_library_${featureDelegate.icon}.svg`
-                                        }
-                                    }
-
-                                    Text {
-                                        id: featureLabel
-                                        Layout.fillWidth: true
-
-                                        font.weight: Font.Bold
-                                        text: featureDelegate.feature
-                                        color: 'white'
-                                    }
-                                }
-                            }
-                        }
-                        ListView {
-                            id: featureOptionView
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: featureDelegate.expanded ? contentHeight : 0
-
-                            focus: true
-                            clip: true
-
-                            model: featureDelegate.options
-
-                            delegate: Rectangle {
-                                id: featureOptionDelegate
-
-                                required property int index
-                                required property string option
-                                property var element: {
-                                    "fillHeight": true,
-                                    "type": "TrackList",
-                                    "preferredHeight": 0
-                                }
-
-                                color: (featureView.currentIndex == -1 && featureOptionView.currentItem == featureOptionDelegate) ? "#5e4507" : "transparent"
-                                height: label.height
-
-                                MouseArea {
-                                    id: mouseArea
-                                    anchors.fill: parent
-                                    drag.target: parent
-                                    onClicked: {
-                                        featureView.currentIndex = -1
-                                        featureOptionView.currentIndex = index
-                                    }
-                                }
-
-                                Drag.active: mouseArea.drag.active
-                                Drag.dragType: Drag.Automatic
-                                Drag.supportedActions: Qt.CopyAction
-                                Drag.hotSpot.x: mouseArea.mouseX
-                                Drag.hotSpot.y: mouseArea.mouseY
-
-                                anchors {
-                                    left: parent.left
-                                    leftMargin: 42
-                                    right: parent.right
-                                }
-                                RowLayout {
-                                    anchors.fill: parent
-
-                                    Item {
-                                        id: icon
-                                        height: 14
-                                        Layout.preferredWidth: 14
-                                        visible: false
-
-                                        Image {
-                                            anchors.fill: parent
-                                            source: `../../res/images/library/ic_library_${featureDelegate.icon}.svg`
-                                        }
-                                    }
-                                    Text {
-                                        id: label
-                                        Layout.fillWidth: true
-
-                                        font.weight: Font.Bold
-                                        text: featureOptionDelegate.option
-                                        color: 'white'
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                highlightFollowsCurrentItem: false
-            }
-            Item {
+            ScrollView {
                 Layout.fillHeight: true
+                Layout.fillWidth: true
+                // Layout.preferredHeight: contentHeight
+
+                // FIXME(ac) - Unsupported in Qt 6.2 - Use Jan's LibrarySidebar
+                // TreeView {
+                //     id: featureView
+                //     // Layout.fillHeight: true
+
+                //     focus: true
+                //     clip: true
+
+                //     Component.onCompleted: {
+                //         console.log(Mixxx.TreeFromListModel)
+                //     }
+
+                //     model: Mixxx.Library.sidebar
+
+                //     selectionModel: ItemSelectionModel {}
+
+                //     delegate: Item {
+                //         id: featureDelegate
+
+                //         required property string label
+                //         required property string icon
+
+                //         readonly property real indentation: 10
+                //         readonly property real padding: 5
+
+                //         // Assigned to by TreeView:
+                //         required property int index
+                //         required property TreeView treeView
+                //         required property bool isTreeNode
+                //         required property bool expanded
+                //         required property int hasChildren
+                //         required property int depth
+                //         required property int row
+                //         required property int column
+                //         required property bool current
+
+                //         // height: featureLabel.implicitHeight // + 6 + (featureDelegate.expanded && options.count ? featureOptionView.contentHeight + 6 : 0)
+
+                //         // implicitWidth: padding + featureLabel.x + featureLabel.implicitWidth + padding
+                //         implicitWidth: treeView.width
+                //         implicitHeight: featureLabel.implicitHeight * 1.5
+
+                //         Behavior on height {
+                //             NumberAnimation { duration: 200 }
+                //         }
+
+                //         MouseArea {
+                //             id: mouseArea
+                //             anchors.fill: parent
+                //             drag {
+                //                 target: !hasChildren ? parent : null
+                //             }
+                //         }
+
+                //         Drag.active: mouseArea.drag.active
+                //         Drag.dragType: Drag.Automatic
+                //         Drag.supportedActions: Qt.CopyAction
+                //         Drag.hotSpot.x: mouseArea.mouseX
+                //         Drag.hotSpot.y: mouseArea.mouseY
+
+                //         // Rotate indicator when expanded by the user
+                //         // (requires TreeView to have a selectionModel)
+                //         property Animation indicatorAnimation: NumberAnimation {
+                //             target: indicator
+                //             property: "rotation"
+                //             from: expanded ? 0 : 90
+                //             to: expanded ? 90 : 0
+                //             duration: 100
+                //             easing.type: Easing.OutQuart
+                //         }
+                //         TableView.onPooled: indicatorAnimation.complete()
+                //         TableView.onReused: if (current) indicatorAnimation.start()
+                //         onExpandedChanged: indicator.rotation = expanded ? 90 : 0
+
+                //         Rectangle {
+                //             id: background
+                //             anchors.fill: parent
+                //             color: row === treeView.currentRow ? palette.highlight : "black"
+                //             opacity: (treeView.alternatingRows && row % 2 !== 0) ? 0.3 : 0.1
+                //         }
+
+                //         RowLayout {
+                //             anchors {
+                //                 leftMargin: padding + (depth * indentation)
+                //                 fill: parent
+                //             }
+
+                //             Label {
+                //                 id: indicator
+                //                 Layout.preferredWidth: indicator.implicitWidth
+                //                 opacity: isTreeNode && hasChildren ? 1 : 0
+                //                 text: "▶"
+
+                //                 TapHandler {
+                //                     onSingleTapped: {
+                //                         let index = treeView.index(row, column)
+                //                         console.log(`${index} ${row} ${column}`)
+                //                         treeView.selectionModel.setCurrentIndex(index, ItemSelectionModel.NoUpdate)
+                //                         treeView.toggleExpanded(row)
+                //                         treeView.forceLayout()
+                //                     }
+                //                 }
+                //             }
+
+                //             // Label {
+                //             //     id: label
+                //             //     x: padding + (isTreeNode ? (depth + 1) * indentation : 0)
+                //             //     anchors.verticalCenter: parent.verticalCenter
+                //             //     width: parent.width - padding - x
+                //             //     clip: true
+                //             //     text: model.label
+                //             // }
+
+                //             Item {
+                //                 id: icon
+                //                 height: 14
+                //                 Layout.preferredWidth: 14
+
+                //                 Image {
+                //                     anchors.fill: parent
+                //                     source: `../../res/images/library/ic_library_${featureDelegate.icon}.svg`
+                //                 }
+                //             }
+
+                //             Text {
+                //                 id: featureLabel
+                //                 Layout.fillWidth: true
+
+                //                 font.weight: Font.Bold
+                //                 text: featureDelegate.label
+                //                 color: 'white'
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }
