@@ -3412,6 +3412,7 @@ if(QML)
       src/qml/qmlvisibleeffectsmodel.cpp
       src/qml/qmlchainpresetmodel.cpp
       src/qml/qmlwaveformoverview.cpp
+      src/qml/qmltreefromlistmodel.cpp
       src/qml/qmltablefromlistmodel.cpp
       src/qml/qmltablefromlistmodelcolumn.cpp
       src/qml/qmlmixxxcontrollerscreen.cpp
