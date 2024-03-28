@@ -76,7 +76,7 @@ class BulkController : public Controller {
     unsigned short product_id;
     unsigned char in_epaddr;
     unsigned char out_epaddr;
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
     unsigned int interface_number;
 #endif
     QString manufacturer;

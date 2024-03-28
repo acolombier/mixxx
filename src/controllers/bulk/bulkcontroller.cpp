@@ -130,7 +130,7 @@ bool BulkController::matchProductInfo(const ProductInfo& product) {
         return false;
     }
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
     value = product.interface_number.toInt(&ok, 16);
     if (!ok || interface_number != value) {
         return false;
@@ -154,8 +154,8 @@ int BulkController::open() {
             (bulk_supported[i].product_id == product_id)) {
             in_epaddr = bulk_supported[i].in_epaddr;
             out_epaddr = bulk_supported[i].out_epaddr;
-#ifdef _WIN32
-            interface_number = bulk_supported[i].interface_number;
+#if defined(_WIN32) || defined(__APPLE__)
+            interface_number = bulk_supported[i].interface_id;
 #endif
             break;
         }
@@ -177,7 +177,7 @@ int BulkController::open() {
         return -1;
     }
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
     if (interface_number && libusb_kernel_driver_active(m_phandle, interface_number) == 1) {
         qCDebug(m_logBase) << "Found a driver active for" << getName();
         if (libusb_detach_kernel_driver(m_phandle, 0) == 0)
@@ -255,7 +255,7 @@ int BulkController::close() {
     stopEngine();
 
     // Close device
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
     if (interface_number) {
         int ret = libusb_release_interface(m_phandle, interface_number);
         if (ret < 0) {
