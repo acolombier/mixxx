@@ -180,11 +180,12 @@ int BulkController::open() {
 #if defined(_WIN32) || defined(__APPLE__)
     if (interface_number && libusb_kernel_driver_active(m_phandle, interface_number) == 1) {
         qCDebug(m_logBase) << "Found a driver active for" << getName();
-        if (libusb_detach_kernel_driver(m_phandle, 0) == 0)
+        if (libusb_detach_kernel_driver(m_phandle, interface_number) == 0)
             qCDebug(m_logBase) << "Kernel driver detached for" << getName();
         else {
             qCWarning(m_logBase) << "Couldn't detach kernel driver for" << getName();
             libusb_close(m_phandle);
+            m_phandle = nullptr;
             return -1;
         }
     }
@@ -195,6 +196,7 @@ int BulkController::open() {
             qCWarning(m_logBase) << "Cannot claim interface for" << getName()
                                  << ":" << libusb_error_name(ret);
             libusb_close(m_phandle);
+            m_phandle = nullptr;
             return -1;
         } else {
             qCDebug(m_logBase) << "Claimed interface for" << getName();
