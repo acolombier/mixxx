@@ -302,13 +302,6 @@ bool ControllerScriptEngineLegacy::initialize() {
             if (m_bTesting) {
                 continue;
             }
-
-            // Rename the ControllerRenderingEngine with the actual screen
-            // identifier to help debbuging
-            availableScreens.value(screen.identifier)
-                    ->thread()
-                    ->setObjectName(
-                            QString("CtrlScreen_%1").arg(screen.identifier));
             availableScreens.value(screen.identifier)
                     ->requestSetup(
                             std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine));

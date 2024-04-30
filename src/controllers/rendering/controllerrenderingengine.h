@@ -18,7 +18,7 @@ class QOpenGLFramebufferObject;
 class QQmlEngine;
 class QQuickRenderControl;
 class QQuickWindow;
-class QThread;
+class ControllerRenderingScheduler;
 
 /// @brief This class is used to host the rendering of a screen controller,
 /// using and existing QML Engine running under a ControllerScriptEngineBase.
@@ -28,8 +28,6 @@ class ControllerRenderingEngine : public QObject {
     ControllerRenderingEngine(const LegacyControllerMapping::ScreenInfo& info,
             ControllerScriptEngineBase* parent);
     ~ControllerRenderingEngine();
-
-    bool event(QEvent* event) override;
 
     const QSize& size() const {
         return m_screenInfo.size;
@@ -59,7 +57,6 @@ class ControllerRenderingEngine : public QObject {
     void finish();
     void renderFrame();
     void setup(std::shared_ptr<QQmlEngine> qmlEngine);
-    void send(Controller* controller, const QByteArray& frame);
 
   signals:
     void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo,
@@ -67,7 +64,6 @@ class ControllerRenderingEngine : public QObject {
             const QDateTime& timestamp);
     void setupRequested(std::shared_ptr<QQmlEngine> engine);
     void stopRequested();
-    void sendRequested(Controller* controller, const QByteArray& frame);
 
   private:
     virtual void prepare();
@@ -76,7 +72,7 @@ class ControllerRenderingEngine : public QObject {
 
     LegacyControllerMapping::ScreenInfo m_screenInfo;
 
-    std::unique_ptr<QThread> m_pThread;
+    std::unique_ptr<ControllerRenderingScheduler> m_pScheduler;
 
     std::unique_ptr<QOpenGLContext> m_context;
     std::unique_ptr<QOffscreenSurface> m_offscreenSurface;

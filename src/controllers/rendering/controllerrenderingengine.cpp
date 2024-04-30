@@ -12,6 +12,7 @@
 #include <QThread>
 
 #include "controllers/controller.h"
+#include "controllers/rendering/controllerrenderingscheduler.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "controllers/scripting/legacy/controllerscriptinterfacelegacy.h"
 #include "moc_controllerrenderingengine.cpp"
@@ -63,24 +64,22 @@ ControllerRenderingEngine::ControllerRenderingEngine(
 }
 
 void ControllerRenderingEngine::prepare() {
-    m_pThread = std::make_unique<QThread>();
-    m_pThread->setObjectName("ControllerScreenRenderer");
+    m_pScheduler = std::make_unique<ControllerRenderingScheduler>(m_screenInfo);
 
-    moveToThread(m_pThread.get());
     connect(this,
             &ControllerRenderingEngine::setupRequested,
             this,
             &ControllerRenderingEngine::setup);
     connect(this,
-            &ControllerRenderingEngine::sendRequested,
-            this,
-            &ControllerRenderingEngine::send);
-    connect(this,
             &ControllerRenderingEngine::stopRequested,
             this,
             &ControllerRenderingEngine::finish);
+    connect(m_pScheduler.get(),
+            &ControllerRenderingScheduler::frameRequested,
+            this,
+            &ControllerRenderingEngine::renderFrame);
 
-    m_pThread->start(QThread::NormalPriority);
+    moveToThread(qApp->thread());
 }
 
 ControllerRenderingEngine::~ControllerRenderingEngine() {
@@ -91,15 +90,16 @@ ControllerRenderingEngine::~ControllerRenderingEngine() {
 }
 
 void ControllerRenderingEngine::start() {
-    VERIFY_OR_DEBUG_ASSERT(!thread()->isFinished() && !thread()->isInterruptionRequested()) {
+    VERIFY_OR_DEBUG_ASSERT(!m_pScheduler->isFinished() &&
+            !m_pScheduler->isInterruptionRequested()) {
         kLogger.warning() << "Render thread has or ir about to terminate. Cannot "
                              "start this render anymore.";
         return;
     }
-    QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
+    m_pScheduler->start(QThread::NormalPriority);
 }
 bool ControllerRenderingEngine::isRunning() const {
-    return m_pThread && m_pThread->isRunning();
+    return m_pScheduler && m_pScheduler->isRunning();
 }
 
 void ControllerRenderingEngine::requestSetup(std::shared_ptr<QQmlEngine> qmlEngine) {
@@ -115,20 +115,23 @@ void ControllerRenderingEngine::requestSetup(std::shared_ptr<QQmlEngine> qmlEngi
     if (!m_quickWindow) {
         m_waitCondition.wait(&m_mutex);
     }
-    if (m_isValid) {
-        m_renderControl->prepareThread(m_pThread.get());
-    }
+    // if (m_isValid) {
+    //     m_renderControl->prepareThread(thread());
+    // }
 }
 
 void ControllerRenderingEngine::requestSend(Controller* controller, const QByteArray& frame) {
-    emit sendRequested(controller, frame);
+    VERIFY_OR_DEBUG_ASSERT(m_pScheduler) {
+        return;
+    }
+    m_pScheduler->requestSend(controller, frame);
 }
 
 void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     QSurfaceFormat format;
-    format.setSamples(16);
-    format.setDepthBufferSize(16);
-    format.setStencilBufferSize(8);
+    // format.setSamples(16);
+    // format.setDepthBufferSize(16);
+    // format.setStencilBufferSize(8);
 
     const auto lock = lockMutex(&s_glMutex);
 
@@ -148,14 +151,8 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     m_offscreenSurface = std::make_unique<QOffscreenSurface>();
     m_offscreenSurface->setFormat(m_context->format());
 
-    VERIFY_OR_DEBUG_ASSERT(QMetaObject::invokeMethod(
-                                   qApp,
-                                   [this] {
-                                       m_offscreenSurface->create();
-                                   },
-                                   // This invocation will block the current thread!
-                                   Qt::BlockingQueuedConnection) &&
-            m_offscreenSurface->isValid()) {
+    m_offscreenSurface->create();
+    VERIFY_OR_DEBUG_ASSERT(m_offscreenSurface->isValid()) {
         kLogger.warning() << "Unable to create the OffscreenSurface for controller "
                              "screen rendering. Giving up";
         m_offscreenSurface.reset();
@@ -190,12 +187,7 @@ void ControllerRenderingEngine::finish() {
         m_context->makeCurrent(m_offscreenSurface.get());
         m_renderControl.reset();
 
-        std::shared_ptr<QOffscreenSurface> pOffscreenSurface = std::move(m_offscreenSurface);
-        QMetaObject::invokeMethod(
-                qApp,
-                [pOffscreenSurface] {
-                    pOffscreenSurface->destroy();
-                });
+        m_offscreenSurface->destroy();
         m_quickWindow.reset();
 
         // Free the engine and FBO
@@ -204,7 +196,7 @@ void ControllerRenderingEngine::finish() {
         m_context->doneCurrent();
     }
     m_context.reset();
-    m_pThread->quit();
+    m_pScheduler->terminate();
 }
 
 void ControllerRenderingEngine::renderFrame() {
@@ -242,7 +234,7 @@ void ControllerRenderingEngine::renderFrame() {
         };
 
         m_fbo = std::make_unique<QOpenGLFramebufferObject>(
-                m_screenInfo.size, QOpenGLFramebufferObject::CombinedDepthStencil);
+                m_screenInfo.size, QOpenGLFramebufferObject::NoAttachment);
 
         GLenum glError;
         glError = m_context->functions()->glGetError();
@@ -278,13 +270,13 @@ void ControllerRenderingEngine::renderFrame() {
 
     m_nextFrameStart = mixxx::Time::elapsed();
 
+    m_renderControl->polishItems();
     m_renderControl->beginFrame();
 
     if (m_pControllerEngine) {
         m_pControllerEngine->pause();
     }
 
-    m_renderControl->polishItems();
 
     VERIFY_OR_DEBUG_ASSERT(m_renderControl->sync()) {
         kLogger.warning() << "Couldn't sync the render control.";
@@ -362,48 +354,5 @@ void ControllerRenderingEngine::renderFrame() {
 
 bool ControllerRenderingEngine::stop() {
     emit stopRequested();
-    return m_pThread->wait();
-}
-
-void ControllerRenderingEngine::send(Controller* controller, const QByteArray& frame) {
-    if (!frame.isEmpty()) {
-        controller->sendBytes(frame);
-    }
-
-    if (CmdlineArgs::Instance()
-                    .getControllerDebug()) {
-        auto endOfRender = mixxx::Time::elapsed();
-        kLogger.debug() << "Fame took "
-                        << (endOfRender - m_nextFrameStart).formatMillisWithUnit()
-                        << " and frame has" << frame.size() << "bytes";
-    }
-
-    m_nextFrameStart += mixxx::Duration::fromSeconds(1.0 / (double)m_screenInfo.target_fps);
-
-    auto durationToWaitBeforeFrame = (m_nextFrameStart - mixxx::Time::elapsed());
-    auto msecToWaitBeforeFrame = durationToWaitBeforeFrame.toIntegerMillis();
-
-    if (msecToWaitBeforeFrame > 0) {
-        if (CmdlineArgs::Instance()
-                        .getControllerDebug()) {
-            kLogger.debug() << "Waiting for "
-                            << durationToWaitBeforeFrame.formatMillisWithUnit()
-                            << " before rendering next frame";
-        }
-        QTimer::singleShot(msecToWaitBeforeFrame,
-                Qt::PreciseTimer,
-                this,
-                &ControllerRenderingEngine::renderFrame);
-    } else {
-        QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
-    }
-}
-
-bool ControllerRenderingEngine::event(QEvent* event) {
-    if (event->type() == QEvent::UpdateRequest) {
-        renderFrame();
-        return true;
-    }
-
-    return QObject::event(event);
+    return m_pScheduler->wait();
 }

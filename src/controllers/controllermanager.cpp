@@ -131,7 +131,9 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
 
 ControllerManager::~ControllerManager() {
     emit requestShutdown();
-    m_pThread->wait();
+    while (!m_pThread->wait(100)) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+    }
     delete m_pThread;
     delete m_pControllerLearningEventFilter;
 }
