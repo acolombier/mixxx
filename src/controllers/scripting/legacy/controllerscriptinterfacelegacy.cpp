@@ -180,7 +180,7 @@ QJSValue ControllerScriptInterfaceLegacy::getSharedData() {
     VERIFY_OR_DEBUG_ASSERT(pJsEngine) {
         return QJSValue();
     }
-    auto pRuntimeData = m_pScriptEngineLegacy->getSharedData();
+    auto* pRuntimeData = m_pScriptEngineLegacy->getSharedData();
 
     if (!pRuntimeData) {
         qWarning() << "No runtime data available. Make sure a valid namespace is defined.";
@@ -195,7 +195,7 @@ void ControllerScriptInterfaceLegacy::setSharedData(const QJSValue& value) {
     VERIFY_OR_DEBUG_ASSERT(pJsEngine) {
         return;
     }
-    auto pRuntimeData = m_pScriptEngineLegacy->getSharedData();
+    auto* pRuntimeData = m_pScriptEngineLegacy->getSharedData();
 
     if (!pRuntimeData) {
         qWarning() << "No runtime data available. Make sure a valid namespace is defined.";
@@ -218,7 +218,7 @@ QJSValue ControllerScriptInterfaceLegacy::makeSharedDataConnection(const QJSValu
     VERIFY_OR_DEBUG_ASSERT(pJsEngine) {
         return QJSValue();
     }
-    auto pRuntimeData = m_pScriptEngineLegacy->getSharedData();
+    auto* pRuntimeData = m_pScriptEngineLegacy->getSharedData();
 
     if (!pRuntimeData) {
         qWarning() << "No runtime data available. Make sure a valid namespace is defined.";
@@ -243,16 +243,13 @@ void ControllerScriptInterfaceLegacy::onRuntimeDataUpdated(const QVariant& value
             pJsEngine->toScriptValue(value),
     };
 
-    for (const auto& connection : m_runtimeDataConnections) {
-        QJSValue func = connection.callback; // copy function because QJSValue::call is not const
-        QJSValue result = func.call(args);
+    for (auto& connection : m_runtimeDataConnections) {
+        QJSValue result = connection.callback.call(args);
         if (result.isError()) {
-            if (m_pScriptEngineLegacy != nullptr) {
-                m_pScriptEngineLegacy->showScriptExceptionDialog(result);
-            }
-            qWarning() << "ControllerEngine: Invocation of connection " << connection.id.toString()
-                       << "connected to runtime data failed:"
-                       << result.toString();
+            m_pScriptEngineLegacy->logOrThrowError(
+                    QStringLiteral("Invocation of runtime data connection %1 "
+                                   "failed: %2")
+                            .arg(connection.id.toString(), result.toString()));
         }
     }
 }
@@ -431,14 +428,10 @@ void ControllerScriptInterfaceLegacy::triggerScriptConnection(
 
 bool ControllerScriptInterfaceLegacy::removeRuntimeDataConnection(
         const ScriptConnection& connection) {
-    if (m_pScriptEngineLegacy->jsEngine() == nullptr ||
-            !m_runtimeDataConnections.contains(connection)) {
+    VERIFY_OR_DEBUG_ASSERT(m_pScriptEngineLegacy->jsEngine()) {
         return false;
     }
-
-    m_runtimeDataConnections.removeAll(connection);
-
-    return true;
+    return m_runtimeDataConnections.removeAll(connection) > 0;
 }
 
 void ControllerScriptInterfaceLegacy::triggerRuntimeDataConnection(
@@ -455,12 +448,10 @@ void ControllerScriptInterfaceLegacy::triggerRuntimeDataConnection(
     };
     QJSValue result = func.call(args);
     if (result.isError()) {
-        if (m_pScriptEngineLegacy != nullptr) {
-            m_pScriptEngineLegacy->showScriptExceptionDialog(result);
-        }
-        qWarning() << "ControllerEngine: Invocation of runtime data connection "
-                   << connection.id.toString()
-                   << "connected to runtime data failed:" << result.toString();
+        m_pScriptEngineLegacy->logOrThrowError(
+                QStringLiteral(
+                        "Invocation of runtime data connection %1 failed: %2")
+                        .arg(connection.id.toString(), result.toString()));
     }
 }
 
