@@ -364,7 +364,7 @@ void LegacyControllerMappingFileHandler::addScriptFilesToMapping(
     // they must specify an non-empty string.
     QString sharedDataNamespace = controller.attribute("namespace", "");
     if (!sharedDataNamespace.isEmpty()) {
-        mapping->setSharedDataNamespace(deviceId);
+        mapping->setSharedDataNamespace(sharedDataNamespace);
     }
 
     // See TODO in LegacyControllerMapping::DeviceDirection - `direction` should
