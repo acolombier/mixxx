@@ -8,6 +8,7 @@
 
 class ControllerJSProxy;
 class ControllerScriptEngineLegacy;
+class ControllerSharedData;
 
 /// This is a base class representing a physical (or software) controller.  It
 /// must be inherited by a class that implements it on some API. Note that the
@@ -80,7 +81,7 @@ class Controller : public QObject {
     // this if they have an alternate way of handling such data.)
     virtual void receive(const QByteArray& data, mixxx::Duration timestamp);
 
-    virtual bool applyMapping(const QString& resourcePath);
+    virtual bool applyMapping(const QString& resourcePath, std::shared_ptr<ControllerSharedData> runtimeData);
     virtual void slotBeforeEngineShutdown();
 
     // Puts the controller in and out of learning mode.

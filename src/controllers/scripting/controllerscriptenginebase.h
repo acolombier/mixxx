@@ -7,6 +7,7 @@
 #include <QWaitCondition>
 #include <memory>
 
+#include "controllers/controllershareddata.h"
 #include "util/runtimeloggingcategory.h"
 #ifdef MIXXX_USE_QML
 #include "controllers/controllerenginethreadcontrol.h"
@@ -17,7 +18,6 @@ class QJSEngine;
 #ifdef MIXXX_USE_QML
 class TrackCollectionManager;
 #endif
-class ControllerSharedData;
 
 /// ControllerScriptEngineBase manages the JavaScript engine for controller scripts.
 /// ControllerScriptModuleEngine implements the current system using JS modules.
@@ -54,12 +54,10 @@ class ControllerScriptEngineBase : public QObject {
         return m_bTesting;
     }
 
-    void setSharedData(std::shared_ptr<ControllerSharedData> runtimeData) {
-        m_pRuntimeData = std::move(runtimeData);
-    }
+    void setSharedData(ControllerNamespacedSharedData* runtimeData);
 
-    std::shared_ptr<ControllerSharedData> getSharedData() const {
-        return m_pRuntimeData;
+    ControllerNamespacedSharedData* getSharedData() {
+        return m_runtimeData.get();
     }
     
 #ifdef MIXXX_USE_QML
@@ -89,7 +87,7 @@ class ControllerScriptEngineBase : public QObject {
     bool m_bErrorsAreFatal;
 #endif
     std::shared_ptr<QJSEngine> m_pJSEngine;
-    std::shared_ptr<ControllerSharedData> m_pRuntimeData;
+    std::unique_ptr<ControllerNamespacedSharedData> m_runtimeData;
 
     Controller* m_pController;
     const RuntimeLoggingCategory m_logger;
