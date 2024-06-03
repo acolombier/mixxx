@@ -15,7 +15,7 @@
             <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" interface_number="0x04" />
         </devices>
     </info>
-    <controller id="Traktor" direction="out">
+    <controller id="Traktor" direction="out" namespace="S4MK3">
         <screens>
             <screen identifier="leftdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="300" />
             <screen identifier="rightdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="300" />

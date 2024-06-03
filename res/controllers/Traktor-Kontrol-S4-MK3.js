@@ -578,10 +578,10 @@ class Deck extends ComponentContainer {
         this.secondDeckModes = currentModes;
         this.currentDeckNumber = newDeck;
 
-        const data = engine.getRuntimeData() || {};
+        const data = engine.getSharedData() || {};
         if (!data.group) { return; }
         data.group[this.decks[0] === 1 ? "leftdeck":"rightdeck"] = this.group;
-        engine.setRuntimeData(data);
+        engine.setSharedData(data);
     }
     static groupForNumber(deckNumber) {
         return `[Channel${deckNumber}]`;
@@ -2026,7 +2026,7 @@ class S4Mk3Deck extends Deck {
             deck: this,
             input: function(value) {
                 if (value) {
-                    this.deck.switchDeck(Deck.groupForNumber(decks[0]));
+                    this.deck.switchDeck(decks[0]);
                     this.outReport.data[io.deckButtonOutputByteOffset] = colors[0] + this.brightnessOn;
                     // turn off the other deck selection button's LED
                     this.outReport.data[io.deckButtonOutputByteOffset + 1] = DeckSelectAlwaysBacklit ? colors[1] + this.brightnessOff : 0;
@@ -2038,7 +2038,7 @@ class S4Mk3Deck extends Deck {
             deck: this,
             input: function(value) {
                 if (value) {
-                    this.deck.switchDeck(Deck.groupForNumber(decks[1]));
+                    this.deck.switchDeck(decks[1]);
                     // turn off the other deck selection button's LED
                     this.outReport.data[io.deckButtonOutputByteOffset] = DeckSelectAlwaysBacklit ? colors[0] + this.brightnessOff : 0;
                     this.outReport.data[io.deckButtonOutputByteOffset + 1] = colors[1] + this.brightnessOn;
@@ -2163,16 +2163,16 @@ class S4Mk3Deck extends Deck {
                     script.toggleControl(this.group, "pitch_adjust_set_default");
                 }
 
-                const data = engine.getRuntimeData() || {};
+                const data = engine.getSharedData() || {};
                 if (!data.displayBeatloopSize) { return; }
                 data.displayBeatloopSize[this.group] = true;
-                engine.setRuntimeData(data);
+                engine.setSharedData(data);
             },
             onRelease: function() {
-                const data = engine.getRuntimeData() || {};
+                const data = engine.getSharedData() || {};
                 if (!data.displayBeatloopSize) { return; }
                 data.displayBeatloopSize[this.group] = false;
-                engine.setRuntimeData(data);
+                engine.setSharedData(data);
             }
         });
 
@@ -2545,10 +2545,10 @@ class S4Mk3Deck extends Deck {
         this.recordPadModeButton = new Button({
             deck: this,
             onShortPress: function() {
-                const data = engine.getRuntimeData() || {};
+                const data = engine.getSharedData() || {};
                 if (!data.scrollingWavefom) { return; }
                 data.scrollingWavefom[this.deck.group] = !data.scrollingWavefom[this.deck.group];
-                engine.setRuntimeData(data);
+                engine.setSharedData(data);
                 this.output(data.scrollingWavefom[this.deck.group]);
             },
             // hack to switch the LED color when changing decks
@@ -2583,10 +2583,10 @@ class S4Mk3Deck extends Deck {
         this.mutePadModeButton = new Button({
             deck: this,
             onShortPress: function() {
-                const data = engine.getRuntimeData() || {};
+                const data = engine.getSharedData() || {};
                 if (!data.viewArtwork) { return; }
                 data.viewArtwork[this.deck.group] = !data.viewArtwork[this.deck.group];
-                engine.setRuntimeData(data);
+                engine.setSharedData(data);
                 this.output(data.viewArtwork[this.deck.group]);
             },
             // hack to switch the LED color when changing decks
@@ -2905,7 +2905,7 @@ class S4Mk3Deck extends Deck {
             this.hotcuePadModeButton.send(this.hotcuePadModeButton.color + this.hotcuePadModeButton.brightnessOff);
         }
 
-        const data = engine.getRuntimeData() || {};
+        const data = engine.getSharedData() || {};
 
         // unfortunately the other pad mode buttons only have one LED color
         // const recordPadModeLEDOn = this.currentPadLayer === this.padLayers.hotcuePage3;
@@ -2924,7 +2924,7 @@ class S4Mk3Deck extends Deck {
         }
         if (!data.keyboardMode) { return; }
         data.keyboardMode[this.group] = this.currentPadLayer === this.padLayers.keyboard;
-        engine.setRuntimeData(data);
+        engine.setSharedData(data);
     }
 }
 
@@ -3049,6 +3049,7 @@ class S4Mk3MixerColumn extends ComponentContainer {
         if (!alternativeInput) {
             return;
         }
+        console.log(shifted ? alternativeInput : `[Channel${this.idx}]`);
         this.group = shifted ? alternativeInput : `[Channel${this.idx}]`;
         for (const property of ["gain", "volume", "pfl", "crossfaderSwitch"]) {
             const component = this[property];
@@ -3499,7 +3500,7 @@ class S4MK3 {
             this.inReports[repordId].handleInput(controller.getInputReport(repordId));
         }
 
-        engine.setRuntimeData({
+        engine.setSharedData({
             group: {
                 "leftdeck": "[Channel1]",
                 "rightdeck": "[Channel2]",

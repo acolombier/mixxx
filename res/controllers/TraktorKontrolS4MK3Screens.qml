@@ -186,7 +186,7 @@ Item {
             anchors.fill: parent
             color: "black"
 
-            function onRuntimeDataUpdate(data) {
+            function onSharedDataUpdate(data) {
                 if (!root) return;
 
                 console.log(`Received data on screen#${root.screenId} while currently bind to ${root.group}: ${JSON.stringify(data)}`);
@@ -233,9 +233,9 @@ Item {
             }
 
             Component.onCompleted: {
-                engine.onRuntimeDataUpdate(onRuntimeDataUpdate)
+                engine.makeSharedDataConnection(onSharedDataUpdate)
 
-                onRuntimeDataUpdate({
+                onSharedDataUpdate({
                         group: {
                             "leftdeck": "[Channel1]",
                             "rightdeck": "[Channel2]",
