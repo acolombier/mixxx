@@ -2373,6 +2373,9 @@ class S4Mk3Deck extends Deck {
         this.samplesPadModeButton = new Button({
             pressed: false,
             deck: this,
+            onShortPress: function() {
+                engine.setValue(this.deck.group, "loop_anchor", 1);
+            },
             onShortRelease: function() {
                 if (this.deck.currentPadLayer !== this.deck.padLayers.samplerPage) {
                     switchPadLayer(this.deck, samplerOrBeatloopRollPage);
@@ -2384,10 +2387,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.currentPadLayer = this.deck.padLayers.defaultLayer;
                 }
                 this.deck.lightPadMode();
-            },
-            onLongPress: function() {
-                engine.setValue(this.deck.group, "loop_anchor", 1);
-
+                engine.setValue(this.deck.group, "loop_anchor", 0);
             },
             onLongRelease: function() {
                 engine.setValue(this.deck.group, "loop_anchor", 0);
