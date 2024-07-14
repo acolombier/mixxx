@@ -1,22 +1,23 @@
 <?xml version='1.0' encoding='utf-8'?>
 <MixxxControllerPreset mixxxVersion="2.4.0" schemaVersion="1">
-     <info>
-        <name>Dummy Device (Screens)</name>
-        <author>A. Colombier</author>
-        <description>Dummy device screens</description>
-        <devices>
-            <product protocol="hid" vendor_id="0xdead" product_id="0xbeaf" />
-        </devices>
-    </info>
-    <controller id="DummyDevice">
+    <info>
+       <name>Dummy Device (Screens)</name>
+       <author>A. Colombier</author>
+       <description>Dummy device screens</description>
+       <devices>
+           <product protocol="hid" vendor_id="0xdead" product_id="0xbeaf" />
+       </devices>
+   </info>
+   <controller id="DummyDevice">
         <screens>
-            <screen identifier="main" width="480" height="360" targetFps="20" pixelType="RBGA" splashoff="500" />
-            <screen identifier="jog" width="128" height="128" targetFps="5" pixelType="RBGA" />
+            <screen identifier="leftdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="300" />
+            <screen identifier="rightdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="300" />
         </screens>
         <scriptfiles>
-            <file filename="DummyDeviceDefaultScreen.qml" />
+            <file filename="TraktorKontrolS4MK3Screens.qml" />
         </scriptfiles>
         <qmllibraries>
+            <library path="TraktorKontrolS4MK3Screens" />
         </qmllibraries>
     </controller>
 </MixxxControllerPreset>

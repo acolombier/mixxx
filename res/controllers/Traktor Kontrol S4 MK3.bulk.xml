@@ -15,6 +15,34 @@
             <product protocol="bulk" vendor_id="0x17cc" product_id="0x1720" out_epaddr="0x03" interface_number="0x04" />
         </devices>
     </info>
+    <settings>
+         <group label="Cosmetic">
+            <row>
+                <option
+                    variable="theme"
+                    type="enum"
+                    label="Theme use for the screen">
+                    <description>
+                        The theme used for the screens
+                    </description>
+                    <value label="Classic" default="true">stock</value>
+                    <value label="Advanced">advanced</value>
+                </option>
+            </row>
+             <row>
+                 <option
+                     variable="idleBackground"
+                     type="enum"
+                     label="Idle deck background">
+                     <description>
+                         The background used for empty decks
+                     </description>
+                     <value label="Man in a mask" default="true">mask</value>
+                     <value label="Mixxx">mixxx</value>
+                 </option>
+             </row>
+         </group>
+     </settings>
     <controller id="Traktor" direction="out" namespace="S4MK3">
         <screens>
             <screen identifier="leftdeck" width="320" height="240" targetFps="60" pixelType="RGB565" reversed="true" endian="big" splashoff="300" />

@@ -16,6 +16,7 @@ Item {
     property string group // required
     property var deckPlayer: Mixxx.PlayerManager.getPlayer(group)
     property int zoomControlRatio: 100
+    property alias shader: shader
 
     Item {
         id: waveformContainer
@@ -127,6 +128,7 @@ Item {
             visible: root.deckPlayer.isLoaded
 
             WaveformShader {
+                id: shader
                 group: root.group
                 anchors.fill: parent
             }
