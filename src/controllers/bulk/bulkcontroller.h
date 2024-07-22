@@ -76,9 +76,7 @@ class BulkController : public Controller {
     unsigned short m_productId;
     unsigned char m_inEndpointAddr;
     unsigned char m_outEndpointAddr;
-#if defined(__WINDOWS__) || defined(__APPLE__)
     unsigned int m_interfaceNumber;
-#endif
     QString m_manufacturer;
     QString m_product;
 

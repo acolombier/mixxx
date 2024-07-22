@@ -39,8 +39,8 @@ Item {
         loader.sourceComponent = splash
     }
 
-    // function transformFrame(input: ArrayBuffer, timestamp: date) {
-    function transformFrame(input, timestamp) {
+    // function transformFrame(input: ArrayBuffer, timestamp: date, areas: Object[]) {
+    transformFrame: function(input, timestamp, areas) {
         return new ArrayBuffer(0);
     }
 

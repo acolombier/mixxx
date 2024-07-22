@@ -5,6 +5,7 @@
 #include "controllers/bulk/bulksupported.h"
 #include "controllers/defs_controllers.h"
 #include "moc_bulkcontroller.cpp"
+#include "util/cmdlineargs.h"
 #include "util/time.h"
 #include "util/trace.h"
 
@@ -154,9 +155,7 @@ int BulkController::open() {
                 (bulk_supported[i].product_id == m_productId)) {
             m_inEndpointAddr = bulk_supported[i].in_epaddr;
             m_outEndpointAddr = bulk_supported[i].out_epaddr;
-#if defined(__WINDOWS__) || defined(__APPLE__)
             m_interfaceNumber = bulk_supported[i].interface_number;
-#endif
             break;
         }
     }
@@ -188,6 +187,7 @@ int BulkController::open() {
             return -1;
         }
     }
+#endif
 
     if (m_interfaceNumber) {
         int ret = libusb_claim_interface(m_phandle, m_interfaceNumber);
@@ -200,7 +200,6 @@ int BulkController::open() {
             qCDebug(m_logBase) << "Claimed interface for" << getName();
         }
     }
-#endif
 
     setOpen(true);
     startEngine();
@@ -303,7 +302,7 @@ void BulkController::sendBytes(const QByteArray& data) {
     if (ret < 0) {
         qCWarning(m_logOutput) << "Unable to send data to" << getName()
                                << "serial #" << m_sUID << "-" << libusb_error_name(ret);
-    } else {
+    } else if (CmdlineArgs::Instance().getControllerDebug()) {
         qCDebug(m_logOutput) << transferred << "bytes sent to" << getName()
                              << "serial #" << m_sUID;
     }

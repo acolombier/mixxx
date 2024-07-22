@@ -6,6 +6,8 @@
 #include <QMessageBox>
 #ifdef MIXXX_USE_QML
 #include <QMetaMethod>
+
+#include "controllers/rendering/controllerrenderingengine.h"
 #endif
 
 #include "controllers/legacycontrollermapping.h"
@@ -13,7 +15,11 @@
 
 #ifdef MIXXX_USE_QML
 class QQuickItem;
-class ControllerRenderingEngine;
+namespace mixxx {
+namespace qml {
+class QmlMixxxController;
+}
+} // namespace mixxx
 #endif
 
 /// ControllerScriptEngineLegacy loads and executes controller scripts for the legacy
@@ -61,6 +67,7 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
     void handleScreenFrame(
             const LegacyControllerMapping::ScreenInfo& screeninfo,
             const QImage& frame,
+            const QList<ControllerRenderingEngine::UpdatedRect>& areas,
             const QDateTime& timestamp);
 
   signals:
@@ -84,7 +91,8 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
             std::shared_ptr<ControllerRenderingEngine> pScreen);
     void extractTransformFunction(const QMetaObject* metaObject, const QString& screenIdentifier);
 
-    std::shared_ptr<QQuickItem> loadQMLFile(
+    // The returned QmlMixxxController will be owned and managed by the pScreen
+    mixxx::qml::QmlMixxxController* loadQMLFile(
             const LegacyControllerMapping::ScriptFileInfo& qmlScript,
             std::shared_ptr<ControllerRenderingEngine> pScreen);
 
@@ -115,8 +123,7 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
     // Contains all the scenes loaded for this mapping. Key is the scene
     // identifier (LegacyControllerMapping::ScreenInfo::identifier), value in
     // the QML root item
-    QHash<QString, std::shared_ptr<QQuickItem>> m_rootItems;
-    QHash<QString, TransformScreenFrameFunction> m_transformScreenFrameFunctions;
+    QHash<QString, mixxx::qml::QmlMixxxController*> m_rootItems;
     QList<LegacyControllerMapping::QMLModuleInfo> m_modules;
     QList<LegacyControllerMapping::ScreenInfo> m_infoScreens;
     QString m_resourcePath{QStringLiteral(".")};

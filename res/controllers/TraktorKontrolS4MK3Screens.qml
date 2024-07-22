@@ -15,7 +15,7 @@ import Mixxx.Controls 1.0 as MixxxControls
 
 import S4MK3 as S4MK3
 
-Item {
+Mixxx.Controller {
     id: root
 
     required property string screenId
@@ -27,8 +27,6 @@ Item {
 
     readonly property bool isStockTheme: theme == "stock"
 
-    property var _zones_needing_redraw: new Array()
-
     function init(controlerName, isDebug) {
         console.log(`Screen ${root.screenId} has started with theme ${root.theme}`)
         root.state = "Live"
@@ -39,78 +37,30 @@ Item {
         root.state = "Stop"
     }
 
-    function redraw(component) {
-        if (theme == "Advanced") {
-            return;
-        }
-        const timestamp = Date.now();
-        const pos = component.mapToGlobal(0, 0)
-        const x = Math.min(Math.max(0, pos.x), 320), y = Math.min(Math.max(0, pos.y), 240);
-        const zone = Qt.rect(
-            x,
-            y,
-            Math.min(Math.max(0, component.width), 320 - x),
-            Math.min(Math.max(0, component.height), 240 - y )
-        );
-        if (zone.width * zone.height) {
-            _zones_needing_redraw.push([zone, timestamp])
-        } else {
-            console.log(`Component generated a null rectangle! pos=${pos}, component=${component}, width=${component.width}, height=${component.height}`)
-        }
-    }
-
-    function contains_rect(rect1, rect2) {
-        return rect1.x <= rect2.x &&
-        rect1.y <= rect2.y &&
-        rect1.width >= rect2.width + (rect2.x - rect1.x) &&
-        rect1.height >= rect2.height + (rect2.y - rect1.y);
-    }
-
-    function transformFrame(input, timestamp) {
-        // First, find all the region that are ready to be redrawn
-        const areasToDraw = []
-        let totalPixelToDraw = 0;
-        let zone_requesting_redraw = new Array()
-        let zone_not_ready = new Array()
-        _zones_needing_redraw.forEach(function(element, i) {
-                const [zone, zoneTimestamp] = element;
-                console.debug(`zone: ${zone} ${zoneTimestamp}`)
-                if (zoneTimestamp <= timestamp) {
-                    for (let i in zone_requesting_redraw) {
-                        const existingZone = zone_requesting_redraw[i];
-                        if (!existingZone) {
-                        // Already nullified
-                            continue
-                        }
-                        console.debug(`zone_requesting_redraw: ${i} ${existingZone}`)
-                        if (existingZone === zone || contains_rect(existingZone, zone)) return;
-                        if (contains_rect(zone, existingZone)) {
-                            totalPixelToDraw -= zone_requesting_redraw[i].width * zone_requesting_redraw[i].height;
-                            zone_requesting_redraw[i] = null;
-                        }
-                    }
-                    totalPixelToDraw += zone.width * zone.height;
-                    zone_requesting_redraw.push(zone);
-                    if (zoneTimestamp == timestamp) zone_not_ready.push([zone, zoneTimestamp]);
-                } else {
-                    console.log(`Too soon to draw ${zone} (in ${zoneTimestamp-timestamp} cs)`)
-                    zone_not_ready.push([zone, zoneTimestamp])
-                }
-        })
-        _zones_needing_redraw = zone_not_ready
-
-        // Depending of the state, force full redraw
-        if (root.state === "Stop" || theme == "Advanced") {
-            zone_requesting_redraw = [Qt.rect(0, 0, 320, 240)];
-            totalPixelToDraw = 320 * 240;
-        }
-
+    transformFrame: function(input, timestamp, zone_requesting_redraw) {
         // No redraw needed, stop right there
         if (!zone_requesting_redraw.length) {
             return new ArrayBuffer(0);
         }
 
-        console.log(`Redrawing ${totalPixelToDraw} the following region: ${zone_requesting_redraw}`)
+        // console.log(JSON.stringify(zone_requesting_redraw))
+
+        let totalPixelToDraw = 0;
+        for (let area of zone_requesting_redraw) {
+            totalPixelToDraw += area.width * area.height;
+        }
+
+        if (totalPixelToDraw > 0.9 * 320 * 240 || zone_requesting_redraw.length > 20 || totalPixelToDraw*2 + 20*zone_requesting_redraw.length >= 2 * 320 * 240) {
+            zone_requesting_redraw = [{
+                    x: 0,
+                    y: 0,
+                    width: 320,
+                    height: 240,
+            }];
+            totalPixelToDraw = 320 * 240;
+        }
+
+        // console.log(`Redrawing ${totalPixelToDraw} the following region: ${zone_requesting_redraw}`)
 
         const screenIdx = screenId === "leftdeck" ? 0 : 1;
 
@@ -118,10 +68,6 @@ Item {
         let offset = 0;
 
         for (const area of zone_requesting_redraw) {
-            if (!area) {
-                // This happens when the area has been nullified because overlapping with an other region
-                continue;
-            }
             const header = new Uint8Array(outputData, offset, 16);
             const payload = new Uint8Array(outputData, offset + 16, area.width*area.height*2);
             const footer = new Uint8Array(outputData, offset + area.width*area.height*2 + 16, 4);
@@ -156,7 +102,7 @@ Item {
             footer[2] = screenIdx;
             offset += area.width*area.height*2 + 20
         }
-        console.log(`Generated ${offset} bytes to be sent`)
+        // console.log(`Generated ${offset} bytes to be sent`)
         return outputData;
     }
 
@@ -169,6 +115,8 @@ Item {
     Component {
         id: stockLive
         S4MK3.StockScreen {
+            group: root.group
+            screenId: root.screenId
             anchors.fill: parent
         }
     }
@@ -183,9 +131,6 @@ Item {
         id: loader
         anchors.fill: parent
         sourceComponent: splashOff
-        onLoaded: {
-            redraw(root)
-        }
     }
 
     states: [

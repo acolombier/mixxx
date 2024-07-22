@@ -37,8 +37,8 @@
                      <description>
                          The background used for empty decks
                      </description>
-                     <value label="Man in a mask" default="true">mask</value>
-                     <value label="Mixxx">mixxx</value>
+                     <value label="Man in a mask">mask</value>
+                     <value label="Mixxx" default="true">mixxx</value>
                  </option>
              </row>
          </group>

@@ -797,6 +797,12 @@ Item {
     property bool padsModeBank3: propPadsMode.value == 14 ? true : false
     property bool padsModeBank4: propPadsMode.value == 15 ? true : false
 
+    // Component.onCompleted: {
+    //     engine.makeSharedDataConnection(function(data) {
+    //       data.pads
+    //     })
+    // }
+
   // AppProperty { id: propTick; path: "app.traktor.decks." + deckId + ".track.grid.tick"}
     QtObject {
         id: propTick
@@ -1097,58 +1103,129 @@ Item {
   // AppProperty { id: propFx1Ch1;        			path: "app.traktor.mixer.channels.1.fx.assign.1" }
     Mixxx.ControlProxy {
         group: "[EffectRack1_EffectUnit1]"
-        key: `group_${viewModel.group}_enable`
+        key: `group_[Channel1]_enable`
         id: propFx1Ch1
         property string description: "Description"
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx1Ch2;        			path: "app.traktor.mixer.channels.2.fx.assign.1" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit1]"
+        key: `group_[Channel2]_enable`
         id: propFx1Ch2
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx1Ch3;        			path: "app.traktor.mixer.channels.3.fx.assign.1" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit1]"
+        key: `group_[Channel3]_enable`
         id: propFx1Ch3
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx1Ch4;        			path: "app.traktor.mixer.channels.4.fx.assign.1" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit1]"
+        key: `group_[Channel4]_enable`
         id: propFx1Ch4
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx2Ch1;        			path: "app.traktor.mixer.channels.1.fx.assign.2" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit2]"
+        key: `group_[Channel1]_enable`
         id: propFx2Ch1
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx2Ch2;        			path: "app.traktor.mixer.channels.2.fx.assign.2" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit2]"
+        key: `group_[Channel2]_enable`
         id: propFx2Ch2
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx2Ch3;        			path: "app.traktor.mixer.channels.3.fx.assign.2" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit2]"
+        key: `group_[Channel3]_enable`
         id: propFx2Ch3
         property string description: "Description"
-        property var value: 0
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
   // AppProperty { id: propFx2Ch4;        			path: "app.traktor.mixer.channels.4.fx.assign.2" }
-    QtObject {
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit2]"
+        key: `group_[Channel4]_enable`
         id: propFx2Ch4
         property string description: "Description"
-        property var value: 0
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx3Ch1;        			path: "app.traktor.mixer.channels.1.fx.assign.3" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit3]"
+        key: `group_[Channel1]_enable`
+        id: propFx3Ch1
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx3Ch2;        			path: "app.traktor.mixer.channels.2.fx.assign.3" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit3]"
+        key: `group_[Channel2]_enable`
+        id: propFx3Ch2
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx3Ch3;        			path: "app.traktor.mixer.channels.3.fx.assign.3" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit3]"
+        key: `group_[Channel3]_enable`
+        id: propFx3Ch3
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx3Ch4;        			path: "app.traktor.mixer.channels.4.fx.assign.3" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit3]"
+        key: `group_[Channel4]_enable`
+        id: propFx3Ch4
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx4Ch1;        			path: "app.traktor.mixer.channels.1.fx.assign.4" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit4]"
+        key: `group_[Channel1]_enable`
+        id: propFx4Ch1
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx4Ch2;        			path: "app.traktor.mixer.channels.2.fx.assign.4" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit4]"
+        key: `group_[Channel2]_enable`
+        id: propFx4Ch2
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx4Ch3;        			path: "app.traktor.mixer.channels.3.fx.assign.4" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit4]"
+        key: `group_[Channel3]_enable`
+        id: propFx4Ch3
+        property string description: "Description"
+        property var valueRange: ({isDiscrete: true, steps: 1})
+    }
+  // AppProperty { id: propFx4Ch4;        			path: "app.traktor.mixer.channels.4.fx.assign.4" }
+    Mixxx.ControlProxy {
+        group: "[EffectRack1_EffectUnit4]"
+        key: `group_[Channel4]_enable`
+        id: propFx4Ch4
+        property string description: "Description"
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
 
@@ -1440,22 +1517,14 @@ Item {
     readonly property bool fx4Button2:	propFx4Button2.value
     readonly property bool fx4Button3:	propFx4Button3.value
 
-  // readonly property bool fx3Ch1:	propFx3Ch1.value
-    readonly property bool fx3Ch1:	false
-  // readonly property bool fx3Ch2:	propFx3Ch2.value
-    readonly property bool fx3Ch2:	false
-  // readonly property bool fx3Ch3:	propFx3Ch3.value
-    readonly property bool fx3Ch3:	false
-  // readonly property bool fx3Ch4:	propFx3Ch4.value
-    readonly property bool fx3Ch4:	false
-  // readonly property bool fx4Ch1:	propFx4Ch1.value
-    readonly property bool fx4Ch1:	false
-  // readonly property bool fx4Ch2:	propFx4Ch2.value
-    readonly property bool fx4Ch2:	false
-  // readonly property bool fx4Ch3:	propFx4Ch3.value
-    readonly property bool fx4Ch3:	false
-  // readonly property bool fx4Ch4:	propFx4Ch4.value
-    readonly property bool fx4Ch4:	false
+    readonly property bool fx3Ch1:	propFx3Ch1.value
+    readonly property bool fx3Ch2:	propFx3Ch2.value
+    readonly property bool fx3Ch3:	propFx3Ch3.value
+    readonly property bool fx3Ch4:	propFx3Ch4.value
+    readonly property bool fx4Ch1:	propFx4Ch1.value
+    readonly property bool fx4Ch2:	propFx4Ch2.value
+    readonly property bool fx4Ch3:	propFx4Ch3.value
+    readonly property bool fx4Ch4:	propFx4Ch4.value
 
     onFx3DryWetChanged: {fx3Timer.running = true}
     onFx4DryWetChanged: {fx4Timer.running = true}
@@ -1848,17 +1917,5 @@ Item {
   /////// Stripe properties /////////////////////////
   ///////////////////////////////////////////////////
 
-    readonly property alias hotcues: hotcuesModel
-    readonly property alias hotcues1: hotcuesModel1
-    readonly property alias hotcues2: hotcuesModel2
-    readonly property alias hotcues3: hotcuesModel3
-    readonly property alias hotcues4: hotcuesModel4
-    readonly property alias hotcuesMaster: hotcuesModelMaster
-
-    HotCues { id: hotcuesModel; deckId: viewModel.deckId }
-    HotCues { id: hotcuesModel1; deckId: 1 }
-    HotCues { id: hotcuesModel2; deckId: 2 }
-    HotCues { id: hotcuesModel3; deckId: 3 }
-    HotCues { id: hotcuesModel4; deckId: 4 }
-    HotCues { id: hotcuesModelMaster; deckId: masterDeck }
+    readonly property var hotcues: viewModel.deckPlayer.hotcuesModel
 }

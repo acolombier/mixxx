@@ -2263,6 +2263,12 @@ class S4Mk3Deck extends Deck {
             i++;
         }
 
+        const setPadLayer = (deck, layerId) => {
+            const data = engine.getSharedData() || {};
+            if (!data.pads) { return; }
+            data.group[deck.group] = layerId;
+            engine.setSharedData(data);
+        };
         const switchPadLayer = (deck, newLayer) => {
             let index = 0;
             for (let pad of deck.pads) {
@@ -3245,6 +3251,10 @@ class S4MK3 {
                 "leftdeck": "[Channel1]",
                 "rightdeck": "[Channel2]",
             },
+            shift: {
+                "leftdeck": false,
+                "rightdeck": false,
+            },
             scrollingWavefom: {
                 "[Channel1]": false,
                 "[Channel2]": false,
@@ -3268,6 +3278,12 @@ class S4MK3 {
                 "[Channel2]": false,
                 "[Channel3]": false,
                 "[Channel4]": false,
+            },
+            pads: {
+                "[Channel1]": 0,
+                "[Channel2]": 0,
+                "[Channel3]": 0,
+                "[Channel4]": 0,
             },
         });
     }

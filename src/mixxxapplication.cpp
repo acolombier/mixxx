@@ -8,6 +8,7 @@
 #include "audio/frame.h"
 #include "audio/types.h"
 #include "control/controlproxy.h"
+#include "controllers/rendering/controllerrenderingengine.h"
 #include "library/relocatedtrack.h"
 #include "library/trackset/crate/crateid.h"
 #include "moc_mixxxapplication.cpp"

@@ -7,6 +7,11 @@ import Mixxx 1.0 as Mixxx
 import S4MK3 as S4MK3
 
 Rectangle {
+    id: root
+
+    required property string group
+    required property string screenId
+
     anchors.fill: parent
     color: "black"
 
@@ -38,7 +43,6 @@ Rectangle {
             timeIndicator.mode = data.displayBeatloopSize[root.group] ? S4MK3.TimeAndBeatloopIndicator.Mode.BeetjumpSize : S4MK3.TimeAndBeatloopIndicator.Mode.RemainingTime
             timeIndicator.update()
         }
-        root.redraw(root);
     }
 
     Mixxx.ControlProxy {
@@ -52,7 +56,6 @@ Rectangle {
                 deckInfo.state = ""
                 scrollingWavefom.visible = false
             }
-            redraw(parent)
         }
     }
 
@@ -64,7 +67,7 @@ Rectangle {
         running: false
 
         onTriggered: {
-            onSharedDataUpdate({
+            root.onSharedDataUpdate({
                     group: {
                         "leftdeck": screenId === "leftdeck" && trackLoadedControl.group === "[Channel1]" ? "[Channel3]" : "[Channel1]",
                         "rightdeck": screenId === "rightdeck" && trackLoadedControl.group === "[Channel2]" ? "[Channel4]" : "[Channel2]",
@@ -92,18 +95,18 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        // engine.makeSharedDataConnection(onSharedDataUpdate)
+        engine.makeSharedDataConnection(root.onSharedDataUpdate)
 
-        onSharedDataUpdate({
+        root.onSharedDataUpdate({
                 group: {
                     "leftdeck": "[Channel1]",
                     "rightdeck": "[Channel2]",
                 },
                 scrollingWavefom: {
-                    "[Channel1]": true,
-                    "[Channel2]": true,
-                    "[Channel3]": true,
-                    "[Channel4]": true,
+                    "[Channel1]": false,
+                    "[Channel2]": false,
+                    "[Channel3]": false,
+                    "[Channel4]": false,
                 },
                 keyboardMode: {
                     "[Channel1]": false,
@@ -137,10 +140,6 @@ Rectangle {
 
             opacity: artworkSpacer.visible ? 1 : 0.2
             z: -1
-
-            onStatusChanged: {
-                redraw(parent)
-            }
         }
     }
 
@@ -164,10 +163,6 @@ Rectangle {
                     Layout.fillHeight: true
 
                     scrolling: !scrollingWavefom.visible
-
-                    onUpdated: {
-                        root.redraw(this)
-                    }
                 }
             }
         }
@@ -197,10 +192,6 @@ Rectangle {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-
-                    onUpdated: {
-                        root.redraw(this)
-                    }
                 }
 
                 // Section: Bpm
@@ -211,10 +202,6 @@ Rectangle {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-
-                    onUpdated: {
-                        root.redraw(this)
-                    }
                 }
 
                 // Section: Key
@@ -225,10 +212,6 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 72
                     timeColor: smallBoxBorder
-
-                    onUpdated: {
-                        root.redraw(this)
-                    }
                 }
 
                 // Section: Bpm
@@ -238,10 +221,6 @@ Rectangle {
 
                     Layout.fillWidth: true
                     Layout.preferredHeight: 72
-
-                    onUpdated: {
-                        root.redraw(this)
-                    }
                 }
             }
             states: State {
@@ -270,43 +249,6 @@ Rectangle {
                     Layout.preferredHeight: -1
                     Layout.fillHeight: true
                     state: "compacted"
-                }
-            }
-
-            onStateChanged: {
-                root.redraw(root)
-            }
-        }
-
-        Repeater {
-            model: scrollingWavefom.visible ? [
-                "playposition",
-                "bpm",
-                "waveform_zoom",
-                "loop_start_position",
-                "loop_end_position",
-                "loop_enabled",
-                "total_gain",
-                "filterHigh",
-                "filterHighKill",
-                "filterMid",
-                "filterMidKill",
-                "filterLow",
-                "filterLowKill",
-                ...Array(16).fill().map((_,i)=>`hotcue_${i+1}_position`),
-                ...Array(16).fill().map((_,i)=>`hotcue_${i+1}_color`),
-            ]: []
-
-            Item {
-                required property string modelData
-
-                Mixxx.ControlProxy {
-                    group: root.group
-                    key: modelData
-                    onValueChanged: (value) => {
-                        console.log(`${modelData}: ${value}`)
-                        root.redraw(scrollingWavefom)
-                    }
                 }
             }
         }
@@ -373,10 +315,6 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
-
-                onUpdated: {
-                    root.redraw(waveform)
-                }
             }
 
             Mixxx.WaveformOverview {
@@ -404,39 +342,24 @@ Rectangle {
 
                         group: root.group
                         key: "track_samples"
-
-                        onValueChanged: (value) => {
-                            redraw(waveform)
-                        }
                     }
 
                     Mixxx.ControlProxy {
                         id: hotcueEnabled
                         group: root.group
                         key: `hotcue_${index + 1}_status`
-
-                        onValueChanged: (value) => {
-                            redraw(waveform)
-                        }
                     }
 
                     Mixxx.ControlProxy {
                         id: hotcuePosition
                         group: root.group
                         key: `hotcue_${index + 1}_position`
-
-                        onValueChanged: (value) => {
-                            redraw(waveform)
-                        }
                     }
 
                     Mixxx.ControlProxy {
                         id: hotcueColor
                         group: root.group
                         key: `hotcue_${number}_color`
-                        onValueChanged: (value) => {
-                            redraw(waveform)
-                        }
                     }
 
                     anchors.top: parent.top
@@ -458,20 +381,12 @@ Rectangle {
                     id: introStartEnabled
                     group: root.group
                     key: `intro_start_enabled`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 Mixxx.ControlProxy {
                     id: introStartPosition
                     group: root.group
                     key: `intro_start_position`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 anchors.top: parent.top
@@ -489,20 +404,12 @@ Rectangle {
                     id: introEndEnabled
                     group: root.group
                     key: `intro_end_enabled`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 Mixxx.ControlProxy {
                     id: introEndPosition
                     group: root.group
                     key: `intro_end_position`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 anchors.top: parent.top
@@ -519,10 +426,6 @@ Rectangle {
                     id: loopStartPosition
                     group: root.group
                     key: `loop_start_position`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 anchors.top: parent.top
@@ -539,10 +442,6 @@ Rectangle {
                     id: loopEndPosition
                     group: root.group
                     key: `loop_end_position`
-
-                    onValueChanged: (value) => {
-                        redraw(waveform)
-                    }
                 }
 
                 anchors.top: parent.top
@@ -562,10 +461,6 @@ Rectangle {
             Layout.fillHeight: true
             Layout.leftMargin: 6
             Layout.rightMargin: 6
-
-            onUpdated: (value) => {
-                redraw(this)
-            }
         }
     }
 }
