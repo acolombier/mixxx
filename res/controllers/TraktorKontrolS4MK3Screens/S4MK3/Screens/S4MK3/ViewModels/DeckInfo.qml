@@ -11,8 +11,23 @@ import Mixxx 1.0 as Mixxx
 Item {
     id: viewModel
 
-    readonly property string group: `[Channel${viewModel.deckId}]`
+    property string group: `[Channel${viewModel.deckId}]`
     readonly property var deckPlayer: Mixxx.PlayerManager.getPlayer(viewModel.group)
+    readonly property string screenName: isLeftScreen(viewModel.deckId) ? "leftdeck" : "rightdeck"
+
+    function onSharedDataUpdate(data) {
+        if (typeof data === "object" && typeof data.group[screenName] === "string") {
+            viewModel.group = data.group[screenName]
+            console.log(`Changed group for screen ${screenName} to ${viewModel.group}`);
+        }
+        if (typeof data.padsMode === "object") {
+            propPadsMode.value = data.padsMode[viewModel.group]
+            console.log(`Changed padsMode for screen ${screenName} to ${propPadsMode.value}`);
+        }
+    }
+    Component.onCompleted: {
+        engine.makeSharedDataConnection(viewModel.onSharedDataUpdate)
+    }
 
     function isLeftScreen(deckId) {
         return deckId == 1 || deckId == 3;
@@ -786,9 +801,9 @@ Item {
         property var value: 1
         property var valueRange: ({isDiscrete: true, steps: 1})
     }
-    property bool padsModeJump: propPadsMode.value == 8 ? true : false
+    property bool padsModeJump: propPadsMode.value == 1 ? true : false
     property bool padsModeLoop: propPadsMode.value == 5 ? true : false
-    property bool padsModeRoll: propPadsMode.value == 7 ? true : false
+    property bool padsModeRoll: propPadsMode.value == 3 ? true : false
     property bool padsModeTone: propPadsMode.value == 11 ? true : false
     property bool padsModeFx1: propPadsMode.value == 9 ? true : false
     property bool padsModeFx2: propPadsMode.value == 10 ? true : false

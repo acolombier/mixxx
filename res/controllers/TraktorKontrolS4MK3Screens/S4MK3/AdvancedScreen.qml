@@ -31,6 +31,16 @@ Item {
     property int deckC: settings.deckCColour
     property int deckD: settings.deckDColour
 
+    Component.onCompleted: {
+        engine.makeSharedDataConnection(screen.onSharedDataUpdate)
+    }
+
+    function onSharedDataUpdate(data) {
+        if (typeof data === "object" && typeof data.group === "object") {
+            propTopDeckFocus = data.group[isLeftScreen ? 'leftdeck' : 'rightdeck'] === `[Channel${screen.topDeckId}]`
+        }
+    }
+
     width: 320
     height: 240
     clip: true

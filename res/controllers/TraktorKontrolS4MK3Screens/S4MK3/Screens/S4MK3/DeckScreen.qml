@@ -49,6 +49,21 @@ Item {
 
     property bool browser: settings.showBrowserOnFavorites ? ((deckInfoModel.viewButton) || (deckInfoModel.favorites)) : (deckInfoModel.viewButton)
 
+    Component.onCompleted: {
+        engine.makeSharedDataConnection(deckscreen.onSharedDataUpdate)
+    }
+
+    function isLeftScreen(deckId) {
+        return deckId == 1 || deckId == 3;
+    }
+
+    function onSharedDataUpdate(data) {
+        if (typeof data === "object" && typeof data.shift === "object") {
+            propShift1.value = !!data.shift["leftdeck"]
+            propShift2.value = !!data.shift["rightdeck"]
+        }
+    }
+
     ViewModels.DeckInfo {
         id: deckInfoModel
         deckId: deckscreen.deckId

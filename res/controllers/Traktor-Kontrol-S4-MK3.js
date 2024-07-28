@@ -1950,8 +1950,20 @@ class S4Mk3Deck extends Deck {
             shift: function() {
                 this.output(true);
             },
-            onPress: this.shift.bind(this),
-            onRelease: this.unshift.bind(this),
+            onPress: function() {
+                this.deck.shift.call(this.deck);
+                const data = engine.getSharedData() || {};
+                if (!data.shift) { return; }
+                data.shift[decks[0] === 1 ? "leftdeck":"rightdeck"] = true;
+                engine.setSharedData(data);
+            },
+            onRelease: function() {
+                this.deck.unshift.call(this.deck);
+                const data = engine.getSharedData() || {};
+                if (!data.shift) { return; }
+                data.shift[decks[0] === 1 ? "leftdeck":"rightdeck"] = false;
+                engine.setSharedData(data);
+            },
         });
 
         this.leftEncoder = new Encoder({
@@ -2347,6 +2359,12 @@ class S4Mk3Deck extends Deck {
                 }
 
             },
+            onShortPress: function() {
+                const data = engine.getSharedData() || {};
+                if (!data.padsMode) { return; }
+                data.padsMode[this.deck.group] = 0;
+                engine.setSharedData(data);
+            },
             onLongPress: function() {
                 this.previousMoveMode = this.deck.moveMode;
                 this.deck.moveMode = moveModes.hotcueColor;
@@ -2366,8 +2384,8 @@ class S4Mk3Deck extends Deck {
             deck: this,
             onShortPress: function() {
                 const data = engine.getSharedData() || {};
-                if (!data.scrollingWavefom) { return; }
-                data.scrollingWavefom[this.deck.group] = !data.scrollingWavefom[this.deck.group];
+                if (!data.padsMode) { return; }
+                data.padsMode[this.deck.group] = 1;
                 engine.setSharedData(data);
                 this.output(data.scrollingWavefom[this.deck.group]);
             },
@@ -2381,6 +2399,10 @@ class S4Mk3Deck extends Deck {
             deck: this,
             onShortPress: function() {
                 engine.setValue(this.deck.group, "loop_anchor", 1);
+                const data = engine.getSharedData() || {};
+                if (!data.padsMode) { return; }
+                data.padsMode[this.deck.group] = 3;
+                engine.setSharedData(data);
             },
             onShortRelease: function() {
                 if (this.deck.currentPadLayer !== this.deck.padLayers.samplerPage) {
@@ -2404,10 +2426,9 @@ class S4Mk3Deck extends Deck {
             deck: this,
             onShortPress: function() {
                 const data = engine.getSharedData() || {};
-                if (!data.viewArtwork) { return; }
-                data.viewArtwork[this.deck.group] = !data.viewArtwork[this.deck.group];
+                if (!data.padsMode) { return; }
+                data.padsMode[this.deck.group] = 4;
                 engine.setSharedData(data);
-                this.output(data.viewArtwork[this.deck.group]);
             },
             // hack to switch the LED color when changing decks
             outTrigger: function() {
@@ -2425,6 +2446,10 @@ class S4Mk3Deck extends Deck {
                 }
             },
             onShortPress: function() {
+                const data = engine.getSharedData() || {};
+                if (!data.padsMode) { return; }
+                data.padsMode[this.deck.group] = 5;
+                engine.setSharedData(data);
                 if (this.previousMoveMode === null) {
                     this.previousMoveMode = this.deck.moveMode;
                     this.deck.moveMode = moveModes.keyboard;
@@ -3279,7 +3304,7 @@ class S4MK3 {
                 "[Channel3]": false,
                 "[Channel4]": false,
             },
-            pads: {
+            padsMode: {
                 "[Channel1]": 0,
                 "[Channel2]": 0,
                 "[Channel3]": 0,
