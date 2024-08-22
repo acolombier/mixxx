@@ -3470,6 +3470,7 @@ if (STEM)
     src/track/steminfoimporter.cpp
     src/track/steminfo.cpp
     src/widget/wstemlabel.cpp
+    src/widget/wtrackstemmenu.cpp
   )
   if(QOPENGL)
     target_sources(mixxx-lib PRIVATE
