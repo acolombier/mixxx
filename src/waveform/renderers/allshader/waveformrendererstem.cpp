@@ -60,17 +60,17 @@ void WaveformRendererStem::paintGL() {
                                          : ::WaveformRendererAbstract::Play;
 
     ConstWaveformPointer waveform = pTrack->getWaveform();
-    VERIFY_OR_DEBUG_ASSERT(waveform.isNull()) {
+    if (waveform.isNull()) {
         return;
     }
 
     const int dataSize = waveform->getDataSize();
-    VERIFY_OR_DEBUG_ASSERT(dataSize <= 1) {
+    if (dataSize <= 1) {
         return;
     }
 
     const WaveformData* data = waveform->data();
-    VERIFY_OR_DEBUG_ASSERT(data == nullptr) {
+    if (data == nullptr) {
         return;
     }
     // If this waveform doesn't contain stem data, skip the rendering
