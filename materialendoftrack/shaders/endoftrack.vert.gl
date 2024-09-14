@@ -1,8 +1,0 @@
-attribute highp vec4 position; // use vec4 here (will be padded) to assign directly to gl_Position
-attribute highp float gradient;
-varying highp float vgradient;
-void main()
-{
-    vgradient = gradient;
-    gl_Position = position;
-}

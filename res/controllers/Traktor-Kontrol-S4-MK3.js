@@ -415,6 +415,7 @@ class Component {
     }
     outTrigger() {
         for (const connection of this.outConnections) {
+            if (!connection) { continue; }
             connection.trigger();
         }
     }
@@ -557,7 +558,7 @@ class Deck extends ComponentContainer {
             } else if (component.group.search(script.eqRegEx) !== -1) {
                 component.group = `[EqualizerRack1_${newGroup}_Effect1]`;
             } else if (component.group.search(script.quickEffectRegEx) !== -1) {
-                component.group = `[QuickEffectRack1_${newGroup}]`;
+                component.group = quickFxChannel(newGroup);
             }
 
             component.color = this.groupsToColors[newGroup];
@@ -953,7 +954,7 @@ class StemButton extends PushButton {
             return;
         }
         if (this.shifted && pressed) {
-            script.toggleControl(this.group, `stem_${this.number}_mute`);
+            script.toggleControl(stemChannel(this.group, this.number), "mute");
         }
         if (!this.shifted) {
             this.deck.selectedStem[this.number] = pressed;
@@ -961,7 +962,7 @@ class StemButton extends PushButton {
         if (!this.shifted && pressed && this.deck.mixer.firstPressedFxSelector !== null) {
             const presetNumber = this.deck.mixer.calculatePresetNumber();
             this.color = QuickEffectPresetColors[presetNumber - 1];
-            engine.setValue(quickFxChannel(this.group, this.number), "loaded_chain_preset", presetNumber + 1);
+            engine.setValue(quickFxChannel(stemChannel(this.group, this.number)), "loaded_chain_preset", presetNumber + 1);
             this.deck.mixer.firstPressedFxSelector = null;
             this.deck.mixer.secondPressedFxSelector = null;
             this.deck.mixer.resetFxSelectorColors();
@@ -976,23 +977,23 @@ class StemButton extends PushButton {
     }
     outConnect() {
         if (undefined !== this.group) {
-            const muteConnection = engine.makeConnection(this.group, `stem_${this.number}_mute`, (mute) => {
+            const muteConnection = engine.makeConnection(stemChannel(this.group, this.number), "mute", (mute) => {
                 this.muted = mute;
                 this.output();
             });
             if (muteConnection) {
                 this.outConnections[0] = muteConnection;
             } else {
-                console.warn(`Unable to connect '${this.group}.stem_${this.number}_mute' to the controller output. The control appears to be unavailable.`);
+                console.warn(`Unable to connect '${stemChannel(this.group, this.number)}.mute' to the controller output. The control appears to be unavailable.`);
             }
-            const colorConnection = engine.makeConnection(this.group, `stem_${this.number}_color`, (color) => {
+            const colorConnection = engine.makeConnection(stemChannel(this.group, this.number), "color", (color) => {
                 this.color = this.colorMap.getValueForNearestColor(color);
                 this.output();
             });
             if (colorConnection) {
                 this.outConnections[1] = colorConnection;
             } else {
-                console.warn(`Unable to connect '${this.group}.stem_${this.number}_color' to the controller output. The control appears to be unavailable.`);
+                console.warn(`Unable to connect '${stemChannel(this.group, this.number)}.color' to the controller output. The control appears to be unavailable.`);
             }
             const enabledConnection = engine.makeConnection(this.group, "stem_count", (count) => {
                 this.enabled = count >= this.number;
@@ -1461,7 +1462,7 @@ class FXSelect extends Button {
         if (this.mixer.firstPressedFxSelector !== null) {
             for (const deck of [1, 2, 3, 4]) {
                 const presetNumber = this.mixer.calculatePresetNumber();
-                engine.setValue(`[QuickEffectRack1_[Channel${deck}]]`, "loaded_chain_preset", presetNumber + 1);
+                engine.setValue(quickFxChannel(`[Channel${deck}]`), "loaded_chain_preset", presetNumber + 1);
             }
         }
         if (this.mixer.firstPressedFxSelector === this.number) {
@@ -1486,7 +1487,7 @@ class QuickEffectButton extends Button {
         if (this.number === undefined || !Number.isInteger(this.number) || this.number < 1) {
             throw Error("number attribute must be an integer >= 1");
         }
-        this.group = `[QuickEffectRack1_[Channel${this.number}]]`;
+        this.group = quickFxChannel(`[Channel${this.number}]`);
         this.outConnect();
     }
     onShortPress() {
@@ -1564,8 +1565,12 @@ Button.prototype.colorMap = new ColorMapper(LedColorMap);
  * helper function
  */
 
-const quickFxChannel = (group, idx) => {
-    return `[QuickEffectRack1_${group.substr(0, group.length - 1)}Stem${idx}]]`;
+const quickFxChannel = (group) => {
+    return `[QuickEffectRack1_${group}]`;
+};
+
+const stemChannel = (group, idx) => {
+    return `${group.substr(0, group.length - 1)}Stem${idx}]`;
 };
 
 /*
@@ -2071,7 +2076,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.selectedStem.forEach((selected, stemIdx) => {
                         if (!selected) { return; }
 
-                        engine.setValue(this.group, `stem_${stemIdx}_volume`, engine.getValue(this.group, `stem_${stemIdx}_volume`) + (right ? this.tickDelta : -this.tickDelta));
+                        engine.setValue(stemChannel(this.group, stemIdx), "volume", engine.getValue(stemChannel(this.group, stemIdx), "volume") + (right ? this.tickDelta : -this.tickDelta));
                     });
                     return;
                 }
@@ -2080,7 +2085,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.selectedStem.forEach((selected, stemIdx) => {
                         if (!selected) { return; }
 
-                        engine.setValue(this.group, `stem_${stemIdx}_volume`, engine.getValue(this.group, `stem_${stemIdx}_volume`) + (right ? this.tickDelta : -this.tickDelta));
+                        engine.setValue(stemChannel(this.group, stemIdx), "volume", engine.getValue(stemChannel(this.group, stemIdx), "volume") + (right ? this.tickDelta : -this.tickDelta));
                     });
                     return;
                 }
@@ -2154,7 +2159,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.selectedStem.forEach((selected, stemIdx) => {
                         if (!selected) { return; }
 
-                        engine.setValue(this.group, `stem_${stemIdx}_volume`, engine.getValue(this.group, `stem_${stemIdx}_volume`) === 1.0 ? 0 : 1);
+                        engine.setValue(stemChannel(this.group, stemIdx), "volume", engine.getValue(stemChannel(this.group, stemIdx), "volume") === 1.0 ? 0 : 1);
                     });
                     return;
                 }
@@ -2182,7 +2187,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.selectedStem.forEach((selected, stemIdx) => {
                         if (!selected) { return; }
 
-                        engine.setValue(quickFxChannel(this.group, stemIdx), "super1", engine.getValue(quickFxChannel(this.group, stemIdx), "super1") + (right ? this.tickDelta : -this.tickDelta));
+                        engine.setValue(quickFxChannel(stemChannel(this.group, stemIdx)), "super1", engine.getValue(quickFxChannel(stemChannel(this.group, stemIdx)), "super1") + (right ? this.tickDelta : -this.tickDelta));
                     });
                     return;
                 }
@@ -2213,7 +2218,7 @@ class S4Mk3Deck extends Deck {
                     this.deck.selectedStem.forEach((selected, stemIdx) => {
                         if (!selected) { return; }
 
-                        script.toggleControl(quickFxChannel(this.group, stemIdx), "enabled");
+                        script.toggleControl(quickFxChannel(stemChannel(this.group, stemIdx)), "enabled");
                     });
                     return;
                 }
@@ -3069,7 +3074,7 @@ class S4Mk3MixerColumn extends ComponentContainer {
             inKey: "parameter1",
         });
         this.quickEffectKnob = new Pot({
-            group: `[QuickEffectRack1_${this.group}]`,
+            group: quickFxChannel(this.group),
             inKey: "super1",
         });
         this.volume = new Pot({

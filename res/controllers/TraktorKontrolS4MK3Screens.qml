@@ -27,6 +27,8 @@ Mixxx.Controller {
 
     readonly property bool isStockTheme: theme == "stock"
 
+    property var lastFrame: null
+
     function init(controlerName, isDebug) {
         console.log(`Screen ${root.screenId} has started with theme ${root.theme}`)
         root.state = "Live"
@@ -37,37 +39,143 @@ Mixxx.Controller {
         root.state = "Stop"
     }
 
-    transformFrame: function(input, timestamp, zone_requesting_redraw) {
-        // No redraw needed, stop right there
-        if (!zone_requesting_redraw.length) {
-            return new ArrayBuffer(0);
+    function scan_line(matrix, rect, x, y) {
+        let north_scan = []
+        let south_scan = []
+
+        for (let dx = x; dx < 320 && matrix[y * 320 + dx]; dx++) {
+            matrix[y * 320 + dx] = 0;
+            rect.width = Math.max(dx - rect.x, rect.width);
+            if (y + 1 < 240 && matrix[(y + 1) * 320 + dx]) {
+                south_scan.push(dx)
+            } else {
+                south_scan.push(null)
+            }
+            if (y > 0 && matrix[(y - 1) * 320 + dx]) {
+                north_scan.push(dx)
+            } else {
+                north_scan.push(null);
+            }
         }
 
-        // console.log(JSON.stringify(zone_requesting_redraw))
-
-        let totalPixelToDraw = 0;
-        for (let area of zone_requesting_redraw) {
-            totalPixelToDraw += area.width * area.height;
+        for (let dx = x - 1; dx >= 0 && matrix[y * 320 + dx]; dx--) {
+            matrix[y * 320 + dx] = 0;
+            rect.x = Math.min(dx, rect.x);
+            if (y + 1 < 240 && matrix[(y + 1) * 320 + dx]) {
+                south_scan.push(dx)
+            } else {
+                south_scan.push(null)
+            }
+            if (y > 0 && matrix[(y - 1) * 320 + dx]) {
+                north_scan.push(dx)
+            } else {
+                north_scan.push(null);
+            }
         }
 
-        if (totalPixelToDraw > 0.9 * 320 * 240 || zone_requesting_redraw.length > 20 || totalPixelToDraw*2 + 20*zone_requesting_redraw.length >= 2 * 320 * 240) {
-            zone_requesting_redraw = [{
+        while (north_scan.length > 0) {
+            if (north_scan[0] !== null) {
+                rect.y = Math.min(y - 1, rect.y);
+                scan_line(matrix, rect, north_scan[0], y - 1);
+            }
+            north_scan.shift()
+            while (north_scan[0] === null && north_scan.length) {
+                north_scan.shift()
+            }
+        }
+
+        while (south_scan.length) {
+            if (south_scan[0] !== null) {
+                rect.height = Math.max(y + 1 - rect.y, rect.height);
+                scan_line(matrix, rect, south_scan[0], y + 1);
+            }
+            south_scan.shift()
+            while (south_scan[0] === null && south_scan.length) {
+                south_scan.shift()
+            }
+        }
+        return rect
+    }
+
+    transformFrame: function(input, timestamp) {
+        let updated = new Uint8Array(320*240);
+        updated.fill(0)
+
+        let updatedPixelCount = 0;
+        let udpated_zones = [];
+
+        if (!root.lastFrame) {
+            root.lastFrame = new ArrayBuffer(input.byteLength);
+            updatedPixelCount = input.byteLength / 2;
+            udpated_zones.push({
                     x: 0,
                     y: 0,
                     width: 320,
                     height: 240,
-            }];
-            totalPixelToDraw = 320 * 240;
+            })
+        } else {
+            const view_input = new Uint8Array(input);
+            const view_last = new Uint8Array(root.lastFrame);
+
+            for (let i = 0; i < 320 * 240; i++) {
+                updated[i] = view_input[2 * i] != view_last[2 * i] || view_input[2 * i + 1] != view_last[2 * i + 1];
+                if (updated[i] !== 0) {
+                    updatedPixelCount++;
+                }
+            }
+
+            for (let x = 0; x < 320; x++) {
+                for (let y = 0; y < 240; y++) {
+                    if (updated[y * 320 + x] === 0) {
+                        continue
+                    }
+                    udpated_zones.push(scan_line(updated, {
+                                x,
+                                y,
+                                width: 1,
+                                height: 1,
+                            }, x, y));
+                }
+            }
+        }
+        new Uint8Array(root.lastFrame).set(new Uint8Array(input));
+
+        if (!updatedPixelCount) {
+            return new ArrayBuffer(0);
+        } else {
+            console.log(`Pixel updated: ${updatedPixelCount}, ${udpated_zones.length} areas`);
         }
 
-        // console.log(`Redrawing ${totalPixelToDraw} the following region: ${zone_requesting_redraw}`)
+        // No redraw needed, stop right there
+
+        let totalPixelToDraw = 0;
+        for (const area of udpated_zones) {
+            area.x -= Math.min(2, area.x);
+            area.y -= Math.min(2, area.y);
+            area.width += Math.min(4, 320 - area.x - area.width);
+            area.height += Math.min(4, 240 - area.y - area.height);
+            totalPixelToDraw += area.width*area.height;
+        }
+
+        if (totalPixelToDraw != 320*240 && (totalPixelToDraw > 320 * 120 || udpated_zones.length > 20)) {
+            console.log(`Full redraw instead of ${totalPixelToDraw} pixels/${udpated_zones.length} areas`)
+            totalPixelToDraw = 320*240
+            udpated_zones = [{
+                    x: 0,
+                    y: 0,
+                    width: 320,
+                    height: 240,
+            }]
+        } else {
+            console.log(`Redrawing ${totalPixelToDraw} pixels`)
+        }
 
         const screenIdx = screenId === "leftdeck" ? 0 : 1;
 
-        const outputData = new ArrayBuffer(totalPixelToDraw*2 + 20*zone_requesting_redraw.length); // Number of pixel + 20 (header/footer size) x the number of region
+        const outputData = new ArrayBuffer(totalPixelToDraw*2 + 20*udpated_zones.length); // Number of pixel + 20 (header/footer size) x the number of region
         let offset = 0;
 
-        for (const area of zone_requesting_redraw) {
+        for (const area of udpated_zones) {
             const header = new Uint8Array(outputData, offset, 16);
             const payload = new Uint8Array(outputData, offset + 16, area.width*area.height*2);
             const footer = new Uint8Array(outputData, offset + area.width*area.height*2 + 16, 4);
@@ -91,18 +199,18 @@ Mixxx.Controller {
             if (area.x === 0 && area.width === 320) {
                 payload.set(new Uint8Array(input, area.y * 320 * 2, area.width*area.height*2));
             } else {
-                for (let line = 0; line < area.height; line++) {
-                    payload.set(new Uint8Array(input,
-                            ((area.y + line) * 320 + area.x) * 2,
-                            area.width * 2),
-                        line * area.width * 2);
+                for (let y = 0; y < area.height; y++) {
+                    payload.set(
+                        new Uint8Array(input, ((area.y + y) * 320 + area.x) * 2, area.width * 2),
+                        y * area.width * 2);
                 }
             }
             footer[0] = 0x40;
             footer[2] = screenIdx;
             offset += area.width*area.height*2 + 20
         }
-        // console.log(`Generated ${offset} bytes to be sent`)
+        console.log(`Generated ${offset} bytes to be sent`)
+        // return new ArrayBuffer(0);
         return outputData;
     }
 

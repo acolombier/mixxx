@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
-#include <QtQml>
 #include <chrono>
 #include <gsl/pointers>
 
@@ -53,16 +52,6 @@ class ControllerRenderingEngine : public QObject {
         return m_screenInfo;
     }
 
-    struct UpdatedRect {
-        int x;
-        int y;
-        int width;
-        int height;
-        UpdatedRect(int ax, int ay, int awidth = 1, int aheight = 1)
-                : x(ax), y(ay), width(awidth), height(aheight) {
-        }
-    };
-
   public slots:
     // Request sending frame data to the device. The task will be run in the
     // rendering event loop. This method should only be called once received the
@@ -85,7 +74,6 @@ class ControllerRenderingEngine : public QObject {
   signals:
     void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo,
             QImage frame,
-            const QList<UpdatedRect>& areas,
             const QDateTime& timestamp);
     void stopping();
     /// @brief Request the screen thread to send a frame to the device.
@@ -101,13 +89,6 @@ class ControllerRenderingEngine : public QObject {
     LegacyControllerMapping::ScreenInfo m_screenInfo;
 
     std::unique_ptr<QThread> m_pThread;
-
-    QImage mLastFrame;
-    QByteArray mPixelDiff;
-    QVector<UpdatedRect*> mUpdatedRectMatrix;
-    std::vector<std::unique_ptr<UpdatedRect>> mUpdatedRect;
-
-    UpdatedRect* getUpdatedArea(int x, int y);
 
     std::unique_ptr<QOpenGLContext> m_context;
     std::unique_ptr<QOffscreenSurface> m_offscreenSurface;
@@ -126,6 +107,3 @@ class ControllerRenderingEngine : public QObject {
     // thread.
     gsl::not_null<ControllerEngineThreadControl*> m_pEngineThreadControl;
 };
-
-// Q_DECLARE_TYPEINFO(ControllerRenderingEngine::UpdatedRect, Q_MOVABLE_TYPE);
-// Q_DECLARE_METATYPE(ControllerRenderingEngine::UpdatedRect)

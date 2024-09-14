@@ -40,37 +40,5 @@ class QmlMixxxController : public QQuickItem {
     QJSValue m_transformFunc;
 };
 
-class QmlRenderedArea : public QObject {
-    Q_OBJECT
-    QML_NAMED_ELEMENT(RenderedArea)
-
-    Q_PROPERTY(int x MEMBER m_x);
-    Q_PROPERTY(int y MEMBER m_y);
-    Q_PROPERTY(int width MEMBER m_width);
-    Q_PROPERTY(int height MEMBER m_height);
-
-  public:
-    explicit QmlRenderedArea(const ControllerRenderingEngine::UpdatedRect& rect,
-            QObject* parent = nullptr)
-            : QObject(parent),
-              m_x(rect.x),
-              m_y(rect.y),
-              m_width(rect.width),
-              m_height(rect.height) {
-        // setProperty("x", m_x);
-        // setProperty("y", m_y);
-        // setProperty("width", m_width);
-        // setProperty("height", m_height);
-    }
-
-  private:
-    int m_x;
-    int m_y;
-    int m_width;
-    int m_height;
-};
-
 } // namespace qml
 } // namespace mixxx
-
-Q_DECLARE_METATYPE(mixxx::qml::QmlRenderedArea);

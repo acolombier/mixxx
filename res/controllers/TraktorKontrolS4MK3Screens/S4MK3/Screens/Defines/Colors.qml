@@ -197,7 +197,7 @@ QtObject {
     property variant fxSelectHeaderHighlightRGB: rgba( 64, 64, 48, 255)
     property variant fxSelectHeaderHighlightBorderRGB: rgba(128, 128, 48, 255)
 
-// Original Maschine 2 Display Colors
+// Original Machine 2 Display Colors
   // palette1-color1:                    rgb(255, 19, 15);
   // palette1-color2:                    rgb(255, 60, 20);
   // palette1-color3:                    rgb(255,120,  0);

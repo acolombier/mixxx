@@ -6,8 +6,6 @@
 #include <QMessageBox>
 #ifdef MIXXX_USE_QML
 #include <QMetaMethod>
-
-#include "controllers/rendering/controllerrenderingengine.h"
 #endif
 
 #include "controllers/legacycontrollermapping.h"
@@ -15,6 +13,7 @@
 
 #ifdef MIXXX_USE_QML
 class QQuickItem;
+class ControllerRenderingEngine;
 namespace mixxx {
 namespace qml {
 class QmlMixxxController;
@@ -67,7 +66,6 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
     void handleScreenFrame(
             const LegacyControllerMapping::ScreenInfo& screeninfo,
             const QImage& frame,
-            const QList<ControllerRenderingEngine::UpdatedRect>& areas,
             const QDateTime& timestamp);
 
   signals:

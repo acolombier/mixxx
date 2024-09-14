@@ -26,13 +26,10 @@ Rectangle {
             console.log(`Changed group for screen ${root.screenId} to ${root.group}`);
         }
         var shouldBeCompacted = false;
-        if (typeof data.scrollingWavefom === "object") {
-            shouldBeCompacted |= data.scrollingWavefom[root.group]
-            scrollingWavefom.visible = data.scrollingWavefom[root.group]
-        }
-        if (typeof data.viewArtwork === "object") {
-            shouldBeCompacted |= data.viewArtwork[root.group]
-            artworkSpacer.visible = data.viewArtwork[root.group] && !scrollingWavefom.visible
+        if (typeof data.padsMode === "object") {
+            scrollingWavefom.visible = data.padsMode[root.group] === 4
+            artworkSpacer.visible = data.padsMode[root.group] === 1
+            shouldBeCompacted |= scrollingWavefom.visible || artworkSpacer.visible
         }
         if (typeof data.keyboardMode === "object") {
             shouldBeCompacted |= data.keyboardMode[root.group]

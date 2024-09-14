@@ -143,7 +143,7 @@ class Controller : public QObject {
   public:
     // This must be reimplemented by sub-classes desiring to send raw bytes to a
     // controller.
-    virtual void sendBytes(const QByteArray& data) = 0;
+    virtual bool sendBytes(const QByteArray& data) = 0;
 
   private: // but used by ControllerManager
     virtual int open() = 0;

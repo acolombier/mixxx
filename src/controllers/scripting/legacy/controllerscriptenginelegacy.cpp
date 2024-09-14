@@ -28,9 +28,9 @@ using Clock = std::chrono::steady_clock;
 namespace {
 const QByteArray kScreenTransformFunctionUntypedSignature =
         QMetaObject::normalizedSignature(
-                "transformFrame(QVariant,QVariant,QVariant)");
+                "transformFrame(QVariant,QVariant)");
 const QByteArray kScreenTransformFunctionTypedSignature =
-        QMetaObject::normalizedSignature("transformFrame(QVariant,QDateTime,QVariantList)");
+        QMetaObject::normalizedSignature("transformFrame(QVariant,QDateTime)");
 const QByteArray kScreenInitFunctionUntypedSignature =
         QMetaObject::normalizedSignature(
                 "init(QVariant,QVariant)");
@@ -615,7 +615,6 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
 void ControllerScriptEngineLegacy::handleScreenFrame(
         const LegacyControllerMapping::ScreenInfo& screenInfo,
         const QImage& frame,
-        const QList<ControllerRenderingEngine::UpdatedRect>& areas,
         const QDateTime& timestamp) {
     VERIFY_OR_DEBUG_ASSERT(
             m_renderingScreens.contains(screenInfo.identifier)) {
@@ -678,21 +677,13 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     }
     // During the frame transformation, any QML errors are considered fatal.
     setErrorsAreFatal(true);
-    QJSValue qmlAreas = m_pJSEngine->newArray();
-    int i = 0;
-    for (auto& area : areas) {
-        qmlAreas.setProperty(i++,
-                m_pJSEngine->newQObject(
-                        new mixxx::qml::QmlRenderedArea(area, screen)));
-    }
     // QJSValueList qmlAreas;
     // for (auto& area: areas) {
     //     qmlAreas.append(m_pJSEngine->toScriptValue(mixxx::qml::QmlRenderedArea(area, screen)));
     // }
     auto result = screen->getTransform().call(
             QJSValueList{m_pJSEngine->toScriptValue(input),
-                    m_pJSEngine->toScriptValue(timestamp),
-                    qmlAreas});
+                    m_pJSEngine->toScriptValue(timestamp)});
     if (result.isError()) {
         qCWarning(m_logger) << "Could not transform rendering buffer for screen"
                             << screenInfo.identifier;
@@ -700,8 +691,8 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
         // We manually stop the screen before we trigger the shutdown procedure
         // as this last one may continue rendering process in order to perform
         // screen splash off.
-        shutdown();
         showScriptExceptionDialog(result, true);
+        shutdown();
         return;
     }
     QVariant returnedValue = result.toVariant();

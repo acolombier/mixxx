@@ -16,11 +16,13 @@
 
 const RuntimeLoggingCategory logger(QString("test").toLocal8Bit());
 
+using namespace std::chrono_literals;
+
 class ControllerSharedDataTest : public MixxxTest {
   protected:
     void SetUp() override {
         mixxx::Time::setTestMode(true);
-        mixxx::Time::setTestElapsedTime(mixxx::Duration::fromMillis(10));
+        mixxx::Time::addTestTime(10ms);
         pRuntimeData = std::make_shared<ControllerSharedData>(nullptr);
         cEngineA = new ControllerScriptEngineLegacy(nullptr, logger);
         cEngineA->setSharedData(pRuntimeData->namespaced("testNS"));

@@ -95,9 +95,6 @@ ControllerRenderingEngine::ControllerRenderingEngine(
         return;
     }
 
-    mUpdatedRectMatrix.resize(info.size.width() * info.size.height());
-    mPixelDiff.resize(info.size.width() * info.size.height());
-
     prepare();
 }
 
@@ -364,48 +361,7 @@ void ControllerRenderingEngine::renderFrame() {
 
     fboImage.mirror(false, true);
 
-    QList<UpdatedRect> updatedAreas;
-
-    if (!mLastFrame.isNull()) {
-        ScopedTimer t(
-                QStringLiteral("ControllerRenderingEngine::renderFrame::"
-                               "calculateUpdatedArea"));
-        mPixelDiff.fill(0);
-        mUpdatedRectMatrix.fill(nullptr);
-        mUpdatedRect.clear();
-        auto pixelByteSize = fboImage.sizeInBytes() / mPixelDiff.size();
-
-        for (int p = 0; p < mPixelDiff.size(); p++) {
-            for (int b = 0; b < pixelByteSize; b++) {
-                if (fboImage.constBits()[p * pixelByteSize + b] !=
-                        mLastFrame.constBits()[p * pixelByteSize + b]) {
-                    mPixelDiff[p] |= 0xff;
-                }
-            }
-        }
-
-        for (int y = 0; y < m_screenInfo.size.height(); y++) {
-            for (int x = 0; x < m_screenInfo.size.width(); x++) {
-                if (mPixelDiff[y * m_screenInfo.size.width() + x]) {
-                    mUpdatedRectMatrix[y * m_screenInfo.size.width() + x] = getUpdatedArea(x, y);
-                }
-            }
-        }
-        auto pixelChangedCount = mPixelDiff.count(0xff);
-        if (pixelChangedCount) {
-            // qDebug() << "pixel updated:"<<pixelChangedCount;
-            // qDebug() << "area updated:"<<mUpdatedRect.size();
-            for (auto& area : mUpdatedRect) {
-                updatedAreas.append(*area);
-            }
-        }
-    } else {
-        updatedAreas.push_back(UpdatedRect(
-                0, 0, m_screenInfo.size.width(), m_screenInfo.size.height()));
-    }
-    mLastFrame = fboImage;
-
-    emit frameRendered(m_screenInfo, fboImage.copy(), updatedAreas, timestamp);
+    emit frameRendered(m_screenInfo, fboImage.copy(), timestamp);
 
     m_context->doneCurrent();
 }
@@ -419,7 +375,7 @@ void ControllerRenderingEngine::send(Controller* controller, const QByteArray& f
     DEBUG_ASSERT_THIS_QOBJECT_THREAD_AFFINITY();
     ScopedTimer t(QStringLiteral("ControllerRenderingEngine::send"));
     if (!frame.isEmpty()) {
-        controller->sendBytes(frame);
+        VERIFY_OR_TERMINATE(controller->sendBytes(frame), "Unable to send frame to device");
     }
 
     if (CmdlineArgs::Instance()
@@ -455,72 +411,6 @@ void ControllerRenderingEngine::send(Controller* controller, const QByteArray& f
     }
 }
 
-ControllerRenderingEngine::UpdatedRect* searchOnX(
-        QVector<ControllerRenderingEngine::UpdatedRect*>& matrix,
-        int width,
-        int x,
-        int y,
-        int max) {
-    for (int d = 1; d < max; d++) {
-        if (x > d - 1 && matrix[y * width + (x - d)]) {
-            return matrix[y * width + (x - d)];
-        }
-    }
-    return nullptr;
-}
-
-ControllerRenderingEngine::UpdatedRect* searchOnY(
-        QVector<ControllerRenderingEngine::UpdatedRect*>& matrix,
-        int width,
-        int x,
-        int y,
-        int max) {
-    QVector<int> cols = {x};
-    for (int d = 1; d < max; d++) {
-        if (x > d - 1) {
-            cols.push_front(x - d);
-        }
-        if (x < width - d) {
-            cols.push_back(x + d);
-        }
-    }
-
-    for (auto dx : cols) {
-        for (int d = 1; d < max; d++) {
-            if (y > d - 1 && matrix[(y - d) * width + dx]) {
-                return matrix[(y - d) * width + dx];
-            }
-        }
-    }
-    return nullptr;
-}
-
-ControllerRenderingEngine::UpdatedRect* ControllerRenderingEngine::getUpdatedArea(int x, int y) {
-    auto width = m_screenInfo.size.width();
-    auto height = m_screenInfo.size.height();
-    UpdatedRect* area = searchOnX(mUpdatedRectMatrix, width, x, y, 10);
-    if (!area) {
-        area = searchOnY(mUpdatedRectMatrix, width, x, y, 10);
-    }
-    if (!area) {
-        mUpdatedRect.push_back(std::make_unique<UpdatedRect>(x, y));
-        return mUpdatedRect.back().get();
-    }
-
-    if (area->x + area->width <= x) {
-        area->width++;
-    } else if (area->x > x) {
-        area->x--;
-        area->width++;
-    }
-    if (area->y + area->height <= y) {
-        area->height++;
-    } else if (area->y > y) {
-        area->y--;
-        area->height++;
-    }
-    return area;
-}
 bool ControllerRenderingEngine::event(QEvent* event) {
     // In case there is a request for update (e.g using QWindow::requestUpdate),
     // we emit the signal to request rendering using the engine.
