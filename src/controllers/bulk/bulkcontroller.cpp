@@ -5,6 +5,7 @@
 #include "controllers/bulk/bulksupported.h"
 #include "controllers/defs_controllers.h"
 #include "moc_bulkcontroller.cpp"
+#include "util/cmdlineargs.h"
 #include "util/time.h"
 #include "util/trace.h"
 
@@ -130,12 +131,10 @@ bool BulkController::matchProductInfo(const ProductInfo& product) {
         return false;
     }
 
-#if defined(__WINDOWS__) || defined(__APPLE__)
     value = product.interface_number.toInt(&ok, 16);
     if (!ok || m_interfaceNumber != static_cast<unsigned int>(value)) {
         return false;
     }
-#endif
 
     // Match found
     return true;
@@ -154,9 +153,7 @@ int BulkController::open() {
                 (bulk_supported[i].product_id == m_productId)) {
             m_inEndpointAddr = bulk_supported[i].in_epaddr;
             m_outEndpointAddr = bulk_supported[i].out_epaddr;
-#if defined(__WINDOWS__) || defined(__APPLE__)
             m_interfaceNumber = bulk_supported[i].interface_number;
-#endif
             break;
         }
     }
@@ -177,7 +174,6 @@ int BulkController::open() {
         return -1;
     }
 
-#if defined(__WINDOWS__) || defined(__APPLE__)
     if (m_interfaceNumber && libusb_kernel_driver_active(m_phandle, m_interfaceNumber) == 1) {
         qCDebug(m_logBase) << "Found a driver active for" << getName();
         if (libusb_detach_kernel_driver(m_phandle, 0) == 0)
@@ -200,7 +196,6 @@ int BulkController::open() {
             qCDebug(m_logBase) << "Claimed interface for" << getName();
         }
     }
-#endif
 
     setOpen(true);
     startEngine();
@@ -281,13 +276,13 @@ void BulkController::send(const QList<int>& data, unsigned int length) {
     sendBytes(temp);
 }
 
-void BulkController::sendBytes(const QByteArray& data) {
+bool BulkController::sendBytes(const QByteArray& data) {
     VERIFY_OR_DEBUG_ASSERT(!m_pMapping ||
             m_pMapping->getDeviceDirection() &
                     LegacyControllerMapping::DeviceDirection::Outgoing) {
         qDebug() << "The mapping for the bulk device" << getName()
                  << "doesn't require sending data. Ignoring sending request.";
-        return;
+        return false;
     }
 
     int ret;
@@ -299,12 +294,14 @@ void BulkController::sendBytes(const QByteArray& data) {
             (unsigned char*)data.constData(),
             data.size(),
             &transferred,
-            0);
+            5000);
     if (ret < 0) {
         qCWarning(m_logOutput) << "Unable to send data to" << getName()
                                << "serial #" << m_sUID << "-" << libusb_error_name(ret);
-    } else {
+        return false;
+    } else if (CmdlineArgs::Instance().getControllerDebug()) {
         qCDebug(m_logOutput) << transferred << "bytes sent to" << getName()
                              << "serial #" << m_sUID;
     }
+    return true;
 }
