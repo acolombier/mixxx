@@ -63,7 +63,7 @@ class BulkController : public Controller {
   private:
     // For devices which only support a single report, reportID must be set to
     // 0x0.
-    void sendBytes(const QByteArray& data) override;
+    bool sendBytes(const QByteArray& data) override;
 
     bool matchProductInfo(const ProductInfo& product);
 
@@ -76,9 +76,7 @@ class BulkController : public Controller {
     unsigned short m_productId;
     unsigned char m_inEndpointAddr;
     unsigned char m_outEndpointAddr;
-#if defined(__WINDOWS__) || defined(__APPLE__)
     unsigned int m_interfaceNumber;
-#endif
     QString m_manufacturer;
     QString m_product;
 
