@@ -450,7 +450,7 @@ Item {
             id: propBPM
         }
         Mixxx.ControlProxy {
-            group: viewModel.leaderGroup
+            group: '[InternalClock]'
             key: "bpm"
             id: propMasterBPM
         }
