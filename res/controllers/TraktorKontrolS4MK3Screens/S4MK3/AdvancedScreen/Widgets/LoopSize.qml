@@ -8,6 +8,7 @@ Item {
     anchors.fill: parent
 
     Defines.Colors {id: colors}
+    Defines.Durations { id: durations }
 
     Mixxx.ControlProxy {
         group: `[Channel${parent.deckId}]`
@@ -30,7 +31,7 @@ Item {
         color: deckInfo.loopActive ? (loopActiveBlinkTimer.blink ? loopActiveColour : (settings.loopActiveRedFlash ? colors.colorRed : loopDimmedColour))
         : deckInfo.loopActive ? (deckInfo.shift ? loopDimmedColour : loopActiveColour)
         : deckInfo.shift ? colors.colorDeckDarkGrey : colors.colorDeckGrey
-        Behavior on opacity { NumberAnimation { duration: 100; easing.type: Easing.Linear} }
+        Behavior on opacity { NumberAnimation { duration: durations.mainTransitionSpeed; easing.type: Easing.Linear} }
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         Rectangle {

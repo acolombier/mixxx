@@ -242,7 +242,7 @@ Item {
   //  STATES
   //------------------------------------------------------------------------------------------------------------------
 
-    Behavior on y { PropertyAnimation { duration: 100; easing.type: Easing.InOutQuad } }
+    Behavior on y { PropertyAnimation { duration: durations.mainTransitionSpeed; easing.type: Easing.InOutQuad } }
 
     states: [
         State {

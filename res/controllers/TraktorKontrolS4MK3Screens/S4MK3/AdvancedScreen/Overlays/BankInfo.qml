@@ -57,10 +57,6 @@ Item {
         property var value: 0
     }
 
-  // property string name1: name1Prop.value == "" ? "No Effect" : name1Prop.value
-  // property string name2: name2Prop.value == "" ? "No Effect" : name2Prop.value
-  // property string name3: name3Prop.value == "" ? "No Effect" : name3Prop.value
-
     Defines.Colors { id: colors }
     Defines.Durations { id: durations }
 

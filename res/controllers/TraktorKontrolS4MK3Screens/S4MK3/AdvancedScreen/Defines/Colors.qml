@@ -356,57 +356,59 @@ QtObject {
     property variant color16Bright2: rgba (248, 8, 64, 120)
 
     property variant musicalKeyColors: [
-                                        color15Bright,        //0   -11 c
-                                        color06Bright,        //1   -4  c#, db
-                                        color11MusicalKey,    //2   -13 d
-                                        color03Bright,        //3   -6  d#, eb
-                                        color09MusicalKey,    //4   -16 e
-                                        color01Bright,        //5   -9  f
-                                        color07MusicalKey,    //6   -2  f#, gb
-                                        color13Bright,        //7   -12 g
-                                        color04MusicalKey,    //8   -5  g#, ab
-                                        color10MusicalKey,    //9   -15 a
-                                        color02MusicalKey,    //10  -7  a#, bb
-                                        color08MusicalKey,    //11  -1  b
-                                        color03Bright,        //12  -6  cm
-                                        color09MusicalKey,    //13  -16 c#m, dbm
-                                        color01Bright,        //14  -9  dm
-                                        color07MusicalKey,    //15  -2  d#m, ebm
-                                        color13Bright,        //16  -12 em
-                                        color04MusicalKey,    //17  -5  fm
-                                        color10MusicalKey,    //18  -15 f#m, gbm
-                                        color02MusicalKey,    //19  -7  gm
-                                        color08MusicalKey,    //20  -1  g#m, abm
-                                        color15Bright,        //21  -11 am
-                                        color06Bright,        //22  -4  a#m, bbm
-                                        color11MusicalKey     //23  -13 bm
+                                        'grey',               //0 No key
+                                        color15Bright,        //1   -11 c
+                                        color06Bright,        //2   -4  c#, db
+                                        color11MusicalKey,    //3   -13 d
+                                        color03Bright,        //4   -6  d#, eb
+                                        color09MusicalKey,    //5   -16 e
+                                        color01Bright,        //6   -9  f
+                                        color07MusicalKey,    //7   -2  f#, gb
+                                        color13Bright,        //8   -12 g
+                                        color04MusicalKey,    //9   -5  g#, ab
+                                        color10MusicalKey,    //10   -15 a
+                                        color02MusicalKey,    //11  -7  a#, bb
+                                        color08MusicalKey,    //12  -1  b
+                                        color03Bright,        //13  -6  cm
+                                        color09MusicalKey,    //14  -16 c#m, dbm
+                                        color01Bright,        //15  -9  dm
+                                        color07MusicalKey,    //16  -2  d#m, ebm
+                                        color13Bright,        //17  -12 em
+                                        color04MusicalKey,    //18  -5  fm
+                                        color10MusicalKey,    //19  -15 f#m, gbm
+                                        color02MusicalKey,    //20  -7  gm
+                                        color08MusicalKey,    //21  -1  g#m, abm
+                                        color15Bright,        //22  -11 am
+                                        color06Bright,        //23  -4  a#m, bbm
+                                        color11MusicalKey     //24  -13 bm
     ]
 
     property variant musicalKeyColorsDark: [
-                                            Qt.darker(color15Bright, 5),        //0   -11 c
-                                            Qt.darker(color06Bright, 5),        //1   -4  c#, db
-                                            Qt.darker(color11MusicalKey, 5),    //2   -13 d
-                                            Qt.darker(color03Bright, 5),        //3   -6  d#, eb
-                                            Qt.darker(color09MusicalKey, 5),    //4   -16 e
-                                            Qt.darker(color01Bright, 5),        //5   -9  f
-                                            Qt.darker(color07MusicalKey, 5),    //6   -2  f#, gb
-                                            Qt.darker(color13Bright, 5),        //7   -12 g
-                                            Qt.darker(color04MusicalKey, 5),    //8   -5  g#, ab
-                                            Qt.darker(color10MusicalKey, 5),    //9   -15 a
-                                            Qt.darker(color02MusicalKey, 5),    //10  -7  a#, bb
-                                            Qt.darker(color08MusicalKey, 5),    //11  -1  b
-                                            Qt.darker(color03Bright, 5),        //12  -6  cm
-                                            Qt.darker(color09MusicalKey, 5),    //13  -16 c#m, dbm
-                                            Qt.darker(color01Bright, 5),        //14  -9  dm
-                                            Qt.darker(color07MusicalKey, 5),    //15  -2  d#m, ebm
-                                            Qt.darker(color13Bright, 5),        //16  -12 em
-                                            Qt.darker(color04MusicalKey, 5),    //17  -5  fm
-                                            Qt.darker(color10MusicalKey, 5),    //18  -15 f#m, gbm
-                                            Qt.darker(color02MusicalKey, 5),    //19  -7  gm
-                                            Qt.darker(color08MusicalKey, 5),    //20  -1  g#m, abm
-                                            Qt.darker(color15Bright, 5),        //21  -11 am
-                                            Qt.darker(color06Bright, 5),        //22  -4  a#m, bbm
-                                            Qt.darker(color11MusicalKey, 5)     //23  -13 bm
+                                            'grey',                             //0  No key
+                                            Qt.darker(color15Bright, 5),        //1   -11 c
+                                            Qt.darker(color06Bright, 5),        //2   -4  c#, db
+                                            Qt.darker(color11MusicalKey, 5),    //3   -13 d
+                                            Qt.darker(color03Bright, 5),        //4   -6  d#, eb
+                                            Qt.darker(color09MusicalKey, 5),    //5   -16 e
+                                            Qt.darker(color01Bright, 5),        //6   -9  f
+                                            Qt.darker(color07MusicalKey, 5),    //7   -2  f#, gb
+                                            Qt.darker(color13Bright, 5),        //8   -12 g
+                                            Qt.darker(color04MusicalKey, 5),    //9   -5  g#, ab
+                                            Qt.darker(color10MusicalKey, 5),    //10   -15 a
+                                            Qt.darker(color02MusicalKey, 5),    //11  -7  a#, bb
+                                            Qt.darker(color08MusicalKey, 5),    //12  -1  b
+                                            Qt.darker(color03Bright, 5),        //13  -6  cm
+                                            Qt.darker(color09MusicalKey, 5),    //14  -16 c#m, dbm
+                                            Qt.darker(color01Bright, 5),        //15  -9  dm
+                                            Qt.darker(color07MusicalKey, 5),    //16  -2  d#m, ebm
+                                            Qt.darker(color13Bright, 5),        //17  -12 em
+                                            Qt.darker(color04MusicalKey, 5),    //18  -5  fm
+                                            Qt.darker(color10MusicalKey, 5),    //19  -15 f#m, gbm
+                                            Qt.darker(color02MusicalKey, 5),    //20  -7  gm
+                                            Qt.darker(color08MusicalKey, 5),    //21  -1  g#m, abm
+                                            Qt.darker(color15Bright, 5),        //22  -11 am
+                                            Qt.darker(color06Bright, 5),        //23  -4  a#m, bbm
+                                            Qt.darker(color11MusicalKey, 5)     //24  -13 bm
     ]
 
   //--------------------------------------------------------------------------------------------------------------------

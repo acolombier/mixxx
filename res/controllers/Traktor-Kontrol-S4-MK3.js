@@ -877,6 +877,8 @@ class HotcueButton extends PushButton {
                 engine.setSharedData(data);
             }
 
+        } else if (this.deck.libraryPlayButton.pressed) {
+            engine.setValue(this.deck.libraryPlayButton.group, this.inKey, pressed);
         } else {
             engine.setValue(this.group, "scratch2_enable", false);
             engine.setValue(this.group, this.inKey, pressed);
@@ -2504,8 +2506,13 @@ class S4Mk3Deck extends Deck {
         });
         this.libraryPlayButton = new PushButton({
             group: "[PreviewDeck1]",
+            deck: this,
             onPress: function() {
-                script.triggerControl(this.group, "LoadSelectedTrackAndPlay");
+                if (this.shifted) {
+                    engine.setValue(this.group, "CloneFromDeck", this.deck.currentDeckNumber);
+                } else {
+                    script.triggerControl(this.group, "LoadSelectedTrackAndPlay");
+                }
             },
             onRelease: function() {
                 engine.setValue(this.group, "play", 0);
