@@ -27,7 +27,7 @@ namespace qml {
 
 class QmlPlayerProxy;
 
-class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, WaveformWidgetRenderer {
+class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public WaveformWidgetRenderer {
     Q_OBJECT
     Q_PROPERTY(QmlPlayerProxy* player READ getPlayer WRITE setPlayer
                     NOTIFY playerChanged REQUIRED)
@@ -73,7 +73,7 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, WaveformWidgetR
 
     PerformanceTimer m_timer;
 
-    std::unique_ptr<rendergraph::Node> m_waveformNode;
+    rendergraph::Node* m_waveformNode;
     rendergraph::OpacityNode* m_pOpacityNode;
     allshader::WaveformRenderMark* m_pWaveformRenderMark;
     allshader::WaveformRenderMarkRange* m_pWaveformRenderMarkRange;

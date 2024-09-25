@@ -4,7 +4,9 @@ using namespace rendergraph;
 
 namespace {
 static QString resource(const QString& filename) {
-    return QStringLiteral(":/shaders/rendergraph/%1.qsb").arg(filename);
+    return QStringLiteral(
+            "/home/antoine/dev/mixxx/build/res/shaders/rendergraph/.qsb/%1.qsb")
+            .arg(filename);
 }
 } // namespace
 

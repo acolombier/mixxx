@@ -156,12 +156,14 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
     QSGRectangleNode* bgNode;
     if (!node) {
         bgNode = window()->createRectangleNode();
-        bgNode->setColor(QColor(0, 0, 0, 255));
+        bgNode->setColor(QColor(0, 0, 0, 64));
         bgNode->setRect(boundingRect());
 
         // rendergraph::Context context(window());
-        m_waveformNode = std::make_unique<rendergraph::Node>();
+        m_waveformNode = new rendergraph::Node();
         auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
+
+        // m_waveformNode = new WaveformRendererEndOfTrack(this);
 
         // appendChildTo(m_waveformNode, addRenderer<WaveformRenderBackground>());
         appendChildTo(pOpacityNode, addRenderer<WaveformRendererEndOfTrack>());
@@ -218,6 +220,17 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
     } else {
         bgNode = static_cast<QSGRectangleNode*>(node);
     }
+    // m_pOpacityNode->setOpacity(1.f);
+
+    // m_pWaveformRenderMark->update();
+    // m_pWaveformRenderMarkRange->update();
+
+    // for (auto pRenderer : m_rendererStack) {
+    //     auto pNode = reinterpret_cast<rendergraph::Node*>(pRenderer);
+    //     if (!pNode->isSubtreeBlocked()) {
+    //         pNode->preprocess();
+    //     }
+    // }
 
     if (m_geometryChanged) {
         bgNode->setRect(boundingRect());
