@@ -159,6 +159,11 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         bgNode->setColor(QColor(0, 0, 0, 64));
         bgNode->setRect(boundingRect());
 
+#ifndef ADD_ALL_WAVEFORM_NODES
+        m_waveformNode = std::make_unique<rendergraph::Node>();
+        appendChildTo(m_waveformNode, addRenderer<WaveformRendererEndOfTrack>());
+        bgNode->appendChildNode(m_waveformNode->backendNode());
+#else
         // rendergraph::Context context(window());
         m_waveformNode = new rendergraph::Node();
         auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
@@ -215,6 +220,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
         m_waveformNode->appendChildNode(std::move(pOpacityNode));
         bgNode->appendChildNode(m_waveformNode->backendNode());
+#endif
 
         node = bgNode;
     } else {

@@ -66,6 +66,9 @@ void WaveformRendererEndOfTrack::setup(const QDomNode& node, const SkinContext& 
 }
 
 void WaveformRendererEndOfTrack::preprocess() {
+    material().setUniform(0, QColor(0, 255, 0, 255));
+    return;
+
     const int elapsed = m_timer.elapsed().toIntegerMillis() % kBlinkingPeriodMillis;
 
     const double blinkIntensity = (double)(2 * abs(elapsed - kBlinkingPeriodMillis / 2)) /
@@ -88,7 +91,8 @@ void WaveformRendererEndOfTrack::preprocess() {
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
-    return !m_pEndOfTrackControl->toBool();
+    return false;
+    //    return !m_pEndOfTrackControl->toBool();
 }
 
 } // namespace allshader
