@@ -27,8 +27,6 @@ WaveformRendererRGB::WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
           m_options(options) {
     initForRectangles<RGBMaterial>(0);
     setUsePreprocess(true);
-    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsGeometry);
-    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsMaterial);
 }
 
 void WaveformRendererRGB::onSetup(const QDomNode& node) {

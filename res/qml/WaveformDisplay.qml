@@ -21,11 +21,15 @@ Item {
             color: 'red'
         }
 
-        // Mixxx.WaveformRendererRGB {
-        // }
+        Mixxx.WaveformRendererRGB {
+            axesColor: 'white'
+            lowColor: 'red'
+            midColor: 'green'
+            highColor: 'blue'
+        }
 
-        // Mixxx.WaveformRendererBeat {
-        //     color: 'green'
-        // }
+        Mixxx.WaveformRendererBeat {
+            color: 'green'
+        }
     }
 }

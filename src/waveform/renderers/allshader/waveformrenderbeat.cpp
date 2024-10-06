@@ -23,8 +23,6 @@ WaveformRenderBeat::WaveformRenderBeat(WaveformWidgetRenderer* waveformWidget,
           m_color(color) {
     initForRectangles<UniColorMaterial>(0);
     setUsePreprocess(true);
-    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsGeometry);
-    reinterpret_cast<QSGNode*>(backendNode())->setFlag(QSGNode::OwnsMaterial);
 }
 
 void WaveformRenderBeat::setup(const QDomNode& node, const SkinContext& context) {

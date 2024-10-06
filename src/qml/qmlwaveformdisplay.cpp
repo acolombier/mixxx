@@ -86,59 +86,60 @@ void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF&
     QQuickItem::geometryChange(newGeometry, oldGeometry);
 }
 
+// QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
+//     // TODO the flag is not set when the position changes,
+//     // but only when the size changes. Until we found a way
+//     // to detect position changed, call setRect always
+//     // (we check internally if the rect changed anyway)
+//     //
+//     // if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
+//     //    m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
+//     //    setRect(mapRectToScene(boundingRect()));
+//     //}
+//     setRect(mapRectToScene(boundingRect()));
+//     setViewport(window()->size());
+//     setDevicePixelRatio(window()->devicePixelRatio());
+
+//     // Will recalculate the matrix if any of the above changed.
+//     // Nodes can use getMatrixChanged() to check if the matrix
+//     // has changed and take appropriate action.
+//     updateMatrix();
+
+//     auto* bgNode = dynamic_cast<QSGSimpleRectNode*>(node);
+//     if (!bgNode) {
+//         static int k = 0;
+//         k++;
+//         bgNode = new QSGSimpleRectNode();
+//         bgNode->setRect(boundingRect());
+//         bgNode->setColor(QColor((k & 1) ? 64 : 0, (k & 4) ? 64 : 0, (k & 2) ? 64 : 0, 255));
+
+//         auto pEndOfTrackNode =
+//                 std::make_unique<allshader_sg::WaveformRendererEndOfTrack>(
+//                         this, QColor("yellow"));
+//         pEndOfTrackNode->init();
+//         bgNode->appendChildNode(pEndOfTrackNode->backendNode());
+
+//         m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pEndOfTrackNode));
+//         m_pEngine->initialize();
+//     }
+
+//     return bgNode;
+// }
+
 QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
-    // TODO the flag is not set when the position changes,
-    // but only when the size changes. Until we found a way
-    // to detect position changed, call setRect always
-    // (we check internally if the rect changed anyway)
-    //
-    // if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
-    //    m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
-    //    setRect(mapRectToScene(boundingRect()));
-    //}
     setRect(mapRectToScene(boundingRect()));
     setViewport(window()->size());
     setDevicePixelRatio(window()->devicePixelRatio());
-
-    // Will recalculate the matrix if any of the above changed.
-    // Nodes can use getMatrixChanged() to check if the matrix
-    // has changed and take appropriate action.
-    updateMatrix();
-
     auto* bgNode = dynamic_cast<QSGSimpleRectNode*>(node);
-    if (!bgNode) {
-        static int k = 0;
-        k++;
-        bgNode = new QSGSimpleRectNode();
-        bgNode->setRect(boundingRect());
-        bgNode->setColor(QColor((k & 1) ? 64 : 0, (k & 4) ? 64 : 0, (k & 2) ? 64 : 0, 255));
-
-        auto pEndOfTrackNode =
-                std::make_unique<allshader_sg::WaveformRendererEndOfTrack>(
-                        this, QColor("yellow"));
-        pEndOfTrackNode->init();
-        bgNode->appendChildNode(pEndOfTrackNode->backendNode());
-
-        m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pEndOfTrackNode));
-        m_pEngine->initialize();
-    }
-
-    return bgNode;
-}
-
-/*
-QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
-    auto* clipNode = dynamic_cast<QSGClipNode*>(node);
     static rendergraph::GeometryNode* pPreRoll;
 
-    QSGSimpleRectNode* bgNode;
-    if (!clipNode || m_dirtyFlag.testFlag(DirtyFlag::Window)) {
-        if (clipNode) {
-            delete clipNode;
+    updateMatrix();
+
+    if (!bgNode || m_dirtyFlag.testFlag(DirtyFlag::Window)) {
+        if (bgNode) {
+            delete bgNode;
             m_dirtyFlag.setFlag(DirtyFlag::Window, false);
         }
-        clipNode = new QSGClipNode();
-        clipNode->setIsRectangular(true);
         bgNode = new QSGSimpleRectNode();
         bgNode->setRect(boundingRect());
 
@@ -147,7 +148,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         // auto pOpacityNode = std::make_unique<rendergraph::OpacityNode>();
 
         m_rendererStack.clear();
-        for (auto pQmlRenderer : m_waveformRenderers) {
+        for (auto* pQmlRenderer : m_waveformRenderers) {
             auto renderer = pQmlRenderer->create(this, context);
             addRenderer(renderer.renderer);
             // appendChildTo(pOpacityNode, renderer.node);
@@ -159,13 +160,9 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
         bgNode->setColor(QColor(0, 0, 0, 255));
 
-        clipNode->appendChildNode(bgNode);
-
         m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pTopNode));
         m_pEngine->initialize();
         init();
-    } else {
-        bgNode = dynamic_cast<QSGSimpleRectNode*>(clipNode->childAtIndex(0));
     }
 
     if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
@@ -177,16 +174,14 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         // qDebug() << "RECT" << window()->mapToGlobal(QPointF(0, 0)));
         qDebug() << "RECT" << window()->size();
         m_pEngine->resize(boundingRect());
-        clipNode->setClipRect(boundingRect());
         bgNode->setRect(boundingRect());
     }
 
     onPreRender(this);
-    clipNode->markDirty(QSGNode::DirtyForceUpdate);
+    bgNode->markDirty(QSGNode::DirtyForceUpdate);
 
-    return clipNode;
+    return bgNode;
 }
-*/
 
 QmlPlayerProxy* QmlWaveformDisplay::getPlayer() const {
     return m_pPlayer;

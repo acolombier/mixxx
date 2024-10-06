@@ -509,7 +509,7 @@ CuePointer WaveformWidgetRenderer::getCuePointerFromIndex(int cueIndex) const {
 
 void WaveformWidgetRenderer::updateMatrix() {
     if (m_matrixNeedUpdate) {
-        qDebug() << "updating matrix with" << m_rect << m_viewport;
+        qDebug() << "updating matrix with" << m_rect << m_viewport << m_devicePixelRatio;
 
         m_matrix = QMatrix4x4();
         m_matrix.ortho(QRectF(

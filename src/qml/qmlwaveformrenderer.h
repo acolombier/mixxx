@@ -49,7 +49,8 @@ class QmlWaveformRendererEndOfTrack
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
+    Renderer create(WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context context) const override;
 
   signals:
     void colorChanged(const QColor&);
@@ -75,7 +76,8 @@ class QmlWaveformRendererPreroll
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
+    Renderer create(WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context context) const override;
   signals:
     void colorChanged(const QColor&);
 
@@ -86,12 +88,60 @@ class QmlWaveformRendererPreroll
 class QmlWaveformRendererRGB
         : public QmlWaveformRendererFactory {
     Q_OBJECT
+    Q_PROPERTY(QColor axesColor READ axesColor WRITE setAxesColor NOTIFY axesColorChanged REQUIRED)
+    Q_PROPERTY(QColor lowColor READ lowColor WRITE setLowColor NOTIFY lowColorChanged REQUIRED)
+    Q_PROPERTY(QColor midColor READ midColor WRITE setMidColor NOTIFY midColorChanged REQUIRED)
+    Q_PROPERTY(QColor highColor READ highColor WRITE setHighColor NOTIFY highColorChanged REQUIRED)
     QML_NAMED_ELEMENT(WaveformRendererRGB)
 
   public:
     QmlWaveformRendererRGB();
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
+    const QColor& axesColor() const {
+        return m_axesColor;
+    }
+    void setAxesColor(QColor color) {
+        m_axesColor = color;
+        emit axesColorChanged(m_axesColor);
+    }
+
+    const QColor& lowColor() const {
+        return m_lowColor;
+    }
+    void setLowColor(QColor color) {
+        m_lowColor = color;
+        emit lowColorChanged(m_lowColor);
+    }
+
+    const QColor& midColor() const {
+        return m_lowColor;
+    }
+    void setMidColor(QColor color) {
+        m_midColor = color;
+        emit midColorChanged(m_lowColor);
+    }
+
+    const QColor& highColor() const {
+        return m_lowColor;
+    }
+    void setHighColor(QColor color) {
+        m_highColor = color;
+        emit highColorChanged(m_lowColor);
+    }
+
+    Renderer create(WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context context) const override;
+  signals:
+    void axesColorChanged(const QColor&);
+    void lowColorChanged(const QColor&);
+    void midColorChanged(const QColor&);
+    void highColorChanged(const QColor&);
+
+  private:
+    QColor m_axesColor;
+    QColor m_lowColor;
+    QColor m_midColor;
+    QColor m_highColor;
 };
 
 class QmlWaveformRendererBeat
@@ -111,7 +161,8 @@ class QmlWaveformRendererBeat
         emit colorChanged(m_color);
     }
 
-    Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
+    Renderer create(WaveformWidgetRenderer* waveformWidget,
+            rendergraph::Context context) const override;
   signals:
     void colorChanged(const QColor&);
 

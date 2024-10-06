@@ -27,14 +27,14 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererEndOfTrack::create(
         WaveformWidgetRenderer* waveformWidget,
         rendergraph::Context context) const {
     Q_UNUSED(context);
-    auto renderer = new WaveformRendererEndOfTrack(waveformWidget, m_color);
+    auto* renderer = new WaveformRendererEndOfTrack(waveformWidget, m_color);
     return QmlWaveformRendererFactory::Renderer{renderer, renderer};
 }
 
 QmlWaveformRendererFactory::Renderer QmlWaveformRendererPreroll::create(
         WaveformWidgetRenderer* waveformWidget,
         rendergraph::Context context) const {
-    auto renderer = new WaveformRendererPreroll(waveformWidget, context, m_color);
+    auto* renderer = new WaveformRendererPreroll(waveformWidget, context, m_color);
     return QmlWaveformRendererFactory::Renderer{renderer, renderer};
 }
 
@@ -42,7 +42,12 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererRGB::create(
         WaveformWidgetRenderer* waveformWidget,
         rendergraph::Context context) const {
     Q_UNUSED(context);
-    auto renderer = new WaveformRendererRGB(waveformWidget, ::WaveformRendererAbstract::Play);
+    auto* renderer = new WaveformRendererRGB(waveformWidget,
+            m_axesColor,
+            m_lowColor,
+            m_midColor,
+            m_highColor,
+            ::WaveformRendererAbstract::Play);
     return QmlWaveformRendererFactory::Renderer{renderer, renderer};
 }
 
@@ -50,7 +55,7 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererBeat::create(
         WaveformWidgetRenderer* waveformWidget,
         rendergraph::Context context) const {
     Q_UNUSED(context);
-    auto renderer = new WaveformRenderBeat(
+    auto* renderer = new WaveformRenderBeat(
             waveformWidget, ::WaveformRendererAbstract::Play, m_color);
     return QmlWaveformRendererFactory::Renderer{renderer, renderer};
 }
