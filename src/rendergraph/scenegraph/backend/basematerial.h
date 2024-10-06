@@ -15,5 +15,5 @@ class rendergraph::BaseMaterial : public QSGMaterial {
 
     int compare(const QSGMaterial* other) const override;
 
-    bool updateUniformsByteArray(QByteArray* buf);
+    bool updateUniformsByteArray(QByteArray* buf, bool materialChanged);
 };

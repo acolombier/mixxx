@@ -61,7 +61,9 @@ void WWaveformViewer::resizeEvent(QResizeEvent* event) {
         // so this calls the method of WaveformWidgetAbstract,
         // note of the derived waveform widgets which are also
         // a QWidget, though that will be called directly.
-        m_waveformWidget->resize(width(), height());
+        m_waveformWidget->setViewport(QSize(width(), height()));
+        m_waveformWidget->setRect(QRectF(0, 0, width(), height()));
+        m_waveformWidget->setDevicePixelRatio(static_cast<float>(devicePixelRatioF()));
     }
 }
 
@@ -71,8 +73,9 @@ void WWaveformViewer::showEvent(QShowEvent* event) {
         // We leave it up to Qt to set the size of the derived
         // waveform widget, but we still need to set the size
         // of the renderer.
-        m_waveformWidget->resizeRenderer(
-                width(), height(), static_cast<float>(devicePixelRatioF()));
+        m_waveformWidget->setViewport(QSize(width(), height()));
+        m_waveformWidget->setRect(QRectF(0, 0, width(), height()));
+        m_waveformWidget->setDevicePixelRatio(static_cast<float>(devicePixelRatioF()));
     }
 }
 

@@ -34,8 +34,9 @@ class allshader::WaveformRenderMarkRange final : public ::WaveformRendererAbstra
     void update();
 
   private:
+    void updateNodeMatrix(rendergraph::GeometryNode* pChild,
+            const QMatrix4x4& matrix);
     void updateNode(rendergraph::GeometryNode* pChild,
-            const QMatrix4x4& matrix,
             QColor color,
             QVector2D lt,
             QVector2D rb);

@@ -25,12 +25,10 @@ WaveformWidgetRenderer::WaveformWidgetRenderer(const QString& group)
         : m_group(group),
           m_orientation(Qt::Horizontal),
           m_dimBrightThreshold(kDefaultDimBrightThreshold),
-          m_height(-1),
-          m_width(-1),
+          m_matrixNeedUpdate(false),
+          m_matrixChanged(false),
           m_devicePixelRatio(1.0f),
-
           m_trackPixelCount(0.0),
-
           m_zoomFactor(1.0),
           m_visualSamplePerPixel(1.0),
           m_audioSamplePerPixel(1.0),
@@ -387,6 +385,7 @@ void WaveformWidgetRenderer::setPassThroughEnabled(bool enabled) {
     }
 }
 
+/*
 void WaveformWidgetRenderer::resizeRenderer(int width, int height, float devicePixelRatio) {
     m_width = width;
     m_height = height;
@@ -396,6 +395,7 @@ void WaveformWidgetRenderer::resizeRenderer(int width, int height, float deviceP
         m_rendererStack[i]->onResize();
     }
 }
+*/
 
 void WaveformWidgetRenderer::setup(
         const QDomNode& node, const SkinContext& context) {
@@ -505,4 +505,36 @@ CuePointer WaveformWidgetRenderer::getCuePointerFromIndex(int cueIndex) const {
         }
     }
     return {};
+}
+
+void WaveformWidgetRenderer::updateMatrix() {
+    if (m_matrixNeedUpdate) {
+        qDebug() << "updating matrix with" << m_rect << m_viewport;
+
+        m_matrix = QMatrix4x4();
+        m_matrix.ortho(QRectF(
+                -m_rect.x(),
+                -m_rect.y(),
+                m_viewport.width(),
+                m_viewport.height()));
+        if (getOrientation() == Qt::Vertical) {
+            m_matrix.rotate(90.f, 0.0f, 0.0f, 1.0f);
+            m_matrix.translate(0.f, -m_viewport.width(), 0.f);
+        }
+        m_matrixDevicePixelRatio = QMatrix4x4();
+        m_matrixDevicePixelRatio.ortho(QRectF(
+                -m_rect.x() * m_devicePixelRatio,
+                -m_rect.y() * m_devicePixelRatio,
+                m_viewport.width() * m_devicePixelRatio,
+                m_viewport.height() * m_devicePixelRatio));
+        if (getOrientation() == Qt::Vertical) {
+            m_matrixDevicePixelRatio.rotate(90.f, 0.0f, 0.0f, 1.0f);
+            m_matrixDevicePixelRatio.translate(
+                    0.f, -m_viewport.width() * m_devicePixelRatio, 0.f);
+        }
+        m_matrixNeedUpdate = false;
+        m_matrixChanged = true;
+    } else {
+        m_matrixChanged = false;
+    }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QMatrix4x4>
+
 #include "track/track_decl.h"
 #include "util/class.h"
 #include "waveform/renderers/waveformmark.h"
@@ -141,22 +143,44 @@ class WaveformWidgetRenderer {
         return m_alphaBeatGrid;
     }
 
-    virtual void resizeRenderer(int width, int height, float devicePixelRatio);
-
+    void setDevicePixelRatio(float devicePixelRatio) {
+        if (m_devicePixelRatio != devicePixelRatio) {
+            m_devicePixelRatio = devicePixelRatio;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    void setViewport(const QSize& viewport) {
+        if (m_viewport != viewport) {
+            m_viewport = viewport;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    void setRect(const QRectF& rect) {
+        if (m_rect != rect) {
+            m_rect = rect;
+            m_matrixNeedUpdate = true;
+        }
+    }
+    const QSize getViewport() const {
+        return m_viewport;
+    }
+    const QSizeF getSize() const {
+        return m_rect.size();
+    }
     int getHeight() const {
-        return m_height;
+        return static_cast<int>(m_rect.height());
     }
     int getWidth() const {
-        return m_width;
+        return static_cast<int>(m_rect.width());
     }
     float getDevicePixelRatio() const {
         return m_devicePixelRatio;
     }
     int getLength() const {
-        return m_orientation == Qt::Horizontal ? m_width : m_height;
+        return m_orientation == Qt::Horizontal ? getWidth() : getHeight();
     }
     int getBreadth() const {
-        return m_orientation == Qt::Horizontal ? m_height : m_width;
+        return m_orientation == Qt::Horizontal ? getHeight() : getWidth();
     }
     Qt::Orientation getOrientation() const {
         return m_orientation;
@@ -201,6 +225,16 @@ class WaveformWidgetRenderer {
         return m_trackSamples <= 0.0 || m_pos[::WaveformRendererAbstract::Play] == -1;
     }
 
+    void updateMatrix();
+
+    bool getMatrixChanged() const {
+        return m_matrixChanged;
+    }
+
+    const QMatrix4x4& getMatrix(bool applyDevicePixelRatio) {
+        return applyDevicePixelRatio ? m_matrixDevicePixelRatio : m_matrix;
+    }
+
   protected:
     QString m_group;
     TrackPointer m_pTrack;
@@ -209,6 +243,12 @@ class WaveformWidgetRenderer {
     int m_dimBrightThreshold;
     int m_height;
     int m_width;
+    bool m_matrixNeedUpdate;
+    bool m_matrixChanged;
+    QRectF m_rect;
+    QSize m_viewport;
+    QMatrix4x4 m_matrix;
+    QMatrix4x4 m_matrixDevicePixelRatio;
     float m_devicePixelRatio;
     WaveformSignalColors m_colors;
     QColor m_passthroughLabelColor;

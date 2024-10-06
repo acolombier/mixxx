@@ -4,9 +4,9 @@
 
 using namespace rendergraph;
 
-bool BaseMaterial::updateUniformsByteArray(QByteArray* buf) {
+bool BaseMaterial::updateUniformsByteArray(QByteArray* buf, bool materialChanged) {
     auto pThis = static_cast<Material*>(this);
-    if (pThis->clearUniformsCacheDirty()) {
+    if (pThis->clearUniformsCacheDirty() || materialChanged) {
         memcpy(buf->data(), pThis->uniformsCache().data(), pThis->uniformsCache().size());
         return true;
     }

@@ -499,7 +499,7 @@ bool WaveformWidgetFactory::setWaveformWidget(WWaveformViewer* viewer,
     viewer->setZoom(m_defaultZoom);
     viewer->setDisplayBeatGridAlpha(m_beatGridAlpha);
     viewer->setPlayMarkerPosition(m_playMarkerPosition);
-    waveformWidget->resize(viewer->width(), viewer->height());
+    waveformWidget->setViewport(QSize(viewer->width(), viewer->height()));
     waveformWidget->getWidget()->show();
     viewer->update();
 
@@ -620,7 +620,7 @@ bool WaveformWidgetFactory::setWidgetTypeFromHandle(int handleIndex, bool force)
         // resize() doesn't seem to get called on the widget. I think Qt skips
         // it since the size didn't change.
         //viewer->resize(viewer->size());
-        widget->resize(viewer->width(), viewer->height());
+        widget->setViewport(QSize(viewer->width(), viewer->height()));
         widget->setTrack(pTrack);
         widget->getWidget()->show();
         viewer->update();
@@ -1181,12 +1181,14 @@ void WaveformWidgetFactory::startVSync(GuiTick* pGuiTick, VisualsManager* pVisua
 #ifdef MIXXX_USE_QOPENGL
     if (m_vsyncThread->vsyncMode() == VSyncThread::ST_PLL) {
         WGLWidget* widget = SharedGLContext::getWidget();
-        connect(widget->getOpenGLWindow(),
-                &QOpenGLWindow::frameSwapped,
-                this,
-                &WaveformWidgetFactory::slotFrameSwapped,
-                Qt::DirectConnection);
-        widget->show();
+        if (widget) {
+            connect(widget->getOpenGLWindow(),
+                    &QOpenGLWindow::frameSwapped,
+                    this,
+                    &WaveformWidgetFactory::slotFrameSwapped,
+                    Qt::DirectConnection);
+            widget->show();
+        }
     }
 #endif
 

@@ -14,7 +14,6 @@
 #include "rendergraph/geometry.h"
 #include "rendergraph/material/texturematerial.h"
 #include "rendergraph/vertexupdaters/texturedvertexupdater.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 
 // Render digits using a texture (generated) with digits with blurred dark outline
 

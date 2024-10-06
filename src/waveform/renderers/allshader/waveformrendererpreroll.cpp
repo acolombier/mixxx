@@ -11,7 +11,6 @@
 #include "rendergraph/material/patternmaterial.h"
 #include "rendergraph/vertexupdaters/texturedvertexupdater.h"
 #include "skin/legacy/skincontext.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "widget/wskincolor.h"
 
@@ -70,8 +69,8 @@ WaveformRendererPreroll::WaveformRendererPreroll(
         WaveformWidgetRenderer* waveformWidget,
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRendererAbstract(waveformWidget),
-          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip),
-          m_color(QColor(200, 25, 20)) {
+          m_color(QColor(200, 25, 20)),
+          m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
     setMaterial(std::make_unique<PatternMaterial>());
     setGeometry(std::make_unique<Geometry>(PatternMaterial::attributes(), 0));
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
@@ -216,16 +215,15 @@ bool WaveformRendererPreroll::preprocessInner() {
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
-    // const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
-    QMatrix4x4 matrix;
-    // qDebug() << m_geometry << m_context.window()->effectiveDevicePixelRatio()
-    // << m_markerLength << m_markerBreadth <<
-    // m_waveformRenderer->getDevicePixelRatio(); matrix.ortho(QRectF(0, 0,
-    // 1280, 400));
-    matrix.ortho(QRectF(QPointF(0, -36), m_context.window()->size()));
-
-    material().setUniform(0, matrix);
-
+    if (m_waveformRenderer->getMatrixChanged()) {
+        const QMatrix4x4 matrix = m_waveformRenderer->getMatrix(false);
+        // qDebug() << m_geometry << m_context.window()->effectiveDevicePixelRatio()
+        // << m_markerLength << m_markerBreadth <<
+        // m_waveformRenderer->getDevicePixelRatio(); matrix.ortho(QRectF(0, 0,
+        // 1280, 400));
+        material().setUniform(0, matrix);
+        markDirtyMaterial();
+    }
     return true;
 }
 

@@ -9,7 +9,9 @@ using namespace rendergraph;
 bool BaseMaterialShader::updateUniformData(RenderState& state,
         QSGMaterial* newMaterial,
         QSGMaterial* oldMaterial) {
-    return static_cast<Material*>(newMaterial)->updateUniformsByteArray(state.uniformData());
+    return static_cast<Material*>(newMaterial)
+            ->updateUniformsByteArray(
+                    state.uniformData(), oldMaterial != newMaterial);
 }
 
 // override for QSGMaterialShader; this function is called by the Qt scene graph to prepare use of

@@ -13,7 +13,6 @@
 #include "track/track.h"
 #include "util/colorcomponents.h"
 #include "waveform/renderers/allshader/digitsrenderer.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "waveform/waveformwidgetfactory.h"
 
@@ -44,9 +43,11 @@ class WaveformMarkNode : public rendergraph::GeometryNode {
         m_textureWidth = image.width();
         m_textureHeight = image.height();
     }
-    void update(const QMatrix4x4& matrix, float x, float y, float devicePixelRatio) {
+    void updateMatrix(const QMatrix4x4& matrix) {
         material().setUniform(0, matrix);
-
+        markDirtyMaterial();
+    }
+    void update(float x, float y, float devicePixelRatio) {
         TexturedVertexUpdater vertexUpdater{
                 geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
         vertexUpdater.addRectangle({x, y},
@@ -75,8 +76,11 @@ class WaveformMarkNodeGraphics : public WaveformMark::Graphics {
     void updateTexture(const QImage& image) {
         waveformMarkNode()->updateTexture(image);
     }
-    void update(const QMatrix4x4& matrix, float x, float y, float devicePixelRatio) {
-        waveformMarkNode()->update(matrix, x, y, devicePixelRatio);
+    void updateMatrix(const QMatrix4x4& matrix) {
+        waveformMarkNode()->updateMatrix(matrix);
+    }
+    void update(float x, float y, float devicePixelRatio) {
+        waveformMarkNode()->update(x, y, devicePixelRatio);
     }
     float textureWidth() const {
         return waveformMarkNode()->textureWidth();
@@ -243,7 +247,8 @@ void allshader::WaveformRenderMark::update() {
     // (Will create textures so requires OpenGL context)
     updateMarkImages();
 
-    QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
+    const bool matrixChanged = m_waveformRenderer->getMatrixChanged();
+    const QMatrix4x4 matrix = m_waveformRenderer->getMatrix(false);
 
     const double playPosition = m_waveformRenderer->getTruePosSample(positionType);
     double nextMarkPosition = std::numeric_limits<double>::max();
@@ -292,7 +297,10 @@ void allshader::WaveformRenderMark::update() {
         if (drawOffset > -markHalfWidth &&
                 drawOffset < m_waveformRenderer->getLength() +
                                 markHalfWidth) {
-            pMarkNodeGraphics->update(matrix,
+            if (matrixChanged) {
+                pMarkNodeGraphics->updateMatrix(matrix);
+            }
+            pMarkNodeGraphics->update(
                     drawOffset,
                     !m_isSlipRenderer && slipActive
                             ? m_waveformRenderer->getBreadth() / 2

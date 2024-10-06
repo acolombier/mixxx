@@ -6,7 +6,6 @@
 #include "rendergraph/vertexupdaters/rgbvertexupdater.h"
 #include "track/track.h"
 #include "util/math.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "waveform/waveform.h"
 
@@ -254,9 +253,11 @@ bool WaveformRendererRGB::preprocessInner() {
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
-    const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, true);
-    material().setUniform(0, matrix);
-    markDirtyMaterial();
+    if (m_waveformRenderer->getMatrixChanged()) {
+        const QMatrix4x4 matrix = m_waveformRenderer->getMatrix(true);
+        material().setUniform(0, matrix);
+        markDirtyMaterial();
+    }
 
     return true;
 }

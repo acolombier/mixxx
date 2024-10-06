@@ -52,7 +52,7 @@ class QmlWaveformRendererEndOfTrack
     Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
 
   signals:
-    void colorChanged(QColor&);
+    void colorChanged(const QColor&);
 
   private:
     QColor m_color;
@@ -77,7 +77,7 @@ class QmlWaveformRendererPreroll
 
     Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
   signals:
-    void colorChanged(QColor&);
+    void colorChanged(const QColor&);
 
   private:
     QColor m_color;
@@ -113,7 +113,7 @@ class QmlWaveformRendererBeat
 
     Renderer create(WaveformWidgetRenderer* waveformWidget, rendergraph::Context context) const;
   signals:
-    void colorChanged(QColor&);
+    void colorChanged(const QColor&);
 
   private:
     QColor m_color;

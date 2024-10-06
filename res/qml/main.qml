@@ -132,19 +132,26 @@ ApplicationWindow {
             group: "[Channel1]"
         }
 
-        WaveformRow {
+        Skin.WaveformDisplay {
             id: deck2waveform
 
-            group: "[Channel2]"
             width: root.width
             height: 60
-            visible: !root.maximizeLibrary
-
-            FadeBehavior on visible {
-                fadeTarget: deck2waveform
-            }
+            group: "[Channel2]"
         }
 
+//        WaveformRow {
+//            id: deck2waveform
+//
+//            group: "[Channel2]"
+//            width: root.width
+//            height: 60
+//            visible: !root.maximizeLibrary
+//
+//            FadeBehavior on visible {
+//                fadeTarget: deck2waveform
+//            }
+//        }
         WaveformRow {
             id: deck4waveform
 

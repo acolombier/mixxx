@@ -25,8 +25,8 @@ void CustomItem::geometryChange(const QRectF& newGeometry, const QRectF& oldGeom
 }
 
 QSGNode* CustomItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
-    QSGRectangleNode* bgNode;
-    if (!node) {
+    QSGRectangleNode* bgNode = static_cast<QSGRectangleNode*>(node);
+    if (!bgNode) {
         bgNode = window()->createRectangleNode();
         bgNode->setColor(QColor(0, 0, 0, 255));
         bgNode->setRect(boundingRect());
@@ -38,17 +38,13 @@ QSGNode* CustomItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
 
         m_pEngine = std::make_unique<rendergraph::Engine>(std::move(pTopNode));
         m_pEngine->initialize();
-
-        node = bgNode;
-    } else {
-        bgNode = static_cast<QSGRectangleNode*>(node);
     }
 
     if (m_geometryChanged) {
         bgNode->setRect(boundingRect());
-        m_pEngine->resize(boundingRect().width(), boundingRect().height());
+        m_pEngine->resize(boundingRect());
         m_geometryChanged = false;
     }
 
-    return node;
+    return bgNode;
 }

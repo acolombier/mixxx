@@ -1513,7 +1513,6 @@ if(QOPENGL)
     src/shaders/vinylqualityshader.cpp
     src/util/opengltexture2d.cpp
     src/waveform/renderers/allshader/digitsrenderer.cpp
-    src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
     src/waveform/renderers/allshader/waveformrenderbackground.cpp
     src/waveform/renderers/allshader/waveformrenderbeat.cpp
     src/waveform/renderers/allshader/waveformrenderer.cpp
@@ -1770,7 +1769,7 @@ if(QT6)
   # below that takes care of the correct object order in the resulting binary
   # According to https://doc.qt.io/qt-6/qt-finalize-target.html it is importand for
   # builds with Qt < 3.21
-  qt_add_executable(mixxx WIN32 src/main.cpp MANUAL_FINALIZATION)
+  qt_add_executable(mixxx WIN32 MACOSX_BUNDLE src/main.cpp MANUAL_FINALIZATION)
 else()
   find_package(Qt5 COMPONENTS Core) # For Qt Core cmake functions
   # This is the first package form the environment, if this fails give hints how to install the environment
@@ -2794,7 +2793,6 @@ if(QML)
     src/waveform/renderers/waveformdisplayrange.cpp
 
     src/waveform/renderers/allshader/digitsrenderer.cpp
-    src/waveform/renderers/allshader/matrixforwidgetgeometry.cpp
     src/waveform/renderers/allshader/waveformrenderbeat.cpp
     src/waveform/renderers/allshader/waveformrenderer.cpp
     src/waveform/renderers/allshader/waveformrendererendoftrack.cpp

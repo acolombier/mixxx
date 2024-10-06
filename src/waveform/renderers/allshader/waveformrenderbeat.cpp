@@ -8,7 +8,6 @@
 #include "rendergraph/vertexupdaters/vertexupdater.h"
 #include "skin/legacy/skincontext.h"
 #include "track/track.h"
-#include "waveform/renderers/allshader/matrixforwidgetgeometry.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 #include "widget/wskincolor.h"
 
@@ -129,9 +128,10 @@ bool WaveformRenderBeat::preprocessInner() {
 
     DEBUG_ASSERT(reserved == vertexUpdater.index());
 
-    const QMatrix4x4 matrix = matrixForWidgetGeometry(m_waveformRenderer, false);
-
-    material().setUniform(0, matrix);
+    if (m_waveformRenderer->getMatrixChanged()) {
+        const QMatrix4x4 matrix = m_waveformRenderer->getMatrix(false);
+        material().setUniform(0, matrix);
+    }
     material().setUniform(1, m_color);
     markDirtyMaterial();
 

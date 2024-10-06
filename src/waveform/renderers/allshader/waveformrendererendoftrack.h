@@ -36,9 +36,9 @@ class allshader::WaveformRendererEndOfTrack final
     bool isSubtreeBlocked() const override;
 
   private:
-    static constexpr float positionArray[] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
-    static constexpr float verticalGradientArray[] = {1.f, 1.f, -1.f, -1.f};
-    static constexpr float horizontalGradientArray[] = {-1.f, 1.f, -1.f, 1.f};
+    // TODO REMOVE
+    int m_lastFrameCountLogged{};
+    int m_frameCount{};
 
     std::unique_ptr<ControlProxy> m_pEndOfTrackControl;
     std::unique_ptr<ControlProxy> m_pTimeRemainingControl;
