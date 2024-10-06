@@ -137,9 +137,7 @@ void WaveformRendererEndOfTrack::preprocess() {
 }
 
 bool WaveformRendererEndOfTrack::isSubtreeBlocked() const {
-    // TODO put back
-    return false;
-    // return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
+    return !(!m_pEndOfTrackControl || m_pEndOfTrackControl->toBool());
 }
 
 } // namespace allshader

@@ -13,7 +13,7 @@ class VisualPlayPosition;
 namespace {
 
 // Rate at which the playpos slider is updated
-constexpr int kUpdateRate = 15; // updates per second
+constexpr int kUpdateRate = 60; // updates per second
 // Number of kiUpdateRates that go by before we update BPM.
 constexpr int kSlowUpdateDivider = 4; // kUpdateRate / kSlowUpdateDivider = 3.75 updates per sec
 

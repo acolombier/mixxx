@@ -2,20 +2,21 @@
 
 #include <QMatrix4x4>
 
+#include "rendergraph/context.h"
 #include "rendergraph/geometrynode.h"
 #include "util/class.h"
 
 namespace rendergraph {
 class TexturedVertexUpdater;
-}
+} // namespace rendergraph
 
 namespace allshader {
 class DigitsRenderNode;
-}
+} // namespace allshader
 
 class allshader::DigitsRenderNode : public rendergraph::GeometryNode {
   public:
-    DigitsRenderNode();
+    DigitsRenderNode(rendergraph::Context context);
     ~DigitsRenderNode();
 
     void updateTexture(float fontPointSize, float maxHeight, float devicePixelRatio);
@@ -44,5 +45,6 @@ class allshader::DigitsRenderNode : public rendergraph::GeometryNode {
     float m_height{};
     float m_maxHeight{};
     float m_adjustedFontPointSize{};
+    rendergraph::Context m_context;
     DISALLOW_COPY_AND_ASSIGN(DigitsRenderNode);
 };

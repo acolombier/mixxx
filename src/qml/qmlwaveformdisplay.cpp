@@ -1,5 +1,7 @@
 #include "qml/qmlwaveformdisplay.h"
 
+#include <qnamespace.h>
+
 #include <QQuickWindow>
 #include <QSGFlatColorMaterial>
 #include <QSGSimpleRectNode>
@@ -10,6 +12,7 @@
 #include <QtQuick/QSGTexture>
 #include <QtQuick/QSGTextureProvider>
 #include <cmath>
+#include <memory>
 
 #include "mixer/basetrackplayer.h"
 #include "moc_qmlwaveformdisplay.cpp"
@@ -41,10 +44,19 @@ namespace qml {
 QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
         : QQuickItem(parent),
           WaveformWidgetRenderer("[Channel1]"),
-          m_pPlayer(nullptr) {
+          m_pPlayer(nullptr),
+          m_pWaveformRenderMark(nullptr),
+          m_pWaveformRenderMarkRange(nullptr),
+          m_pZoom(std::make_unique<ControlProxy>(getGroup(),
+                  "waveform_zoom",
+                  this,
+                  ControlFlag::NoAssertIfMissing)) {
     setFlag(QQuickItem::ItemHasContents, true);
 
     connect(this, &QmlWaveformDisplay::windowChanged, this, &QmlWaveformDisplay::slotWindowChanged);
+    m_pZoom->connectValueChanged(this, [this](double zoom) {
+        setZoom(zoom);
+    });
 }
 
 QmlWaveformDisplay::~QmlWaveformDisplay() {
@@ -137,6 +149,8 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
     if (!bgNode || m_dirtyFlag.testFlag(DirtyFlag::Window)) {
         if (bgNode) {
+            m_pWaveformRenderMark = nullptr;
+            m_pWaveformRenderMarkRange = nullptr;
             delete bgNode;
             m_dirtyFlag.setFlag(DirtyFlag::Window, false);
         }
@@ -153,6 +167,21 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
             addRenderer(renderer.renderer);
             // appendChildTo(pOpacityNode, renderer.node);
             pTopNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(renderer.node));
+
+            auto* pWaveformRenderMark = dynamic_cast<allshader::WaveformRenderMark*>(renderer.node);
+            if (pWaveformRenderMark != nullptr) {
+                DEBUG_ASSERT(m_pWaveformRenderMark == nullptr);
+                m_pWaveformRenderMark = pWaveformRenderMark;
+                continue;
+            }
+
+            auto* pWaveformRenderMarkRange =
+                    dynamic_cast<allshader::WaveformRenderMarkRange*>(
+                            renderer.node);
+            if (pWaveformRenderMarkRange != nullptr) {
+                DEBUG_ASSERT(m_pWaveformRenderMarkRange == nullptr);
+                m_pWaveformRenderMarkRange = pWaveformRenderMarkRange;
+            }
         }
 
         // pTopNode->appendChildNode(std::move(pOpacityNode));
@@ -175,8 +204,20 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
         qDebug() << "RECT" << window()->size();
         m_pEngine->resize(boundingRect());
         bgNode->setRect(boundingRect());
+
+        auto rect = QRectF(boundingRect().x() +
+                        boundingRect().width() * m_playMarkerPosition - 1.0,
+                boundingRect().y(),
+                2.0,
+                boundingRect().height());
     }
 
+    if (m_pWaveformRenderMark != nullptr) {
+        m_pWaveformRenderMark->update();
+    }
+    if (m_pWaveformRenderMarkRange != nullptr) {
+        m_pWaveformRenderMarkRange->update();
+    }
     onPreRender(this);
     bgNode->markDirty(QSGNode::DirtyForceUpdate);
 
@@ -225,6 +266,11 @@ void QmlWaveformDisplay::setGroup(const QString& group) {
     }
 
     WaveformWidgetRenderer::setGroup(group);
+    m_pZoom = std::make_unique<ControlProxy>(
+            getGroup(), "waveform_zoom", this, ControlFlag::NoAssertIfMissing);
+    m_pZoom->connectValueChanged(this, [this](double zoom) {
+        setZoom(zoom);
+    });
     emit groupChanged(group);
 
     // TODO m0dB unique_ptr ?

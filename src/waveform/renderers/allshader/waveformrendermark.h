@@ -2,6 +2,8 @@
 
 #include <QColor>
 
+#include "rendergraph/context.h"
+#include "rendergraph/geometrynode.h"
 #include "rendergraph/node.h"
 #include "waveform/renderers/waveformrendermarkbase.h"
 
@@ -10,20 +12,26 @@ class SkinContext;
 
 namespace rendergraph {
 class GeometryNode;
-}
+} // namespace rendergraph
 
 namespace allshader {
 class DigitsRenderNode;
 class WaveformRenderMark;
-}
+class WaveformMarkNode;
+class WaveformMarkNodeGraphics;
+} // namespace allshader
 
 class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
                                       public rendergraph::Node {
   public:
     explicit WaveformRenderMark(WaveformWidgetRenderer* waveformWidget,
+#ifndef __RENDERGRAPH_OPENGL__
+            rendergraph::Context context,
+            QColor fgPlayColor,
+            QColor bgPlayColor,
+#endif
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
-
     // Pure virtual from WaveformRendererAbstract, not used
     void draw(QPainter* painter, QPaintEvent* event) override final;
 
@@ -69,5 +77,83 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
     rendergraph::GeometryNode* m_pPlayPosNode;
     DigitsRenderNode* m_pDigitsRenderNode{};
 
+#ifndef __RENDERGRAPH_OPENGL__
+    QColor m_fgPlayColor;
+    QColor m_bgPlayColor;
+#endif
+    rendergraph::Context m_context;
+
     DISALLOW_COPY_AND_ASSIGN(WaveformRenderMark);
+};
+
+// On the use of QPainter:
+//
+// The renderers in this folder are optimized to use GLSL shaders and refrain
+// from using QPainter on the QOpenGLWindow, which causes degredated performance.
+//
+// This renderer does use QPainter (indirectly, in WaveformMark::generateImage), but
+// only to draw on a QImage. This is only done once when needed and the images are
+// then used as textures to be drawn with a GLSL shader.
+
+class allshader::WaveformMarkNode : public rendergraph::GeometryNode {
+  public:
+    WaveformMark* m_pOwner{};
+
+    WaveformMarkNode(WaveformMark* pOwner,
+            const QImage& image,
+            const rendergraph::Context& context);
+    void updateTexture(const QImage& image);
+    void updateMatrix(const QMatrix4x4& matrix);
+    void update(float x, float y, float devicePixelRatio);
+    float textureWidth() const {
+        return m_textureWidth;
+    }
+    float textureHeight() const {
+        return m_textureHeight;
+    }
+
+  public:
+    float m_textureWidth{};
+    float m_textureHeight{};
+
+  private:
+    rendergraph::Context m_context;
+};
+
+class allshader::WaveformMarkNodeGraphics : public WaveformMark::Graphics {
+  public:
+    WaveformMarkNodeGraphics(WaveformMark* pOwner,
+            const QImage& image,
+            const rendergraph::Context& context)
+            : m_pNode(std::make_unique<WaveformMarkNode>(
+                      pOwner, image, context)) {
+    }
+    void updateTexture(const QImage& image) {
+        waveformMarkNode()->updateTexture(image);
+    }
+    void updateMatrix(const QMatrix4x4& matrix) {
+        waveformMarkNode()->updateMatrix(matrix);
+    }
+    void update(float x, float y, float devicePixelRatio) {
+        waveformMarkNode()->update(x, y, devicePixelRatio);
+    }
+    float textureWidth() const {
+        return waveformMarkNode()->textureWidth();
+    }
+    float textureHeight() const {
+        return waveformMarkNode()->textureHeight();
+    }
+    void setNode(std::unique_ptr<rendergraph::TreeNode>&& pNode) {
+        m_pNode = std::move(pNode);
+    }
+    void moveNodeToChildrenOf(rendergraph::TreeNode* pParent) {
+        pParent->appendChildNode(std::move(m_pNode));
+    }
+
+  private:
+    WaveformMarkNode* waveformMarkNode() const {
+        return static_cast<WaveformMarkNode*>(m_pNode.get());
+    }
+
+    std::unique_ptr<rendergraph::TreeNode> m_pNode;
 };

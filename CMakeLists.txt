@@ -2796,6 +2796,7 @@ if(QML)
     src/waveform/renderers/allshader/waveformrenderbeat.cpp
     src/waveform/renderers/allshader/waveformrenderer.cpp
     src/waveform/renderers/allshader/waveformrendererendoftrack.cpp
+    # FIXME depends on rendergraph/openglnode.h
     # src/waveform/renderers/allshader/waveformrendererslipmode.cpp
     # src/waveform/renderers/allshader/waveformrendererfiltered.cpp
     # src/waveform/renderers/allshader/waveformrendererhsv.cpp
@@ -3495,6 +3496,8 @@ if (STEM)
   if(QML)
     target_compile_definitions(mixxx-qml-lib PUBLIC __STEM__)
     target_sources(mixxx-qml-lib PRIVATE
+      # FIXME depends on rendergraph/openglnode.h
+      # src/waveform/renderers/allshader/waveformrendererstem.cpp
       src/qml/qmlstemsmodel.cpp
     )
   endif()
@@ -3829,6 +3832,7 @@ add_subdirectory(src/rendergraph/opengl)
 add_subdirectory(res/shaders/rendergraph)
 target_link_libraries(mixxx-lib PUBLIC rendergraph_gl)
 target_compile_definitions(mixxx-lib PRIVATE rendergraph=rendergraph_gl)
+target_compile_definitions(mixxx-lib PRIVATE __RENDERGRAPH_OPENGL__)
 target_compile_definitions(mixxx-lib PRIVATE allshader=allshader_gl)
 if(QML)
   add_subdirectory(src/rendergraph/scenegraph)

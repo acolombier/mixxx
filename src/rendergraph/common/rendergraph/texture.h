@@ -22,5 +22,5 @@ class rendergraph::Texture {
     qint64 comparisonKey() const;
 
   private:
-    const std::unique_ptr<BaseTexture> m_pTexture{};
+    std::unique_ptr<BaseTexture> m_pTexture{};
 };

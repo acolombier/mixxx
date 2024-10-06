@@ -2,6 +2,7 @@
 
 #include "rendergraph/geometrynode.h"
 #include "util/class.h"
+#include "util/colorcomponents.h"
 #include "waveform/renderers/allshader/waveformrenderersignalbase.h"
 
 namespace allshader {
@@ -27,22 +28,11 @@ class allshader::WaveformRendererRGB final
                     ::WaveformRendererAbstract::Play,
             WaveformRendererSignalBase::Options options = WaveformRendererSignalBase::Option::None)
             : WaveformRendererRGB(waveformWidget, type, options) {
-        m_axesColor_r = axesColor.redF();
-        m_axesColor_g = axesColor.greenF();
-        m_axesColor_b = axesColor.blueF();
-        m_axesColor_a = axesColor.alphaF();
+        getRgbF(axesColor, &m_axesColor_r, &m_axesColor_g, &m_axesColor_b, &m_axesColor_a);
 
-        m_rgbLowColor_r = lowColor.redF();
-        m_rgbLowColor_g = lowColor.redF();
-        m_rgbLowColor_b = lowColor.redF();
-
-        m_rgbMidColor_r = midColor.greenF();
-        m_rgbMidColor_g = midColor.greenF();
-        m_rgbMidColor_b = midColor.greenF();
-
-        m_rgbHighColor_r = highColor.blueF();
-        m_rgbHighColor_g = highColor.blueF();
-        m_rgbHighColor_b = highColor.blueF();
+        getRgbF(lowColor, &m_rgbLowColor_r, &m_rgbLowColor_g, &m_rgbLowColor_b);
+        getRgbF(midColor, &m_rgbMidColor_r, &m_rgbMidColor_g, &m_rgbMidColor_b);
+        getRgbF(highColor, &m_rgbHighColor_r, &m_rgbHighColor_g, &m_rgbHighColor_b);
     }
 
     // Pure virtual from WaveformRendererSignalBase, not used

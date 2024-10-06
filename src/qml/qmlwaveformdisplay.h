@@ -4,7 +4,9 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSGNode>
+#include <QSGSimpleRectNode>
 #include <QtQml>
+#include <memory>
 
 #include "qml/qmlplayerproxy.h"
 #include "qml/qmlwaveformrenderer.h"
@@ -95,6 +97,11 @@ class QmlWaveformDisplay : public QQuickItem, ISyncTimeProvider, public Waveform
     DirtyFlags m_dirtyFlag{DirtyFlag::None};
     std::unique_ptr<rendergraph::Engine> m_pEngine;
     QList<QmlWaveformRendererFactory*> m_waveformRenderers;
+
+    allshader::WaveformRenderMark* m_pWaveformRenderMark;
+    allshader::WaveformRenderMarkRange* m_pWaveformRenderMarkRange;
+
+    std::unique_ptr<ControlProxy> m_pZoom;
 };
 
 } // namespace qml

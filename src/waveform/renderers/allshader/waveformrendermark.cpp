@@ -18,91 +18,6 @@
 
 using namespace rendergraph;
 
-// On the use of QPainter:
-//
-// The renderers in this folder are optimized to use GLSL shaders and refrain
-// from using QPainter on the QOpenGLWindow, which causes degredated performance.
-//
-// This renderer does use QPainter (indirectly, in WaveformMark::generateImage), but
-// only to draw on a QImage. This is only done once when needed and the images are
-// then used as textures to be drawn with a GLSL shader.
-
-class WaveformMarkNode : public rendergraph::GeometryNode {
-  public:
-    WaveformMark* m_pOwner{};
-
-    WaveformMarkNode(WaveformMark* pOwner, const QImage& image)
-            : m_pOwner(pOwner) {
-        initForRectangles<TextureMaterial>(1);
-        updateTexture(image);
-    }
-    void updateTexture(const QImage& image) {
-        Context context;
-        dynamic_cast<TextureMaterial&>(material())
-                .setTexture(std::make_unique<Texture>(context, image));
-        m_textureWidth = image.width();
-        m_textureHeight = image.height();
-    }
-    void updateMatrix(const QMatrix4x4& matrix) {
-        material().setUniform(0, matrix);
-        markDirtyMaterial();
-    }
-    void update(float x, float y, float devicePixelRatio) {
-        TexturedVertexUpdater vertexUpdater{
-                geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
-        vertexUpdater.addRectangle({x, y},
-                {x + m_textureWidth / devicePixelRatio,
-                        y + m_textureHeight / devicePixelRatio},
-                {0.f, 0.f},
-                {1.f, 1.f});
-    }
-    float textureWidth() const {
-        return m_textureWidth;
-    }
-    float textureHeight() const {
-        return m_textureHeight;
-    }
-
-  public:
-    float m_textureWidth{};
-    float m_textureHeight{};
-};
-
-class WaveformMarkNodeGraphics : public WaveformMark::Graphics {
-  public:
-    WaveformMarkNodeGraphics(WaveformMark* pOwner, const QImage& image)
-            : m_pNode(std::make_unique<WaveformMarkNode>(pOwner, image)) {
-    }
-    void updateTexture(const QImage& image) {
-        waveformMarkNode()->updateTexture(image);
-    }
-    void updateMatrix(const QMatrix4x4& matrix) {
-        waveformMarkNode()->updateMatrix(matrix);
-    }
-    void update(float x, float y, float devicePixelRatio) {
-        waveformMarkNode()->update(x, y, devicePixelRatio);
-    }
-    float textureWidth() const {
-        return waveformMarkNode()->textureWidth();
-    }
-    float textureHeight() const {
-        return waveformMarkNode()->textureHeight();
-    }
-    void setNode(std::unique_ptr<TreeNode>&& pNode) {
-        m_pNode = std::move(pNode);
-    }
-    void moveNodeToChildrenOf(TreeNode* pParent) {
-        pParent->appendChildNode(std::move(m_pNode));
-    }
-
-  private:
-    WaveformMarkNode* waveformMarkNode() const {
-        return static_cast<WaveformMarkNode*>(m_pNode.get());
-    }
-
-    std::unique_ptr<rendergraph::TreeNode> m_pNode;
-};
-
 // Both allshader::WaveformRenderMark and the non-GL ::WaveformRenderMark derive
 // from WaveformRenderMarkBase. The base-class takes care of updating the marks
 // when needed and flagging them when their image needs to be updated (resizing,
@@ -130,11 +45,21 @@ QString timeSecToString(double timeSec) {
 
 allshader::WaveformRenderMark::WaveformRenderMark(
         WaveformWidgetRenderer* waveformWidget,
+#ifndef __RENDERGRAPH_OPENGL__
+        rendergraph::Context context,
+        QColor fgPlayColor,
+        QColor bgPlayColor,
+#endif
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRenderMarkBase(waveformWidget, false),
           m_beatsUntilMark(0),
           m_timeUntilMark(0.0),
           m_pTimeRemainingControl(nullptr),
+#ifndef __RENDERGRAPH_OPENGL__
+          m_context(context),
+          m_fgPlayColor(fgPlayColor),
+          m_bgPlayColor(bgPlayColor),
+#endif
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip) {
     appendChildNode(std::make_unique<Node>());
     m_pRangeNodesParent = lastChild();
@@ -142,7 +67,7 @@ allshader::WaveformRenderMark::WaveformRenderMark(
     appendChildNode(std::make_unique<Node>());
     m_pMarkNodesParent = lastChild();
 
-    appendChildNode(std::make_unique<DigitsRenderNode>());
+    appendChildNode(std::make_unique<DigitsRenderNode>(m_context));
     m_pDigitsRenderNode = static_cast<DigitsRenderNode*>(lastChild());
 
     appendChildNode(std::make_unique<GeometryNode>());
@@ -462,8 +387,15 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture() {
 
     painter.setWorldMatrixEnabled(false);
 
+#ifdef __RENDERGRAPH_OPENGL__
     const QColor fgColor{m_waveformRenderer->getWaveformSignalColors()->getPlayPosColor()};
     const QColor bgColor{m_waveformRenderer->getWaveformSignalColors()->getBgColor()};
+#else
+    const QColor& fgColor = m_fgPlayColor;
+    const QColor& bgColor = m_bgPlayColor;
+#endif
+    qDebug() << "COOOLOOOOR" << fgColor;
+    qDebug() << "COOOLOOOOR" << bgColor;
 
     // draw dim outlines to increase playpos/waveform contrast
     painter.setPen(bgColor);
@@ -497,9 +429,8 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture() {
     }
     painter.end();
 
-    Context context;
     dynamic_cast<TextureMaterial&>(m_pPlayPosNode->material())
-            .setTexture(std::make_unique<Texture>(context, image));
+            .setTexture(std::make_unique<Texture>(m_context, image));
 }
 
 void allshader::WaveformRenderMark::drawTriangle(QPainter* painter,
@@ -527,9 +458,10 @@ void allshader::WaveformRenderMark::updateMarkImage(WaveformMarkPointer pMark) {
         pMark->m_pGraphics =
                 std::make_unique<WaveformMarkNodeGraphics>(pMark.get(),
                         pMark->generateImage(
-                                m_waveformRenderer->getDevicePixelRatio()));
+                                m_waveformRenderer->getDevicePixelRatio()),
+                        m_context);
     } else {
-        auto pGraphics = static_cast<WaveformMarkNodeGraphics*>(pMark->m_pGraphics.get());
+        auto* pGraphics = static_cast<WaveformMarkNodeGraphics*>(pMark->m_pGraphics.get());
         pGraphics->updateTexture(pMark->generateImage(m_waveformRenderer->getDevicePixelRatio()));
     }
 }
@@ -591,4 +523,33 @@ void allshader::WaveformRenderMark::updateUntilMark(
 
 float allshader::WaveformRenderMark::getMaxHeightForText() const {
     return m_waveformRenderer->getBreadth() / 3;
+}
+
+allshader::WaveformMarkNode::WaveformMarkNode(WaveformMark* pOwner,
+        const QImage& image,
+        const rendergraph::Context& context)
+        : m_pOwner(pOwner),
+          m_context(context) {
+    initForRectangles<rendergraph::TextureMaterial>(1);
+    updateTexture(image);
+}
+
+void allshader::WaveformMarkNode::updateTexture(const QImage& image) {
+    dynamic_cast<TextureMaterial&>(material())
+            .setTexture(std::make_unique<Texture>(m_context, image));
+    m_textureWidth = image.width();
+    m_textureHeight = image.height();
+}
+void allshader::WaveformMarkNode::updateMatrix(const QMatrix4x4& matrix) {
+    material().setUniform(0, matrix);
+    markDirtyMaterial();
+}
+void allshader::WaveformMarkNode::update(float x, float y, float devicePixelRatio) {
+    rendergraph::TexturedVertexUpdater vertexUpdater{
+            geometry().vertexDataAs<Geometry::TexturedPoint2D>()};
+    vertexUpdater.addRectangle({x, y},
+            {x + m_textureWidth / devicePixelRatio,
+                    y + m_textureHeight / devicePixelRatio},
+            {0.f, 0.f},
+            {1.f, 1.f});
 }

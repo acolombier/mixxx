@@ -10,7 +10,6 @@
 #include <cmath>
 
 #include "./util/assert.h"
-#include "rendergraph/context.h"
 #include "rendergraph/geometry.h"
 #include "rendergraph/material/texturematerial.h"
 #include "rendergraph/vertexupdaters/texturedvertexupdater.h"
@@ -59,7 +58,8 @@ static_assert(checkCharToIndex());
 
 } // namespace
 
-allshader::DigitsRenderNode::DigitsRenderNode() {
+allshader::DigitsRenderNode::DigitsRenderNode(rendergraph::Context context)
+        : m_context(context) {
     setGeometry(std::make_unique<Geometry>(TextureMaterial::attributes(), 0));
     setMaterial(std::make_unique<TextureMaterial>());
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
@@ -206,9 +206,8 @@ void allshader::DigitsRenderNode::updateTexture(
         m_offset[NUM_CHARS] = 1.f;
     }
 
-    Context context;
     dynamic_cast<TextureMaterial&>(material())
-            .setTexture(std::make_unique<Texture>(context, image));
+            .setTexture(std::make_unique<Texture>(m_context, image));
 }
 
 void allshader::DigitsRenderNode::update(const QMatrix4x4& matrix,
