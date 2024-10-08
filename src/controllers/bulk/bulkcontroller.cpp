@@ -5,8 +5,13 @@
 #include "controllers/bulk/bulksupported.h"
 #include "controllers/defs_controllers.h"
 #include "moc_bulkcontroller.cpp"
+#include "util/cmdlineargs.h"
 #include "util/time.h"
 #include "util/trace.h"
+
+namespace {
+constexpr int kBulkSendTimeout = 5000; // In milliseconds
+}
 
 BulkReader::BulkReader(libusb_device_handle *handle, unsigned char in_epaddr)
         : QThread(),
@@ -299,11 +304,12 @@ void BulkController::sendBytes(const QByteArray& data) {
             (unsigned char*)data.constData(),
             data.size(),
             &transferred,
-            0);
+            kBulkSendTimeout);
     if (ret < 0) {
         qCWarning(m_logOutput) << "Unable to send data to" << getName()
                                << "serial #" << m_sUID << "-" << libusb_error_name(ret);
-    } else {
+        ;
+    } else if (CmdlineArgs::Instance().getControllerDebug()) {
         qCDebug(m_logOutput) << transferred << "bytes sent to" << getName()
                              << "serial #" << m_sUID;
     }
