@@ -1278,7 +1278,7 @@ Item {
             key: "show_maximized_library"
         }
 
-        readonly property bool viewButton: propView.value
+        readonly property bool viewButton: propView.value && false
 
         property int hotcueId: 0
         readonly property bool hotcueDisplay: hotcuePressed || cueTimer.running

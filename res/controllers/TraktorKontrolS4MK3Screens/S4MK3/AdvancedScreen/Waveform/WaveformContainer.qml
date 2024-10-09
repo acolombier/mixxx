@@ -65,7 +65,7 @@ Item {
         id: loopSize
         anchors.topMargin: 1
         anchors.fill: parent
-        visible: (deckInfo.showLoopInfo || deckInfo.loopActive || settings.alwaysShowLoopSize) && !deckInfo.adjustEnabled && !hideLoop
+        visible: (deckInfo.showLoopInfo || deckInfo.loopActive || settings.alwaysShowLoopSize) && !hideLoop
     }
 
     Widgets.KeyDisplay {
