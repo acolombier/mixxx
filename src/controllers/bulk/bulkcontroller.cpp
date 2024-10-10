@@ -10,8 +10,9 @@
 #include "util/trace.h"
 
 namespace {
-constexpr int kBulkSendTimeout = 5000; // In milliseconds
-}
+using namespace std::literals;
+constexpr std::seconds kBulkSendTimeout = 5s;
+} // namespace
 
 BulkReader::BulkReader(libusb_device_handle *handle, unsigned char in_epaddr)
         : QThread(),
@@ -304,11 +305,10 @@ void BulkController::sendBytes(const QByteArray& data) {
             (unsigned char*)data.constData(),
             data.size(),
             &transferred,
-            kBulkSendTimeout);
+            std::milliseconds(kBulkSendTimeout).count();
     if (ret < 0) {
         qCWarning(m_logOutput) << "Unable to send data to" << getName()
                                << "serial #" << m_sUID << "-" << libusb_error_name(ret);
-        ;
     } else if (CmdlineArgs::Instance().getControllerDebug()) {
         qCDebug(m_logOutput) << transferred << "bytes sent to" << getName()
                              << "serial #" << m_sUID;
