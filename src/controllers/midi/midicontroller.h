@@ -8,6 +8,7 @@
 #include "controllers/softtakeover.h"
 
 class MidiOutputHandler;
+class ControllerSharedData;
 
 class MidiInputHandleJSProxy final : public QObject {
     Q_OBJECT
@@ -80,7 +81,7 @@ class MidiController : public Controller {
     void slotBeforeEngineShutdown() override;
 
   private slots:
-    bool applyMapping(const QString& resourcePath) override;
+    bool applyMapping(const QString& resourcePath, std::shared_ptr<ControllerSharedData>) override;
 
     void learnTemporaryInputMappings(const MidiInputMappings& mappings);
     void clearTemporaryInputMappings();
