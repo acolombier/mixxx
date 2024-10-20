@@ -12,7 +12,7 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRenderMarkRange::WaveformRenderMarkRange(WaveformWidgetRenderer* waveformWidget)
-        : ::WaveformRendererAbstract(waveformWidget) {    
+        : ::WaveformRendererAbstract(waveformWidget) {
 }
 
 void WaveformRenderMarkRange::setup(const QDomNode& node, const SkinContext& skinContext) {
@@ -88,9 +88,8 @@ void WaveformRenderMarkRange::update() {
         pChild = static_cast<GeometryNode*>(pChild->nextSibling());
     }
     while (pChild) {
-        auto pNext = static_cast<GeometryNode*>(pChild->nextSibling());
-        removeChildNode(pChild);
-        pChild = pNext;
+        auto pNode = detachChildNode(pChild);
+        pChild = static_cast<GeometryNode*>(pChild->nextSibling());
     }
 }
 
