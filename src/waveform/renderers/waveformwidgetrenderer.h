@@ -149,44 +149,20 @@ class WaveformWidgetRenderer {
     
     virtual void resizeRenderer(int width, int height, float devicePixelRatio);
 
-    void setDevicePixelRatio(float devicePixelRatio) {
-        if (m_devicePixelRatio != devicePixelRatio) {
-            m_devicePixelRatio = devicePixelRatio;
-            m_matrixNeedUpdate = true;
-        }
-    }
-    void setViewport(const QSize& viewport) {
-        if (m_viewport != viewport) {
-            m_viewport = viewport;
-            m_matrixNeedUpdate = true;
-        }
-    }
-    void setRect(const QRectF& rect) {
-        if (m_rect != rect) {
-            m_rect = rect;
-            m_matrixNeedUpdate = true;
-        }
-    }
-    const QSize getViewport() const {
-        return m_viewport;
-    }
-    const QSizeF getSize() const {
-        return m_rect.size();
-    }
     int getHeight() const {
-        return static_cast<int>(m_rect.height());
+        return m_height;
     }
     int getWidth() const {
-        return static_cast<int>(m_rect.width());
+        return m_width;
     }
     float getDevicePixelRatio() const {
         return m_devicePixelRatio;
     }
     int getLength() const {
-        return m_orientation == Qt::Horizontal ? getWidth() : getHeight();
+        return m_orientation == Qt::Horizontal ? m_width : m_height;
     }
     int getBreadth() const {
-        return m_orientation == Qt::Horizontal ? getHeight() : getWidth();
+        return m_orientation == Qt::Horizontal ? m_height : m_width;
     }
     Qt::Orientation getOrientation() const {
         return m_orientation;
@@ -247,12 +223,6 @@ class WaveformWidgetRenderer {
     int m_dimBrightThreshold;
     int m_height;
     int m_width;
-    bool m_matrixNeedUpdate;
-    bool m_matrixChanged;
-    QRectF m_rect;
-    QSize m_viewport;
-    QMatrix4x4 m_matrix;
-    QMatrix4x4 m_matrixDevicePixelRatio;
     float m_devicePixelRatio;
     WaveformSignalColors m_colors;
     QColor m_passthroughLabelColor;
@@ -280,7 +250,7 @@ class WaveformWidgetRenderer {
     double m_scaleFactor;
     double m_playMarkerPosition;   // 0.0 - left, 0.5 - center, 1.0 - right
 
-    rendergraph::Context* m_pContext;
+    rendergraph::Context* m_pContext{nullptr};
 
 #ifdef WAVEFORMWIDGETRENDERER_DEBUG
     PerformanceTimer* m_timer;

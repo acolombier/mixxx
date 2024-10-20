@@ -4,7 +4,6 @@
 #include "util/cmdlineargs.h"
 #include "util/math.h"
 #include "waveform/isynctimeprovider.h"
-#include "waveform/vsyncthread.h"
 
 //static
 QMap<QString, QWeakPointer<VisualPlayPosition>> VisualPlayPosition::m_listVisualPlayPosition;

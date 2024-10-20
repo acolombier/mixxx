@@ -37,7 +37,6 @@ mixxx::Duration WaveformWidgetAbstract::render() {
     // Time for Painter setup, unknown in this case
     return mixxx::Duration();
 }
-/*
 
 void WaveformWidgetAbstract::resize(int width, int height) {
     qreal devicePixelRatio = 1.0;
@@ -45,7 +44,5 @@ void WaveformWidgetAbstract::resize(int width, int height) {
         m_widget->resize(width, height);
         devicePixelRatio = m_widget->devicePixelRatioF();
     }
-    setSize(QSize(width, height));
-    setDevicePixelRatio(static_cast<float>(devicePixelRatio));
+    resizeRenderer(width, height, static_cast<float>(devicePixelRatio));
 }
-*/

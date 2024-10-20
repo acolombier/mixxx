@@ -133,9 +133,6 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
     if (m_dirtyFlag.testFlag(DirtyFlag::Geometry)) {
         m_dirtyFlag.setFlag(DirtyFlag::Geometry, false);
-        setRect(mapRectToScene(boundingRect()));
-        setViewport(window()->size());
-        setDevicePixelRatio(window()->devicePixelRatio());
         bgNode->setRect(boundingRect());
 
         auto rect = QRectF(boundingRect().x() +

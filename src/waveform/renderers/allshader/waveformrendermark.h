@@ -7,7 +7,6 @@
 #include "waveform/renderers/waveformrendermarkbase.h"
 
 class QDomNode;
-class SkinContext;
 
 namespace rendergraph {
 class GeometryNode;
@@ -17,8 +16,6 @@ class Context;
 namespace allshader {
 class DigitsRenderNode;
 class WaveformRenderMark;
-class WaveformMarkNode;
-class WaveformMarkNodeGraphics;
 } // namespace allshader
 
 class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
@@ -91,65 +88,4 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
 #endif
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRenderMark);
-};
-
-
-// On the use of QPainter:
-//
-// The renderers in this folder are optimized to use GLSL shaders and refrain
-// from using QPainter on the QOpenGLWindow, which causes degredated performance.
-//
-// This renderer does use QPainter (indirectly, in WaveformMark::generateImage), but
-// only to draw on a QImage. This is only done once when needed and the images are
-// then used as textures to be drawn with a GLSL shader.
-
-class allshader::WaveformMarkNode : public rendergraph::GeometryNode {
-  public:
-    WaveformMark* m_pOwner{};
-
-    WaveformMarkNode(WaveformMark* pOwner, rendergraph::Context* pContext, const QImage& image);
-    void updateTexture(rendergraph::Context* pContext, const QImage& image);
-    void update(float x, float y, float devicePixelRatio);
-    float textureWidth() const {
-        return m_textureWidth;
-    }
-    float textureHeight() const {
-        return m_textureHeight;
-    }
-
-  public:
-    float m_textureWidth{};
-    float m_textureHeight{};
-};
-
-class allshader::WaveformMarkNodeGraphics : public WaveformMark::Graphics {
-  public:
-    WaveformMarkNodeGraphics(WaveformMark* pOwner,
-            rendergraph::Context* pContext,
-            const QImage& image);
-    void updateTexture(rendergraph::Context* pContext, const QImage& image) {
-        waveformMarkNode()->updateTexture(pContext, image);
-    }
-    void update(float x, float y, float devicePixelRatio) {
-        waveformMarkNode()->update(x, y, devicePixelRatio);
-    }
-    float textureWidth() const {
-        return waveformMarkNode()->textureWidth();
-    }
-    float textureHeight() const {
-        return waveformMarkNode()->textureHeight();
-    }
-    void setNode(std::unique_ptr<WaveformMarkNode>&& pNode) {
-        m_pNode = std::move(pNode);
-    }
-    void moveNodeToChildrenOf(rendergraph::Node* pParent) {
-        pParent->appendChildNode(std::move(m_pNode));
-    }
-
-  private:
-    WaveformMarkNode* waveformMarkNode() const {
-        return static_cast<WaveformMarkNode*>(m_pNode.get());
-    }
-
-    std::unique_ptr<WaveformMarkNode> m_pNode;
 };
