@@ -1,16 +1,13 @@
 #pragma once
 
-#include <QQmlEngine>
 #include <QObject>
+#include <QQmlEngine>
 
+#include "rendergraph/node.h"
 #include "waveform/renderers/waveformrendererabstract.h"
 #include "waveform/renderers/waveformwidgetrenderer.h"
 
 class WaveformWidgetRenderer;
-
-namespace rendergraph {
-class TreeNode;
-} // namespace rendergraph
 
 namespace allshaders {
 class WaveformRendererEndOfTrack;
@@ -28,7 +25,7 @@ class QmlWaveformRendererFactory : public QObject {
   public:
     struct Renderer {
         ::WaveformRendererAbstract* renderer{nullptr};
-        rendergraph::TreeNode* node{nullptr};
+        rendergraph::BaseNode* node{nullptr};
     };
 
     virtual Renderer create(WaveformWidgetRenderer* waveformWidget) const = 0;

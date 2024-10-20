@@ -38,7 +38,7 @@ QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
 }
 
 QmlWaveformDisplay::~QmlWaveformDisplay() {
-    // The stack contains references to Renderer that are owned and cleared by a TreeNode
+    // The stack contains references to Renderer that are owned and cleared by a BaseNode
     m_rendererStack.clear();
 }
 
@@ -107,7 +107,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
 
             auto renderer = pQmlRenderer->create(this);
             addRenderer(renderer.renderer);
-            m_pTopNode->appendChildNode(std::unique_ptr<rendergraph::TreeNode>(renderer.node));
+            m_pTopNode->appendChildNode(std::unique_ptr<rendergraph::BaseNode>(renderer.node));
             auto *pWaveformRenderMark =
                     dynamic_cast<allshader::WaveformRenderMark*>(
                             renderer.renderer);
@@ -122,7 +122,7 @@ QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*
             }
         }
 
-        bgNode->appendChildNode(m_pTopNode->backendNode());
+        bgNode->appendChildNode(m_pTopNode);
         init();
     }
 

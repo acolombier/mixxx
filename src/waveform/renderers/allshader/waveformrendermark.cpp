@@ -18,12 +18,12 @@
 
 using namespace rendergraph;
 
-
 allshader::WaveformMarkNode::WaveformMarkNode(WaveformMark* pOwner, rendergraph::Context* pContext, const QImage& image)
         : m_pOwner(pOwner) {
     initForRectangles<TextureMaterial>(1);
     updateTexture(pContext, image);
 }
+
 void allshader::WaveformMarkNode::updateTexture(rendergraph::Context* pContext, const QImage& image) {
     dynamic_cast<TextureMaterial&>(material())
             .setTexture(std::make_unique<Texture>(pContext, image));

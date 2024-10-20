@@ -12,7 +12,7 @@ target_include_directories(sg_example PRIVATE ../common)
 target_compile_definitions(sg_example PRIVATE rendergraph=rendergraph_sg)
 
 if(QT_VERSION VERSION_LESS "6.3.0")
- set_target_properties(sg_example PROPERTIES AUTOMOC ON)
+    set_target_properties(sg_example PROPERTIES AUTOMOC ON)
 endif()
 
 qt_add_qml_module(sg_example

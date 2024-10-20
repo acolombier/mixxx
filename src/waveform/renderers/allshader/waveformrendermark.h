@@ -2,6 +2,7 @@
 
 #include <QColor>
 
+#include "rendergraph/geometrynode.h"
 #include "rendergraph/node.h"
 #include "waveform/renderers/waveformrendermarkbase.h"
 
@@ -138,10 +139,10 @@ class allshader::WaveformMarkNodeGraphics : public WaveformMark::Graphics {
     float textureHeight() const {
         return waveformMarkNode()->textureHeight();
     }
-    void setNode(std::unique_ptr<rendergraph::TreeNode>&& pNode) {
+    void setNode(std::unique_ptr<WaveformMarkNode>&& pNode) {
         m_pNode = std::move(pNode);
     }
-    void moveNodeToChildrenOf(rendergraph::TreeNode* pParent) {
+    void moveNodeToChildrenOf(rendergraph::Node* pParent) {
         pParent->appendChildNode(std::move(m_pNode));
     }
 
@@ -150,5 +151,5 @@ class allshader::WaveformMarkNodeGraphics : public WaveformMark::Graphics {
         return static_cast<WaveformMarkNode*>(m_pNode.get());
     }
 
-    std::unique_ptr<rendergraph::TreeNode> m_pNode;
+    std::unique_ptr<WaveformMarkNode> m_pNode;
 };
