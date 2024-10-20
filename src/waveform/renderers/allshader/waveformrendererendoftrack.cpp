@@ -63,23 +63,7 @@ void WaveformRendererEndOfTrack::preprocess() {
         m_pTimeRemainingControl = std::make_unique<ControlProxy>(
                 m_waveformRenderer->getGroup(), "time_remaining");
     }
-
-    static int offset = 0;
-    const int elapsedTotal = m_timer.elapsed().toIntegerMillis();
-    const int elapsed = (elapsedTotal + offset) % kBlinkingPeriodMillis;
-
-    // for testing
-    offset = (offset == 0) ? kBlinkingPeriodMillis / 4 : 0;
-
-    if (elapsedTotal >= m_lastFrameCountLogged + 1000) {
-        if (elapsedTotal >= m_lastFrameCountLogged + 2000) {
-            m_lastFrameCountLogged = elapsedTotal;
-        }
-        m_lastFrameCountLogged += 1000;
-        qDebug() << "FPS:" << m_frameCount;
-        m_frameCount = 0;
-    }
-    m_frameCount++;
+    const int elapsed = m_timer.elapsed().toIntegerMillis() % kBlinkingPeriodMillis;
 
     const double blinkIntensity = (double)(2 * abs(elapsed - kBlinkingPeriodMillis / 2)) /
             kBlinkingPeriodMillis;
@@ -87,12 +71,8 @@ void WaveformRendererEndOfTrack::preprocess() {
     const double remainingTime = m_pTimeRemainingControl->get();
     const double remainingTimeTriggerSeconds =
             WaveformWidgetFactory::instance()->getEndOfTrackWarningTime();
-    const double criticalIntensity = static_cast<double>(elapsed) /
-            static_cast<double>(
-                    kBlinkingPeriodMillis); // TODO put back:
-                                            //(remainingTimeTriggerSeconds -
-                                            //  remainingTime) /
-                                            //  remainingTimeTriggerSeconds;
+    const double criticalIntensity = (remainingTimeTriggerSeconds - remainingTime) /
+                                             remainingTimeTriggerSeconds;
 
     const double alpha = std::max(0.0, std::min(1.0, criticalIntensity * blinkIntensity));
 

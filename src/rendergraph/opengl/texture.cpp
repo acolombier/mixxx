@@ -1,4 +1,7 @@
 #include "rendergraph/texture.h"
+#include <qnamespace.h>
+#include <qrgb.h>
+#include "rendergraph/assert.h"
 
 #include "rendergraph/context.h"
 
@@ -6,15 +9,23 @@ using namespace rendergraph;
 
 namespace {
 QImage premultiplyAlpha(const QImage& image) {
+    QImage texture(image.width(), image.height(), QImage::Format_RGBA8888);
     if (image.format() == QImage::Format_RGBA8888_Premultiplied) {
-        return QImage(image.bits(), image.width(), image.height(), QImage::Format_RGBA8888);
+        VERIFY_OR_DEBUG_ASSERT(texture.sizeInBytes() == image.sizeInBytes()){
+            texture.fill(QColor(Qt::transparent).rgba());
+            return texture;
+        }
+        std::memcpy(texture.bits(), image.bits(), texture.sizeInBytes());
+    } else {
+        auto convertedImage = image.convertToFormat(QImage::Format_RGBA8888_Premultiplied);
+        VERIFY_OR_DEBUG_ASSERT(texture.sizeInBytes() == convertedImage.sizeInBytes()){
+            texture.fill(QColor(Qt::transparent).rgba());
+            return texture;
+        }
+        std::memcpy(texture.bits(), convertedImage.bits(), texture.sizeInBytes());
+
     }
-    return QImage(
-            image.convertToFormat(QImage::Format_RGBA8888_Premultiplied)
-                    .bits(),
-            image.width(),
-            image.height(),
-            QImage::Format_RGBA8888);
+    return texture;
 }
 } // namespace
 

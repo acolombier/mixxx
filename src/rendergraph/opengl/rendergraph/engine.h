@@ -18,6 +18,7 @@ class rendergraph::Engine {
     void render();
     void resize(int w, int h);
     void preprocess();
+    // FIXME do we expected Engine to take ownership of this ptr?
     void add(BaseNode* pNode);
     void remove(BaseNode* pNode);
     const QMatrix4x4& matrix() const {

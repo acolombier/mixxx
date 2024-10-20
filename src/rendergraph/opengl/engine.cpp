@@ -11,6 +11,8 @@ Engine::Engine(std::unique_ptr<BaseNode> pRootNode)
 }
 
 Engine::~Engine() {
+    m_pInitializeNodes.clear();
+    m_pPreprocessNodes.clear();
 }
 
 void Engine::add(BaseNode* pNode) {
