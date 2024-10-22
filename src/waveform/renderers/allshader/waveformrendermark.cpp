@@ -145,11 +145,27 @@ QString timeSecToString(double timeSec) {
 
 allshader::WaveformRenderMark::WaveformRenderMark(
         WaveformWidgetRenderer* waveformWidget,
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+        QColor fgPlayColor,
+        QColor bgPlayColor,
+        bool untilMarkShowBeats,
+        bool untilMarkShowTime,
+        Qt::Alignment untilMarkAlign,
+        int untilMarkTextSize,
+#endif
         ::WaveformRendererAbstract::PositionSource type)
         : ::WaveformRenderMarkBase(waveformWidget, false),
           m_beatsUntilMark(0),
           m_timeUntilMark(0.0),
           m_pTimeRemainingControl(nullptr),
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+          m_fgPlayColor(fgPlayColor),
+          m_bgPlayColor(bgPlayColor),
+          m_untilMarkShowBeats(untilMarkShowBeats),
+          m_untilMarkShowTime(untilMarkShowTime),
+          m_untilMarkAlign(untilMarkAlign),
+          m_untilMarkTextSize(untilMarkTextSize),
+#endif
           m_isSlipRenderer(type == ::WaveformRendererAbstract::Slip),
           m_playPosHeight(0.f),
           m_playPosDevicePixelRatio(0.f) {
@@ -373,20 +389,32 @@ void allshader::WaveformRenderMark::update() {
                 {1.f, 1.f});
     }
 
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+    if (m_untilMarkShowBeats || m_untilMarkShowTime)
+#else
     if (WaveformWidgetFactory::instance()->getUntilMarkShowBeats() ||
-            WaveformWidgetFactory::instance()->getUntilMarkShowTime()) {
+            WaveformWidgetFactory::instance()->getUntilMarkShowTime())
+#endif
+    {
         updateUntilMark(playPosition, nextMarkPosition);
         drawUntilMark(roundToPixel(playMarkerPos + 20.f));
     }
 }
 
 void allshader::WaveformRenderMark::drawUntilMark(float x) {
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+    const bool untilMarkShowBeats = m_untilMarkShowBeats;
+    const bool untilMarkShowTime = m_untilMarkShowTime;
+    const auto untilMarkAlign = m_untilMarkAlign;
+    const auto untilMarkTextPointSize = m_untilMarkTextSize;
+#else
     const bool untilMarkShowBeats = WaveformWidgetFactory::instance()->getUntilMarkShowBeats();
     const bool untilMarkShowTime = WaveformWidgetFactory::instance()->getUntilMarkShowTime();
     const auto untilMarkAlign = WaveformWidgetFactory::instance()->getUntilMarkAlign();
 
     const auto untilMarkTextPointSize =
             WaveformWidgetFactory::instance()->getUntilMarkTextPointSize();
+#endif
     m_pDigitsRenderNode->updateTexture(m_waveformRenderer->getContext(),
             untilMarkTextPointSize,
             getMaxHeightForText(),
@@ -459,8 +487,13 @@ void allshader::WaveformRenderMark::updatePlayPosMarkTexture(rendergraph::Contex
 
     painter.setWorldMatrixEnabled(false);
 
+#ifdef __RENDERGRAPH_IS_OPENGL
     const QColor fgColor{m_waveformRenderer->getWaveformSignalColors()->getPlayPosColor()};
     const QColor bgColor{m_waveformRenderer->getWaveformSignalColors()->getBgColor()};
+#else
+    const QColor& fgColor = m_fgPlayColor;
+    const QColor& bgColor = m_bgPlayColor;
+#endif
 
     // draw dim outlines to increase playpos/waveform contrast
     painter.setPen(bgColor);

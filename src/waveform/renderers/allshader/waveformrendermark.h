@@ -22,6 +22,14 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
                                       public rendergraph::Node {
   public:
     explicit WaveformRenderMark(WaveformWidgetRenderer* waveformWidget,
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+            QColor fgPlayColor,
+            QColor bgPlayColor,
+            bool untilMarkShowBeats,
+            bool untilMarkShowTime,
+            Qt::Alignment untilMarkAlign,
+            int untilMarkTextSize,
+#endif
             ::WaveformRendererAbstract::PositionSource type =
                     ::WaveformRendererAbstract::Play);
 
@@ -68,6 +76,16 @@ class allshader::WaveformRenderMark : public ::WaveformRenderMarkBase,
     float m_playPosDevicePixelRatio;
 
     DigitsRenderNode* m_pDigitsRenderNode{};
+
+#ifdef __RENDERGRAPH_IS_SCENEGRAPH
+    QColor m_fgPlayColor;
+    QColor m_bgPlayColor;
+
+    bool m_untilMarkShowBeats;
+    bool m_untilMarkShowTime;
+    Qt::Alignment m_untilMarkAlign;
+    int m_untilMarkTextSize;
+#endif
 
     DISALLOW_COPY_AND_ASSIGN(WaveformRenderMark);
 };

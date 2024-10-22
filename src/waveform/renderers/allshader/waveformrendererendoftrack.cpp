@@ -24,10 +24,11 @@ using namespace rendergraph;
 namespace allshader {
 
 WaveformRendererEndOfTrack::WaveformRendererEndOfTrack(
-        WaveformWidgetRenderer* waveformWidget)
+        WaveformWidgetRenderer* waveformWidget, QColor color)
         : ::WaveformRendererAbstract(waveformWidget),
           m_pEndOfTrackControl(nullptr),
-          m_pTimeRemainingControl(nullptr) {
+          m_pTimeRemainingControl(nullptr),
+          m_color(color) {
     initForRectangles<RGBAMaterial>(0);
     setUsePreprocess(true);
 }
