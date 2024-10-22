@@ -107,7 +107,7 @@ bool WaveformRendererStem::preprocessInner() {
 
     // Per-band gain from the EQ knobs.
     float allGain(1.0);
-    // applyCompensation = true, as we scale to match filtered.all
+    // applyCompensation = false, as we scale to match filtered.all
     getGains(&allGain, false, nullptr, nullptr, nullptr);
 
     const float breadth = static_cast<float>(m_waveformRenderer->getBreadth());
@@ -121,7 +121,8 @@ bool WaveformRendererStem::preprocessInner() {
 
     const int numVerticesPerLine = 6; // 2 triangles
 
-    const int reserved = numVerticesPerLine * (8 * pixelLength + 1);
+    const int reserved = numVerticesPerLine *
+            (mixxx::audio::ChannelCount::stem() * pixelLength + 1);
 
     geometry().setDrawingMode(Geometry::DrawingMode::Triangles);
     geometry().allocate(reserved);
