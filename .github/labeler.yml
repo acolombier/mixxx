@@ -6,6 +6,11 @@ build:
           - build/**
           - cmake/**
 
+dev container:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .devcontainer/**
+
 cmake:
   - changed-files:
       - any-glob-to-any-file:
