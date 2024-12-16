@@ -11,16 +11,16 @@
 #include "moc_launchimage.cpp"
 
 namespace {
-bool isIn2024ChristmasHollidays() {
+bool isIn2024ChristmasHolidays() {
     auto currentDate = QDate::currentDate();
-    return currentDate >= QDate(2024, 12, 24) &&
+    return currentDate >= QDate(2024, 11, 24) &&
             currentDate <= QDate(2025, 1, 6);
 }
 } // namespace
 
 LaunchImage::LaunchImage(QWidget* pParent, const QString& styleSheet)
         : QWidget(pParent) {
-    if (isIn2024ChristmasHollidays()) {
+    if (isIn2024ChristmasHolidays()) {
         setStyleSheet(
                 "LaunchImage { background-color: #202020; }"
                 "QLabel { "
