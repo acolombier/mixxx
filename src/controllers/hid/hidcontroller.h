@@ -24,6 +24,7 @@ class HidController final : public Controller {
 
     QList<LegacyControllerMapping::ScriptFileInfo> getMappingScriptFiles() override;
     QList<std::shared_ptr<AbstractLegacyControllerSetting>> getMappingSettings() override;
+    const QString& getSharedDataNamespace() override;
 #ifdef MIXXX_USE_QML
     QList<LegacyControllerMapping::QMLModuleInfo> getMappingModules() override;
     QList<LegacyControllerMapping::ScreenInfo> getMappingInfoScreens() override;
@@ -92,7 +93,8 @@ class HidController final : public Controller {
     bool matchMapping(const MappingInfo& mapping) override;
 
   private:
-    int open(const QString& resourcePath) override;
+    int open(const QString& resourcePath,
+        std::shared_ptr<ControllerSharedData> runtimeData) override;
     int close() override;
 
     // For devices which only support a single report, reportID must be set to
