@@ -6,7 +6,9 @@
 #include "controllers/controller.h"
 #include "controllers/controllerlearningeventfilter.h"
 #include "controllers/controllermappinginfoenumerator.h"
+#include "controllers/controllershareddata.h"
 #include "controllers/defs_controllers.h"
+#include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "moc_controllermanager.cpp"
 #include "util/cmdlineargs.h"
 #include "util/compatibility/qmutex.h"
@@ -94,7 +96,8 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
           // its own event loop.
           m_pControllerLearningEventFilter(new ControllerLearningEventFilter()),
           m_pollTimer(this),
-          m_skipPoll(false) {
+          m_skipPoll(false),
+          m_pRuntimeData(std::make_shared<ControllerSharedData>(this)) {
     qRegisterMetaType<std::shared_ptr<LegacyControllerMapping>>(
             "std::shared_ptr<LegacyControllerMapping>");
 
@@ -301,7 +304,12 @@ void ControllerManager::slotSetUpDevices() {
             qWarning() << "There was a problem opening" << name;
             continue;
         }
-        pController->applyMapping(m_pConfig->getResourcePath());
+        VERIFY_OR_DEBUG_ASSERT(pController->getScriptEngine()) {
+            qWarning() << "Unable to acquire the controller engine. Has the "
+                          "controller open successfully?";
+            continue;
+        }
+        pController->applyMapping(m_pConfig->getResourcePath(), m_pRuntimeData);
     }
 
     pollIfAnyControllersOpen();
@@ -393,7 +401,13 @@ void ControllerManager::openController(Controller* pController) {
     // If successfully opened the device, apply the mapping and save the
     // preference setting.
     if (result == 0) {
-        pController->applyMapping(m_pConfig->getResourcePath());
+        VERIFY_OR_DEBUG_ASSERT(pController->getScriptEngine()) {
+            qWarning() << "Unable to acquire the controller engine. Has the "
+                          "controller open successfully?";
+            return;
+        }
+
+        pController->applyMapping(m_pConfig->getResourcePath(), m_pRuntimeData);
 
         // Update configuration to reflect controller is enabled.
         m_pConfig->setValue(

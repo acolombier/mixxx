@@ -8,6 +8,7 @@
 
 class ControllerJSProxy;
 class ControllerScriptEngineLegacy;
+class ControllerSharedData;
 
 enum class PhysicalTransportProtocol {
     UNKNOWN,
@@ -103,7 +104,8 @@ class Controller : public QObject {
     // this if they have an alternate way of handling such data.)
     virtual void receive(const QByteArray& data, mixxx::Duration timestamp);
 
-    virtual bool applyMapping(const QString& resourcePath);
+    virtual bool applyMapping(const QString& resourcePath,
+            std::shared_ptr<ControllerSharedData> runtimeData);
     virtual void slotBeforeEngineShutdown();
 
     // Puts the controller in and out of learning mode.
@@ -170,7 +172,6 @@ class Controller : public QObject {
     virtual bool sendBytes(const QByteArray& data) = 0;
 
   private: // but used by ControllerManager
-
     virtual int open() = 0;
     virtual int close() = 0;
     // Requests that the device poll if it is a polling device. Returns true

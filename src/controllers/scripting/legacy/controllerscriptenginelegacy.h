@@ -140,4 +140,5 @@ class ControllerScriptEngineLegacy : public ControllerScriptEngineBase {
 
     friend class ControllerScriptEngineLegacyTest;
     friend class MidiControllerTest;
+    friend class ControllerSharedDataTest;
 };

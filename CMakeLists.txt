@@ -998,6 +998,7 @@ add_library(
   src/controllers/controlpickermenu.cpp
   src/controllers/legacycontrollermappingfilehandler.cpp
   src/controllers/legacycontrollermapping.cpp
+  src/controllers/controllershareddata.cpp
   src/controllers/delegates/controldelegate.cpp
   src/controllers/delegates/midibytedelegate.cpp
   src/controllers/delegates/midichanneldelegate.cpp
@@ -2410,7 +2411,7 @@ endif()
 
 if(BUILD_TESTING)
   set(
-    src-mixxx-test
+    src-mixxx-test    
     src/test/analyserwaveformtest.cpp
     src/test/analyzersilence_test.cpp
     src/test/audiotaperpot_test.cpp
@@ -2434,6 +2435,7 @@ if(BUILD_TESTING)
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
+    src/test/controllershareddata_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
