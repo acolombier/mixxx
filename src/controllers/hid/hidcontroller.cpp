@@ -61,6 +61,13 @@ QList<std::shared_ptr<AbstractLegacyControllerSetting>> HidController::getMappin
     return m_pMapping->getSettings();
 }
 
+const QString& HidController::getSharedDataNamespace() {
+    if (!m_pMapping) {
+        return QStringLiteral("");
+    }
+    return m_pMapping->sharedDataNamespace();
+}
+
 #ifdef MIXXX_USE_QML
 QList<LegacyControllerMapping::QMLModuleInfo> HidController::getMappingModules() {
     if (!m_pMapping) {
@@ -87,7 +94,8 @@ bool HidController::matchMapping(const MappingInfo& mapping) {
     return false;
 }
 
-int HidController::open(const QString& resourcePath) {
+int HidController::open(const QString& resourcePath,
+        std::shared_ptr<ControllerSharedData> runtimeData) {
     if (isOpen()) {
         qDebug() << "HID device" << getName() << "already open";
         return -1;
@@ -281,7 +289,7 @@ int HidController::open(const QString& resourcePath) {
         qWarning() << "HidIoThread wasn't in expected OutputActive state";
     }
 
-    applyMapping(resourcePath);
+    applyMapping(resourcePath, runtimeData);
     setOpen(true);
     return 0;
 }

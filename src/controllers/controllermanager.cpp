@@ -6,8 +6,10 @@
 #include "controllers/controller.h"
 #include "controllers/controllerlearningeventfilter.h"
 #include "controllers/controllermappinginfoenumerator.h"
+#include "controllers/controllershareddata.h"
 #include "controllers/defs_controllers.h"
 #include "controllers/legacycontrollermappingfilehandler.h"
+#include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "moc_controllermanager.cpp"
 #include "util/cmdlineargs.h"
 #include "util/compatibility/qmutex.h"
@@ -96,7 +98,8 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
           // its own event loop.
           m_pControllerLearningEventFilter(new ControllerLearningEventFilter()),
           m_pollTimer(this),
-          m_skipPoll(false) {
+          m_skipPoll(false),
+          m_pRuntimeData(std::make_shared<ControllerSharedData>(this)) {
     qRegisterMetaType<std::shared_ptr<LegacyControllerMapping>>(
             "std::shared_ptr<LegacyControllerMapping>");
 
@@ -308,7 +311,7 @@ void ControllerManager::slotSetUpDevices() {
 
         qDebug() << "Opening controller:" << name;
 
-        int value = pController->open(m_pConfig->getResourcePath());
+        int value = pController->open(m_pConfig->getResourcePath(), m_pRuntimeData);
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
             continue;
@@ -399,7 +402,7 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
-    int result = pController->open(m_pConfig->getResourcePath());
+    int result = pController->open(m_pConfig->getResourcePath(), m_pRuntimeData);
     pollIfAnyControllersOpen();
 
     // If successfully opened the device, apply the mapping and save the
