@@ -4,7 +4,17 @@ name: build-checks
 
 on:
   push:
+    branches:
+      # Restricting branch on which we trigger commit build to prevent double run on dependabot's changes
+      - "!dependabot/*"
   pull_request:
+    paths:
+      - .github/workflows/build-checks.yml
+      - CMakeLists.txt
+      - .clang-tidy
+      - src/**/*
+      - lib/**/*
+      - res/**/*
 
 permissions:
   contents: read #  to fetch code (actions/checkout)
