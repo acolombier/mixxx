@@ -3,20 +3,29 @@ ARG TARGETARCH
 
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get update && \
     apt-get install -y \
-    adwaita-qt \
     alsa-utils \
+    # Includes basic building tools
     build-essential \
+    ninja-build \
+    # Used by most OpenSource LSPs extensions
     clangd \
+    # Debugger
     gdb \
+    # VCS
     git \
-    libadwaitaqt1 \
+    # Audio integration
     pipewire \
     pipewire-alsa \
     pulseaudio-utils \
+    # Required for pre-commit
     python3-pip \
+    # Default Qt QPA
     qt6-wayland \
+    # Allow privileges escalation in container (e.g to install custom deps)
     sudo \
+    # Allow udev rules debug and test
     udev \
+    # Convenience for git interactive commands
     vim && \
     pip3 install pre-commit --break-system-packages
 

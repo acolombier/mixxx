@@ -70,7 +70,6 @@ If you are not comfortable with this, you may want to remove some or all of the 
 You can build and run Mixxx using the following command:
 
 ```bash
-mkdir build
 cd build
 cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON # Needed for clangd
 cmake --build . -j $(nproc)

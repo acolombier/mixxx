@@ -1,6 +1,7 @@
 {
   "name": "mixxx",
   "build": {
+    "cacheFrom": "ghcr.io/mixxxdj/mixxx/devcontainer:latest",
     "dockerfile": "Dockerfile",
     "context": ".."
   },
@@ -40,7 +41,9 @@
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY:wayland-0}",
     "XDG_SESSION_CLASS": "${localEnv:XDG_SESSION_CLASS:user}",
     "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR:/run/user/1000}",
-    "QT_QPA_PLATFORM": "${localEnv:QT_QPA_PLATFORM:wayland}" // Default to Wayland session, can also use 'xcb' to use X.org instead
+    "QT_QPA_PLATFORM": "${localEnv:QT_QPA_PLATFORM:wayland}", // Default to Wayland session, can also use 'xcb' to use X.org instead
+    "CLAZY_CHECKS": "level2,container-inside-loop,heap-allocated-small-trivial-type,isempty-vs-count,qhash-with-char-pointer-key,qproperty-type-mismatch,tr-non-literal,no-rule-of-two-soft,no-non-pod-global-static,no-qproperty-without-notify,no-qstring-allocations,no-function-args-by-value,no-copyable-polymorphic,no-ctor-missing-parent-argument,no-missing-qobject-macro,no-rule-of-three,no-returning-void-expression",
+    "CLAZY_IGNORE_DIRS": "lib/.*"
   },
   "remoteUser": "developer",
   "postCreateCommand": "git config --global core.excludesFile '/home/developer/.gitignore' && git config --global --add safe.directory ${containerWorkspaceFolder} && pre-commit install --overwrite --install-hooks",
