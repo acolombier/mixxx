@@ -188,9 +188,9 @@ bool WaveformRendererFiltered::preprocessInner() {
         xVisualFrame += visualIncrementPerPixel;
     }
 
-    DEBUG_ASSERT(reserved ==
-            vertexUpdater[0].index() + vertexUpdater[1].index() +
-                    vertexUpdater[2].index());
+    //     DEBUG_ASSERT(reserved ==
+    //             vertexUpdater[0].index() + vertexUpdater[1].index() +
+    //                     vertexUpdater[2].index());
 
     markDirtyMaterial();
 

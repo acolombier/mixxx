@@ -2,11 +2,12 @@
 #include <QIdentityProxyModel>
 #include <QQmlEngine>
 
+#include "qml/qmlplayerproxy.h"
+
 class LibraryTableModel;
 
 namespace mixxx {
 namespace qml {
-
 class QmlLibraryTrackListModel : public QIdentityProxyModel {
     Q_OBJECT
     QML_NAMED_ELEMENT(LibraryTrackListModel)
@@ -42,11 +43,14 @@ class QmlLibraryTrackListModel : public QIdentityProxyModel {
         TitleRole,
         TrackNumberRole,
         YearRole,
+        Track,
     };
     Q_ENUM(Roles);
 
     QmlLibraryTrackListModel(LibraryTableModel* pModel, QObject* pParent = nullptr);
     ~QmlLibraryTrackListModel() = default;
+
+    // Q_INVOKABLE QmlTrackProxy* getTrack(int row) const;
 
     QVariant data(const QModelIndex& index, int role) const override;
     int columnCount(const QModelIndex& index = QModelIndex()) const override;

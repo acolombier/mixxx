@@ -21,6 +21,8 @@ namespace qml {
 
 class QmlWaveformRendererFactory : public QObject {
     Q_OBJECT
+    Q_PROPERTY(::WaveformRendererAbstract::PositionSource position MEMBER
+                    m_position NOTIFY positionChanged)
     QML_ANONYMOUS
   public:
     struct Renderer {
@@ -33,6 +35,12 @@ class QmlWaveformRendererFactory : public QObject {
     }
 
     virtual Renderer create(WaveformWidgetRenderer* waveformWidget) const = 0;
+
+  signals:
+    void positionChanged(::WaveformRendererAbstract::PositionSource);
+
+  protected:
+    ::WaveformRendererAbstract::PositionSource m_position{::WaveformRendererAbstract::Play};
 };
 
 class QmlWaveformRendererEndOfTrack
@@ -71,7 +79,7 @@ class QmlWaveformRendererPreroll
     ::WaveformRendererAbstract::PositionSource m_position{::WaveformRendererAbstract::Play};
 };
 
-class QmlWaveformRendererRGB
+class QmlWaveformRendererSignal
         : public QmlWaveformRendererFactory {
     Q_OBJECT
     Q_PROPERTY(QColor axesColor MEMBER m_axesColor NOTIFY axesColorChanged REQUIRED)
@@ -82,10 +90,15 @@ class QmlWaveformRendererRGB
     Q_PROPERTY(double gainLow MEMBER m_gainLow NOTIFY gainLowChanged REQUIRED)
     Q_PROPERTY(double gainMid MEMBER m_gainMid NOTIFY gainMidChanged REQUIRED)
     Q_PROPERTY(double gainHigh MEMBER m_gainHigh NOTIFY gainHighChanged REQUIRED)
-    QML_NAMED_ELEMENT(WaveformRendererRGB)
+    Q_PROPERTY(allshader::WaveformRendererSignalBase::Options options MEMBER
+                    m_options NOTIFY optionsChanged)
+    QML_ANONYMOUS
 
   public:
-    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
+    Q_ENUM(allshader::WaveformRendererSignalBase::Option)
+
+  protected:
+    void setup(allshader::WaveformRendererSignalBase* renderer) const;
 
   signals:
     void axesColorChanged(const QColor&);
@@ -96,8 +109,9 @@ class QmlWaveformRendererRGB
     void gainLowChanged(double);
     void gainMidChanged(double);
     void gainHighChanged(double);
+    void optionsChanged(allshader::WaveformRendererSignalBase::Options);
 
-  private:
+  protected:
     QColor m_axesColor;
     QColor m_lowColor;
     QColor m_midColor;
@@ -111,6 +125,24 @@ class QmlWaveformRendererRGB
     ::WaveformRendererAbstract::PositionSource m_position{::WaveformRendererAbstract::Play};
     allshader::WaveformRendererSignalBase::Options m_options{
             allshader::WaveformRendererSignalBase::Option::None};
+};
+
+class QmlWaveformRendererRGB
+        : public QmlWaveformRendererSignal {
+    Q_OBJECT
+    QML_NAMED_ELEMENT(WaveformRendererRGB)
+
+  public:
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
+};
+
+class QmlWaveformRendererFiltered
+        : public QmlWaveformRendererSignal {
+    Q_OBJECT
+    QML_NAMED_ELEMENT(WaveformRendererFiltered)
+
+  public:
+    Renderer create(WaveformWidgetRenderer* waveformWidget) const override;
 };
 
 class QmlWaveformRendererBeat

@@ -10,9 +10,7 @@ namespace qml {
 
 QmlLibraryProxy::QmlLibraryProxy(std::shared_ptr<Library> pLibrary, QObject* parent)
         : QObject(parent),
-          m_pLibrary(pLibrary),
-          m_pModelProperty(new QmlLibraryTrackListModel(m_pLibrary->trackTableModel(), this)),
-          m_pSidebarProperty(new QmlLibraryTreeviewModel(m_pLibrary->sidebarModel(), this)) {
+          m_pModelProperty(new QmlLibraryTrackListModel(pLibrary->trackTableModel(), this)) {
 }
 
 // static

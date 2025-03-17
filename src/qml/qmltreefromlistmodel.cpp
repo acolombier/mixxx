@@ -1,385 +1,137 @@
 #include "qml/qmltreefromlistmodel.h"
 
+#include <qalgorithms.h>
+#include <qvariant.h>
+
 #include <QAbstractListModel>
 #include <QVariant>
 #include <QtDebug>
 
+#include "library/browse/browsefeature.h"
+#include "library/trackset/crate/cratefeature.h"
+#include "library/trackset/playlistfeature.h"
 #include "moc_qmltreefromlistmodel.cpp"
-#include "util/assert.h"
 
 namespace mixxx {
 namespace qml {
-QmlTreeFromListModel::QmlTreeFromListModel(QObject* parent)
-        : QAbstractItemModel(parent),
-          m_columnCount(0),
-          m_pSourceModel(nullptr) {
+
+namespace {
+const QHash<int, QByteArray> kRoleNames = {
+        {Qt::DisplayRole, "label"},
+        {QmlSidebarModelProxy::IconRole, "icon"},
+};
+} // namespace
+
+QHash<int, QByteArray> QmlSidebarModelProxy::roleNames() const {
+    return kRoleNames;
 }
 
-QmlTreeFromListModel::~QmlTreeFromListModel() {
-}
-
-QAbstractItemModel* QmlTreeFromListModel::sourceModel() const {
-    return m_pSourceModel;
-}
-void QmlTreeFromListModel::setSourceModel(QAbstractItemModel* pSourceModel) {
-    if (m_pSourceModel == pSourceModel) {
-        return;
+QVariant QmlSidebarModelProxy::get(int row) const {
+    QModelIndex idx = index(row, 0);
+    QVariantMap dataMap;
+    for (auto it = kRoleNames.constBegin(); it != kRoleNames.constEnd(); it++) {
+        dataMap.insert(it.value(), data(idx, it.key()));
     }
+    return dataMap;
+}
 
+QmlLibrarySource::QmlLibrarySource(QObject* parent)
+        : QObject(parent) {
+}
+
+QmlLibraryPlaylistSource::QmlLibraryPlaylistSource(QObject* parent)
+        : QmlLibrarySource(parent) {
+}
+
+QmlLibraryCrateSource::QmlLibraryCrateSource(QObject* parent)
+        : QmlLibrarySource(parent) {
+}
+
+QmlLibraryExplorerSource::QmlLibraryExplorerSource(QObject* parent)
+        : QmlLibrarySource(parent) {
+}
+
+LibraryFeature* QmlLibraryPlaylistSource::create() {
+    return new PlaylistFeature(QmlLibraryProxy::get(), QmlConfigProxy::get());
+}
+
+LibraryFeature* QmlLibraryCrateSource::create() {
+    return new CrateFeature(QmlLibraryProxy::get(), QmlConfigProxy::get());
+}
+
+LibraryFeature* QmlLibraryExplorerSource::create() {
+    return new BrowseFeature(QmlLibraryProxy::get(), QmlConfigProxy::get(), nullptr);
+}
+
+QmlSidebarModelProxy::QmlSidebarModelProxy(QObject* parent)
+        : SidebarModel(parent) {
+}
+
+QmlLibrarySourceTree::QmlLibrarySourceTree(QQuickItem* parent)
+        : QQuickItem(parent),
+          m_model(new QmlSidebarModelProxy(this)) {
+}
+QmlLibrarySourceTree::~QmlLibrarySourceTree() = default;
+
+void QmlLibrarySourceTree::append_source(
+        QQmlListProperty<QmlLibrarySource>* list, QmlLibrarySource* source) {
+    reinterpret_cast<QList<QmlLibrarySource*>*>(list->data)->append(source);
+    QmlLibrarySourceTree* librarySourceTree = qobject_cast<QmlLibrarySourceTree*>(list->object);
+    if (librarySourceTree && librarySourceTree->isComponentComplete()) {
+        librarySourceTree->m_model->update(librarySourceTree->m_sources);
+    }
+}
+
+void QmlLibrarySourceTree::clear_source(QQmlListProperty<QmlLibrarySource>* p) {
+    reinterpret_cast<QList<QmlLibrarySource*>*>(p->data)->clear();
+    QmlLibrarySourceTree* librarySourceTree = qobject_cast<QmlLibrarySourceTree*>(p->object);
+    if (librarySourceTree) {
+        librarySourceTree->m_model->update(librarySourceTree->m_sources);
+    }
+}
+void QmlLibrarySourceTree::replace_source(QQmlListProperty<QmlLibrarySource>* p,
+        qsizetype idx,
+        QmlLibrarySource* v) {
+    return reinterpret_cast<QList<QmlLibrarySource*>*>(p->data)->replace(idx, v);
+    QmlLibrarySourceTree* librarySourceTree = qobject_cast<QmlLibrarySourceTree*>(p->object);
+    if (librarySourceTree && librarySourceTree->isComponentComplete()) {
+        librarySourceTree->m_model->update(librarySourceTree->m_sources);
+    }
+}
+void QmlLibrarySourceTree::removeLast_source(QQmlListProperty<QmlLibrarySource>* p) {
+    return reinterpret_cast<QList<QmlLibrarySource*>*>(p->data)->removeLast();
+    QmlLibrarySourceTree* librarySourceTree = qobject_cast<QmlLibrarySourceTree*>(p->object);
+    if (librarySourceTree && librarySourceTree->isComponentComplete()) {
+        librarySourceTree->m_model->update(librarySourceTree->m_sources);
+    }
+}
+
+QQmlListProperty<QmlLibrarySource> QmlLibrarySourceTree::sources() {
+    return QQmlListProperty<QmlLibrarySource>(this,
+            &m_sources,
+            &QmlLibrarySourceTree::append_source,
+            &QmlLibrarySourceTree::count_source,
+            &QmlLibrarySourceTree::at_source,
+            &QmlLibrarySourceTree::clear_source,
+            &QmlLibrarySourceTree::replace_source,
+            &QmlLibrarySourceTree::removeLast_source);
+}
+
+void QmlLibrarySourceTree::componentComplete() {
+    m_model->update(m_sources);
+}
+
+void QmlSidebarModelProxy::update(const QList<QmlLibrarySource*>& sources) {
     beginResetModel();
-    if (m_pSourceModel != nullptr) {
-        disconnect(m_pSourceModel, nullptr, this, nullptr);
+    qDeleteAll(m_sFeatures);
+    for (const auto& librarySource : sources) {
+        addLibraryFeature(librarySource->create());
+        qDebug() << "LibrarySource:" << librarySource;
     }
-
-    m_sourceRoles.clear();
-    m_pSourceModel = pSourceModel;
-    if (m_pSourceModel != nullptr) {
-        const QHash<int, QByteArray>& sourceRoleNames = m_pSourceModel->roleNames();
-        for (auto it = sourceRoleNames.cbegin(); it != sourceRoleNames.cend(); it++) {
-            int roleId = it.key();
-            m_sourceRoles.insert(QString::fromUtf8(it.value()), roleId);
-        }
-        connect(pSourceModel,
-                &QAbstractListModel::dataChanged,
-                this,
-                [this](const QModelIndex& sourceTopLeft,
-                        const QModelIndex& sourceBottomRight,
-                        const QVector<int>& roles) {
-                    Q_UNUSED(roles);
-
-                    const QModelIndex topLeft = index(sourceTopLeft.row(), 0);
-                    const QModelIndex bottomRight =
-                            index(sourceBottomRight.row(), columnCount());
-                    emit dataChanged(topLeft, bottomRight);
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsAboutToBeInserted,
-                this,
-                [this](const QModelIndex& parent,
-                        int start,
-                        int end) {
-                    DEBUG_ASSERT(!parent.isValid());
-                    beginInsertRows(QModelIndex(), start, end);
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsInserted,
-                this,
-                [this](const QModelIndex& parent,
-                        int start,
-                        int end) {
-                    qWarning() << "inserted" << start << end;
-                    DEBUG_ASSERT(!parent.isValid());
-                    Q_UNUSED(parent);
-                    Q_UNUSED(start);
-                    Q_UNUSED(end);
-                    endInsertRows();
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsAboutToBeMoved,
-                this,
-                [this](const QModelIndex& sourceParent,
-                        int sourceStart,
-                        int sourceEnd,
-                        const QModelIndex& destinationParent,
-                        int destinationChild) {
-                    DEBUG_ASSERT(!sourceParent.isValid());
-                    DEBUG_ASSERT(!destinationParent.isValid());
-                    beginMoveRows(QModelIndex(),
-                            sourceStart,
-                            sourceEnd,
-                            destinationParent,
-                            destinationChild);
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsMoved,
-                this,
-                [this](const QModelIndex& sourceParent,
-                        int sourceStart,
-                        int sourceEnd,
-                        const QModelIndex& destinationParent,
-                        int destinationChild) {
-                    DEBUG_ASSERT(!sourceParent.isValid());
-                    Q_UNUSED(sourceParent);
-                    Q_UNUSED(sourceStart);
-                    Q_UNUSED(sourceEnd);
-                    Q_UNUSED(destinationParent);
-                    Q_UNUSED(destinationChild);
-                    endMoveRows();
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsAboutToBeRemoved,
-                this,
-                [this](const QModelIndex& parent,
-                        int start,
-                        int end) {
-                    DEBUG_ASSERT(!parent.isValid());
-                    beginRemoveRows(QModelIndex(), start, end);
-                });
-        connect(pSourceModel,
-                &QAbstractListModel::rowsRemoved,
-                this,
-                [this](const QModelIndex& parent,
-                        int start,
-                        int end) {
-                    DEBUG_ASSERT(!parent.isValid());
-                    Q_UNUSED(parent);
-                    Q_UNUSED(start);
-                    Q_UNUSED(end);
-                    endRemoveRows();
-                });
-    }
-    emit sourceModelChanged();
     endResetModel();
-
-    if (componentCompleted) {
-        fetchColumnMetadata();
-    }
 }
 
-void QmlTreeFromListModel::classBegin() {
-}
-void QmlTreeFromListModel::componentComplete() {
-    componentCompleted = true;
-
-    m_columnCount = m_columns.size();
-    if (m_columnCount > 0)
-        emit columnCountChanged();
-
-    fetchColumnMetadata();
-}
-QQmlListProperty<QmlTableFromListModelColumn> QmlTreeFromListModel::columns() {
-    return QQmlListProperty<QmlTableFromListModelColumn>(this,
-            nullptr,
-            &QmlTreeFromListModel::columns_append,
-            &QmlTreeFromListModel::columns_count,
-            &QmlTreeFromListModel::columns_at,
-            &QmlTreeFromListModel::columns_clear);
-}
-void QmlTreeFromListModel::columns_append(
-        QQmlListProperty<QmlTableFromListModelColumn>* pProperty,
-        QmlTableFromListModelColumn* value) {
-    QmlTreeFromListModel* pModel = static_cast<QmlTreeFromListModel*>(pProperty->object);
-    QmlTableFromListModelColumn* pColumn = qobject_cast<QmlTableFromListModelColumn*>(value);
-    if (pColumn) {
-        pModel->m_columns.append(pColumn);
-    }
-}
-qsizetype QmlTreeFromListModel::columns_count(
-        QQmlListProperty<QmlTableFromListModelColumn>* pProperty) {
-    const QmlTreeFromListModel* pModel = static_cast<QmlTreeFromListModel*>(pProperty->object);
-    return pModel->m_columns.count();
-}
-bool QmlTreeFromListModel::moveColumns(const QModelIndex& sourceParent,
-        int sourceColumn,
-        int count,
-        const QModelIndex& destinationParent,
-        int destinationChild) {
-    // beginMoveColumns(sourceParent, sourceColumn, sourceColumn+count,
-    // destinationParent, destinationChild); 5 7 1
-    // m_columnMetadata.swapItemsAt(5, 6); 0 1 2 3 4 6 5 7
-    // m_columnMetadata.swapItemsAt(6, 7); 0 1 2 3 4 6 7 5
-    // 5 7 2
-    // m_columnMetadata.swapItemsAt(5, 7); 0 1 2 3 4 7 6 5 8
-    // m_columnMetadata.swapItemsAt(6, 8); 0 1 2 3 4 7 8 5 6
-
-    // 7 5 1
-    // m_columnMetadata.swapItemsAt(6, 7); 0 1 2 3 4 5 7 6
-    // m_columnMetadata.swapItemsAt(5, 6); 0 1 2 3 4 7 5 6
-
-    // 7 5 2
-    // m_columnMetadata.swapItemsAt(6, 8); 0 1 2 3 4 5 8 7 6
-    // m_columnMetadata.swapItemsAt(5, 7); 0 1 2 3 4 7 8 5 6
-
-    if (sourceColumn < destinationChild) {
-        for (int i = sourceColumn; i < destinationChild; i++) {
-            m_columnMetadata.swapItemsAt(i, i + count);
-        }
-    } else {
-        for (int i = sourceColumn; i > destinationChild; --i) {
-            m_columnMetadata.swapItemsAt(i, i + count);
-        }
-    }
-
-    // endMoveColumns();
-
-    emit layoutChanged();
-
-    return true;
-}
-QmlTableFromListModelColumn* QmlTreeFromListModel::columns_at(
-        QQmlListProperty<QmlTableFromListModelColumn>* pProperty, qsizetype index) {
-    const QmlTreeFromListModel* pModel = static_cast<QmlTreeFromListModel*>(pProperty->object);
-    return pModel->m_columns.at(index);
-}
-void QmlTreeFromListModel::columns_clear(
-        QQmlListProperty<QmlTableFromListModelColumn>* pProperty) {
-    QmlTreeFromListModel* pModel = static_cast<QmlTreeFromListModel*>(pProperty->object);
-    return pModel->m_columns.clear();
-}
-QModelIndex QmlTreeFromListModel::index(int row, int column, const QModelIndex& parent) const {
-    return row >= 0 && row < rowCount() && column >= 0 &&
-                    column < columnCount() && !parent.isValid()
-            ? createIndex(row, column)
-            : QModelIndex();
-}
-int QmlTreeFromListModel::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid() || m_pSourceModel == nullptr) {
-        return 0;
-    }
-    return m_pSourceModel->rowCount();
-}
-int QmlTreeFromListModel::columnCount(const QModelIndex& parent) const {
-    if (parent.isValid()) {
-        return 0;
-    }
-
-    return m_columnCount;
-}
-QVariant QmlTreeFromListModel::data(const QModelIndex& index, const QString& role) const {
-    const int roleId = roleNames().key(role.toUtf8(), -1);
-    if (roleId >= 0) {
-        return data(index, roleId);
-    }
-    return QVariant();
-}
-QVariant QmlTreeFromListModel::data(const QModelIndex& index, int role) const {
-    if (m_pSourceModel == nullptr) {
-        return QVariant();
-    }
-
-    const int row = index.row();
-    if (row < 0 || row >= rowCount()) {
-        return QVariant();
-    }
-    const int column = index.column();
-    if (column < 0 || column >= columnCount()) {
-        return QVariant();
-    }
-    const ColumnMetadata columnMetadata = m_columnMetadata.at(index.column());
-    const QString roleName = QString::fromUtf8(roleNames().value(role));
-    if (!columnMetadata.roles.contains(roleName)) {
-        qWarning() << "data(): no role named " << roleName
-                   << " at column index " << column << ". The available roles for that column are: "
-                   << columnMetadata.roles.keys();
-        return QVariant();
-    }
-    const ColumnRoleMetadata roleData = columnMetadata.roles.value(roleName);
-    const int sourceRole = m_sourceRoles.value(roleData.name);
-    const QModelIndex modelIndex = m_pSourceModel->index(row, 0);
-    return m_pSourceModel->data(modelIndex, sourceRole);
-}
-bool QmlTreeFromListModel::setData(
-        const QModelIndex& index, const QString& role, const QVariant& value) {
-    const int intRole = roleNames().key(role.toUtf8(), -1);
-    if (intRole >= 0) {
-        return setData(index, value, intRole);
-    }
-    return false;
-}
-bool QmlTreeFromListModel::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (m_pSourceModel == nullptr) {
-        return false;
-    }
-
-    const int row = index.row();
-    if (row < 0 || row >= rowCount())
-        return false;
-    const int column = index.column();
-    if (column < 0 || column >= columnCount())
-        return false;
-    const QString roleName = QString::fromUtf8(roleNames().value(role));
-    qDebug().nospace() << "setData() called with index "
-                       << index << ", value " << value << " and role " << roleName;
-    // Verify that the role exists for this column.
-    const ColumnMetadata columnMetadata = m_columnMetadata.at(index.column());
-    if (!columnMetadata.roles.contains(roleName)) {
-        qWarning() << "setData(): no role named \"" << roleName
-                   << "\" at column index " << column
-                   << ". The available roles for that column are: "
-                   << columnMetadata.roles.keys();
-        return false;
-    }
-    // Verify that the type of the value is what we expect.
-    // If the value set is not of the expected type, we can try to convert it automatically.
-    const ColumnRoleMetadata roleData = columnMetadata.roles.value(roleName);
-    const int sourceRole = m_sourceRoles.value(roleData.name);
-    const QModelIndex modelIndex = m_pSourceModel->index(row, 0);
-    return m_pSourceModel->setData(modelIndex, value, sourceRole);
-}
-
-QmlTreeFromListModel::ColumnRoleMetadata
-QmlTreeFromListModel::fetchColumnRoleData(const QString& roleNameKey,
-        QmlTableFromListModelColumn* pColumn,
-        int columnIndex) const {
-    DEBUG_ASSERT(componentCompleted);
-
-    ColumnRoleMetadata roleData;
-    VERIFY_OR_DEBUG_ASSERT(m_pSourceModel != nullptr) {
-        return roleData;
-    }
-
-    QJSValue columnRoleGetter = pColumn->getterAtRole(roleNameKey);
-    if (columnRoleGetter.isUndefined()) {
-        // This role is not defined, which is fine; just skip it.
-        return roleData;
-    }
-    if (columnRoleGetter.isString()) {
-        const QString rolePropertyName = columnRoleGetter.toString();
-        roleData.name = rolePropertyName;
-        roleData.roleId = m_sourceRoles.value(rolePropertyName);
-    } else {
-        // Invalid role.
-        qWarning() << "TreeFromListModelColumn role for column at index "
-                   << columnIndex << " must be either a string or a function; actual type is: "
-                   << columnRoleGetter.toString();
-    }
-    return roleData;
-}
-
-void QmlTreeFromListModel::fetchColumnMetadata() {
-    qDebug() << "gathering metadata for" << m_columnCount << "columns";
-    m_columnMetadata.clear();
-    // static const auto supportedRoleNames =
-    // QmlTableFromListModelColumn::supportedRoleNames(); Since we support
-    // different data structures at the row level, we require that there is a
-    // TreeFromListModelColumn for each column. Collect and cache metadata for
-    // each column. This makes data lookup faster. for (int columnIndex = 0;
-    // columnIndex < m_columns.size(); ++columnIndex) {
-    //     QmlTableFromListModelColumn* column = m_columns.at(columnIndex);
-    //     qDebug().nospace() << "- column " << columnIndex << ":";
-    //     ColumnMetadata metaData;
-    //     const auto builtInRoleKeys = supportedRoleNames.keys();
-    //     for (const int builtInRoleKey : builtInRoleKeys) {
-    //         const QString builtInRoleName =
-    //         supportedRoleNames.value(builtInRoleKey); ColumnRoleMetadata
-    //         roleData = fetchColumnRoleData(builtInRoleName, column,
-    //         columnIndex); if (!roleData.isValid()) {
-    //             // This built-in role was not specified in this column.
-    //             continue;
-    //         }
-    //         qDebug().nospace() << "  - added metadata for built-in role "
-    //                            << builtInRoleName << " at column index " <<
-    //                            columnIndex << ": name="
-    //                            << roleData.name << "roleId=" <<
-    //                            roleData.roleId;
-    //         // This column now supports this specific built-in role.
-    //         metaData.roles.insert(builtInRoleName, roleData);
-    //     }
-    //     m_columnMetadata.insert(columnIndex, metaData);
-    // }
-}
-
-QmlTreeFromListModel::ColumnRoleMetadata::ColumnRoleMetadata() {
-}
-
-QmlTreeFromListModel::ColumnRoleMetadata::ColumnRoleMetadata(const QString& name, int roleId)
-        : name(name),
-          roleId(roleId) {
-}
-
-bool QmlTreeFromListModel::ColumnRoleMetadata::isValid() const {
-    return !name.isEmpty() && roleId >= 0;
-}
+QmlSidebarModelProxy::~QmlSidebarModelProxy() = default;
 
 } // namespace qml
 } // namespace mixxx

@@ -8,6 +8,7 @@ MixxxControls.Slider {
 
     property alias fg: handleImage.source
     property alias bg: backgroundImage.source
+    property alias handleImage: handleImage
 
     bar: true
     barMargin: 10

@@ -148,19 +148,19 @@ Skin.LibraryPanel {
                     Drag.supportedActions: Qt.MoveAction
                     Drag.hotSpot.x: parent.implicitWidth / 2
 
-                    BorderImage {
-                        anchors.fill: parent
-                        horizontalTileMode: BorderImage.Stretch
-                        verticalTileMode: BorderImage.Stretch
-                        source: Theme.imgPopupBackground
+                    // BorderImage {
+                    //     anchors.fill: parent
+                    //     horizontalTileMode: BorderImage.Stretch
+                    //     verticalTileMode: BorderImage.Stretch
+                    //     source: Theme.imgPopupBackground
 
-                        border {
-                            top: 10
-                            left: 20
-                            right: 20
-                            bottom: 10
-                        }
-                    }
+                    //     border {
+                    //         top: 10
+                    //         left: 20
+                    //         right: 20
+                    //         bottom: 10
+                    //     }
+                    // }
 
                     MouseArea {
                         id: columnMouseHandler
@@ -204,15 +204,15 @@ Skin.LibraryPanel {
 
                         text: headerDlgt.modelData.columnName
                         anchors.fill: parent
-                        anchors.margins: 5
+                        anchors.leftMargin: 15
                         elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
+                        horizontalAlignment: Text.AlignLeft
                         verticalAlignment: Text.AlignVCenter
                         font.family: Theme.fontFamily
-                        font.capitalization: Font.AllUppercase
-                        font.bold: true
-                        font.pixelSize: Theme.buttonFontPixelSize
-                        color: Theme.buttonNormalColor
+                        font.capitalization: Font.Capitalize
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: "#D9D9D9"
                     }
 
                     Text {
@@ -232,8 +232,8 @@ Skin.LibraryPanel {
                 }
                 Rectangle {
                     id: columnResizer
-                    color: 'transparent'
-                    width: 6
+                    color: '#202020'
+                    width: 2
                     anchors {
                         top: parent.top
                         bottom: parent.bottom
@@ -322,27 +322,26 @@ Skin.LibraryPanel {
                 property int usedWidth: 0
 
                 Mixxx.TableFromListModelColumn {
-                    id: colorColumnModel
-
-                    readonly property string columnName: "Color"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 30
-
-                    decoration: "color"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
                     id: coverColumnModel
 
                     readonly property string columnName: "Cover"
                     property bool hidden: false
                     property int fillSpan: 0
-                    property int prefferedWidth: 50
+                    property int prefferedWidth: 110
 
                     display: "coverArtUrl"
                     decoration: "coverArtColor"
+                    edit: "fileUrl"
+                }
+
+                Mixxx.TableFromListModelColumn {
+                    readonly property string columnName: "Preview"
+                    property bool hidden: false
+                    property int fillSpan: 3
+                    property int prefferedWidth: 300
+
+                    display: "track"
+                    decoration: "color"
                     edit: "fileUrl"
                 }
 
@@ -485,20 +484,6 @@ Skin.LibraryPanel {
                     column: 0
 
                     Rectangle {
-                        id: trackColorDelegate
-
-                        required property bool selected
-                        required property color decoration
-
-                        implicitHeight: 30
-                        color: trackColorDelegate.decoration
-                    }
-                }
-
-                DelegateChoice {
-                    column: 1
-
-                    Rectangle {
                         id: coverArtDelegate
 
                         required property color decoration
@@ -518,6 +503,30 @@ Skin.LibraryPanel {
                 }
 
                 DelegateChoice {
+                    column: 1
+
+                    Rectangle {
+                        id: trackColorDelegate
+
+                        required property bool selected
+                        required property color decoration
+                        required property var display
+
+                        implicitHeight: 30
+                        color: 'transparent'
+                        Mixxx.WaveformOverview {
+                            anchors.fill: parent
+                            channels: Mixxx.WaveformOverview.Channels.LeftChannel
+                            renderer: Mixxx.WaveformOverview.Renderer.Filtered
+                            colorHigh: Theme.white
+                            colorMid: Theme.blue
+                            colorLow: Theme.green
+                            track: display
+                        }
+                    }
+                }
+
+                DelegateChoice {
                     Rectangle {
                         id: itemDelegate
 
@@ -525,16 +534,18 @@ Skin.LibraryPanel {
                         required property bool selected
                         required property string display
 
-                        color: selected ? '#2c454f' : (row % 2 == 0 ? 'transparent' : '#0a0a0a')
+                        color: selected ? '#2c454f' : (row % 2 == 0 ? '#0C0C0C' : '#272727')
 
                         implicitHeight: 30
 
                         Text {
                             anchors.fill: parent
+                            anchors.leftMargin: 15
+                            font.pixelSize: 14
                             text: itemDelegate.display
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
-                            color: itemDelegate.selected ? Theme.white : '#e7eaeb'
+                            color: '#D9D9D9'
                         }
 
                         Image {

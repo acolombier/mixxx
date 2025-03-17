@@ -85,6 +85,7 @@ DropArea {
             splitPreview.anchors.topMargin = 0
             splitPreview.anchors.bottomMargin = height / 2
         }
+        console.log(drag.action, Qt.MoveAction)
         splitPreview.visible = true
     }
 

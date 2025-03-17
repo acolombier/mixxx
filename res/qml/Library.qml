@@ -158,20 +158,20 @@ Item {
                             fillWidth: false
                             rows: [
                                 ListElement {
-                                    preferredHeight: 100
-                                    type: "PreviewDeck"
-                                    fillHeight: false
-                                },
-                                ListElement {
                                     preferredHeight: 500
                                     type: "Browser"
                                     fillHeight: true
                                 },
                                 ListElement {
-                                    preferredHeight: 300
-                                    type: "CoverPreview"
+                                    preferredHeight: 100
+                                    type: "PreviewDeck"
                                     fillHeight: false
                                 }
+                                // ListElement {
+                                //     preferredHeight: 300
+                                //     type: "CoverPreview"
+                                //     fillHeight: false
+                                // }
                             ]
                         }
                         ListElement {
@@ -296,70 +296,70 @@ Item {
                                             panelModel: rootPanelModel
                                         }
                                     }
-                                    DelegateChoice {
-                                        roleValue: "CoverPreview"
-                                        Skin.LibraryPanel {
-                                            required property int index
+                                    // DelegateChoice {
+                                    //     roleValue: "CoverPreview"
+                                    //     Skin.LibraryPanel {
+                                    //         required property int index
 
-                                            required property real preferredHeight
-                                            required property bool fillHeight
+                                    //         required property real preferredHeight
+                                    //         required property bool fillHeight
 
-                                            SplitView.fillHeight: fillHeight
-                                            SplitView.preferredHeight: preferredHeight
+                                    //         SplitView.fillHeight: fillHeight
+                                    //         SplitView.preferredHeight: preferredHeight
 
-                                            columnIndex: columnView.index
-                                            rowIndex: index
-                                            panelModel: rootPanelModel
+                                    //         columnIndex: columnView.index
+                                    //         rowIndex: index
+                                    //         panelModel: rootPanelModel
 
-                                            Rectangle {
-                                                id: treeView
+                                    //         Rectangle {
+                                    //             id: treeView
 
-                                                anchors.fill: parent
+                                    //             anchors.fill: parent
 
-                                                color: 'transparent'
+                                    //             color: 'transparent'
 
-                                                MouseArea {
-                                                    id: mouseArea
-                                                    anchors.fill: parent
-                                                    drag {
-                                                        target: parent
-                                                    }
-                                                }
-                                                Shape {
-                                                    anchors.fill: parent
-                                                    ShapePath {
-                                                        strokeColor: "#40ffffff"
-                                                        strokeWidth: 1
-                                                        fillColor: "transparent"
-                                                        capStyle: ShapePath.RoundCap
+                                    //             MouseArea {
+                                    //                 id: mouseArea
+                                    //                 anchors.fill: parent
+                                    //                 drag {
+                                    //                     target: parent
+                                    //                 }
+                                    //             }
+                                    //             Shape {
+                                    //                 anchors.fill: parent
+                                    //                 ShapePath {
+                                    //                     strokeColor: "#40ffffff"
+                                    //                     strokeWidth: 1
+                                    //                     fillColor: "transparent"
+                                    //                     capStyle: ShapePath.RoundCap
 
-                                                        startX: 0
-                                                        startY: 0
-                                                        PathLine { x: width; y: 0 }
-                                                        PathLine { x: width; y: height }
-                                                        PathLine { x: 0; y: height }
-                                                        PathLine { x: 0; y: 0 }
-                                                        PathLine { x: width; y: height }
-                                                        PathLine { x: 0; y: height }
-                                                        PathLine { x: width; y: 0 }
-                                                    }
-                                                }
+                                    //                     startX: 0
+                                    //                     startY: 0
+                                    //                     PathLine { x: width; y: 0 }
+                                    //                     PathLine { x: width; y: height }
+                                    //                     PathLine { x: 0; y: height }
+                                    //                     PathLine { x: 0; y: 0 }
+                                    //                     PathLine { x: width; y: height }
+                                    //                     PathLine { x: 0; y: height }
+                                    //                     PathLine { x: width; y: 0 }
+                                    //                 }
+                                    //             }
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    color: 'white'
-                                                    text: "CovertArt placeholder"
-                                                }
+                                    //             Text {
+                                    //                 anchors.centerIn: parent
+                                    //                 color: 'white'
+                                    //                 text: "CovertArt placeholder"
+                                    //             }
 
-                                                Drag.active: mouseArea.drag.active
-                                                Drag.source: parent
-                                                Drag.dragType: Drag.Automatic
-                                                Drag.supportedActions: Qt.MoveAction
-                                                Drag.hotSpot.x: mouseArea.mouseX
-                                                Drag.hotSpot.y: mouseArea.mouseY
-                                            }
-                                        }
-                                    }
+                                    //             Drag.active: mouseArea.drag.active
+                                    //             Drag.source: parent
+                                    //             Drag.dragType: Drag.Automatic
+                                    //             Drag.supportedActions: Qt.MoveAction
+                                    //             Drag.hotSpot.x: mouseArea.mouseX
+                                    //             Drag.hotSpot.y: mouseArea.mouseY
+                                    //         }
+                                    //     }
+                                    // }
                                 }
                             }
                         }

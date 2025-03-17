@@ -20,7 +20,7 @@ AbstractButton {
 
             PropertyChanges {
                 target: backgroundImage
-                source: Theme.imgButtonPressed
+                color: root.checked ? "#3a60be" : "#3F3F3F"
             }
 
             PropertyChanges {
@@ -40,7 +40,7 @@ AbstractButton {
 
             PropertyChanges {
                 target: backgroundImage
-                source: Theme.imgButton
+                color: "#2D4EA1"
             }
 
             PropertyChanges {
@@ -58,10 +58,10 @@ AbstractButton {
             name: "inactive"
             when: !root.checked && !root.highlight && !root.pressed
 
-            PropertyChanges {
-                target: backgroundImage
-                source: Theme.imgButton
-            }
+            // PropertyChanges {
+            //     target: backgroundImage
+            //     source: Theme.imgButton
+            // }
 
             PropertyChanges {
                 target: label
@@ -75,19 +75,44 @@ AbstractButton {
         }
     ]
 
-    background: BorderImage {
-        id: backgroundImage
-
+    background: Item {
         anchors.fill: parent
-        horizontalTileMode: BorderImage.Stretch
-        verticalTileMode: BorderImage.Stretch
-        source: Theme.imgButton
 
-        border {
-            top: 10
-            left: 10
-            right: 10
-            bottom: 10
+        Rectangle {
+            id: backgroundImage
+
+            anchors.fill: parent
+            color: '#2B2B2B'
+            radius: 2
+        }
+
+        DropShadow {
+            id: effect1
+            anchors.fill: backgroundImage
+            horizontalOffset: 0
+            verticalOffset: 0
+            radius: 1.0
+            color: "#80000000"
+            source: backgroundImage
+        }
+        InnerShadow {
+            id: effect2
+            anchors.fill: backgroundImage
+            radius: 1
+            samples: 16
+            horizontalOffset: 1
+            verticalOffset: 1
+            color: "#353535"
+            source: effect1
+        }
+        InnerShadow {
+            anchors.fill: backgroundImage
+            radius: 1
+            samples: 16
+            horizontalOffset: -1
+            verticalOffset: -1
+            color: "#353535"
+            source: effect2
         }
     }
 

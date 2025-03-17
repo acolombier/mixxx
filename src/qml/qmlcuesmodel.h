@@ -16,6 +16,7 @@ class QmlCuesModel : public QAbstractListModel {
         LabelRole,
         IsLoopRole,
         HotcueNumberRole,
+        ColorRole,
     };
     Q_ENUM(Roles)
 

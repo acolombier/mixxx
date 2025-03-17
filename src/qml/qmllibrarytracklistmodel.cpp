@@ -1,13 +1,17 @@
 #include "qml/qmllibrarytracklistmodel.h"
 
+#include <qvariant.h>
+
 #include "library/librarytablemodel.h"
 #include "moc_qmllibrarytracklistmodel.cpp"
 #include "qml/asyncimageprovider.h"
+#include "qmlplayerproxy.h"
 
 namespace mixxx {
 namespace qml {
 namespace {
 const QHash<int, QByteArray> kRoleNames = {
+        {QmlLibraryTrackListModel::Track, "track"},
         {QmlLibraryTrackListModel::AlbumArtistRole, "albumArtist"},
         {QmlLibraryTrackListModel::AlbumRole, "album"},
         {QmlLibraryTrackListModel::ArtistRole, "artist"},
@@ -63,7 +67,7 @@ QVariant QmlLibraryTrackListModel::data(const QModelIndex& proxyIndex, int role)
         return {};
     }
 
-    const auto pSourceModel = static_cast<LibraryTableModel*>(sourceModel());
+    auto* const pSourceModel = static_cast<LibraryTableModel*>(sourceModel());
     VERIFY_OR_DEBUG_ASSERT(pSourceModel) {
         return {};
     }
@@ -74,6 +78,10 @@ QVariant QmlLibraryTrackListModel::data(const QModelIndex& proxyIndex, int role)
 
     int column = -1;
     switch (role) {
+    case Track: {
+        return QVariant::fromValue(new QmlTrackProxy(pSourceModel->getTrack(
+                QIdentityProxyModel::mapToSource(proxyIndex))));
+    }
     case AlbumArtistRole:
         column = pSourceModel->fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_ALBUMARTIST);
         break;
@@ -207,6 +215,9 @@ int QmlLibraryTrackListModel::columnCount(const QModelIndex& parent) const {
 QHash<int, QByteArray> QmlLibraryTrackListModel::roleNames() const {
     return kRoleNames;
 }
+
+// QmlTrackProxy QmlLibraryTrackListModel::getTrack() const {
+// }
 
 QVariant QmlLibraryTrackListModel::get(int row) const {
     QModelIndex idx = index(row, 0);

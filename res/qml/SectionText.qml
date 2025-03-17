@@ -6,7 +6,7 @@ Text {
     verticalAlignment: Text.AlignVCenter
     elide: Text.ElideRight
     font.family: Theme.fontFamily
-    font.pixelSize: Theme.textFontPixelSize
+    font.pixelSize: 18
     font.bold: true
-    color: Theme.buttonNormalColor
+    color: '#D9D9D9'
 }

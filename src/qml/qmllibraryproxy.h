@@ -29,10 +29,12 @@ class QmlLibraryProxy : public QObject {
         s_pLibrary = std::move(pLibrary);
     }
 
+    static Library* get() {
+        return s_pLibrary.get();
+    }
+
   private:
     static inline std::shared_ptr<Library> s_pLibrary;
-
-    std::shared_ptr<Library> m_pLibrary;
 
     /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
     QmlLibraryTrackListModel* m_pModelProperty;

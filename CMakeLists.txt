@@ -3413,6 +3413,7 @@ if(QML)
       src/qml/qmlchainpresetmodel.cpp
       src/qml/qmlwaveformoverview.cpp
       src/qml/qmltreefromlistmodel.cpp
+      src/qml/qmllibrarytreeviewmodel.cpp
       src/qml/qmltablefromlistmodel.cpp
       src/qml/qmltablefromlistmodelcolumn.cpp
       src/qml/qmlmixxxcontrollerscreen.cpp

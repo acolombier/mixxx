@@ -11,8 +11,6 @@ class QTimer;
 
 class SidebarModel : public QAbstractItemModel {
     Q_OBJECT
-    QML_NAMED_ELEMENT(LibrarySidebarModel)
-    QML_UNCREATABLE("Only accessible via Mixxx.Library.sidebar")
   public:
     // Keep object tree functions from QObject accessible
     // for parented_ptr
@@ -87,11 +85,13 @@ class SidebarModel : public QAbstractItemModel {
   private slots:
     void slotPressedUntilClickedTimeout();
 
+  protected:
+    QList<LibraryFeature*> m_sFeatures;
+
   private:
     QModelIndex translateSourceIndex(const QModelIndex& parent);
     QModelIndex translateIndex(const QModelIndex& index, const QAbstractItemModel* model);
     void featureRenamed(LibraryFeature*);
-    QList<LibraryFeature*> m_sFeatures;
     unsigned int m_iDefaultSelectedIndex; /** Index of the item in the sidebar model to select at startup. */
 
     QTimer* const m_pressedUntilClickedTimer;

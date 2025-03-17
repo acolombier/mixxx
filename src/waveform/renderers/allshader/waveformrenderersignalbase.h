@@ -33,5 +33,11 @@ class allshader::WaveformRendererSignalBase : public ::WaveformRendererSignalBas
         return false;
     }
 
+  public slots:
+    void setAxesColor(const QColor& axesColor);
+    void setLowColor(const QColor& lowColor);
+    void setMidColor(const QColor& midColor);
+    void setHighColor(const QColor& highColor);
+
     DISALLOW_COPY_AND_ASSIGN(WaveformRendererSignalBase);
 };

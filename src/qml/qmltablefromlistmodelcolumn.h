@@ -18,6 +18,8 @@ class QmlTableFromListModelColumn : public QObject {
                     decorationChanged FINAL)
     Q_PROPERTY(QJSValue setDecoration READ getSetDecoration WRITE
                     setSetDecoration NOTIFY setDecorationChanged FINAL)
+    Q_PROPERTY(QJSValue track READ track WRITE
+                    setTrack NOTIFY trackChanged FINAL)
     Q_PROPERTY(QJSValue edit READ edit WRITE setEdit NOTIFY editChanged FINAL)
     Q_PROPERTY(QJSValue setEdit READ getSetEdit WRITE setSetEdit NOTIFY setEditChanged FINAL)
     Q_PROPERTY(QJSValue toolTip READ toolTip WRITE setToolTip NOTIFY toolTipChanged FINAL)
@@ -116,6 +118,8 @@ class QmlTableFromListModelColumn : public QObject {
     void setSetAccessibleDescription(const QJSValue& function);
     QJSValue sizeHint() const;
     void setSizeHint(const QJSValue& stringOrFunction);
+    QJSValue track() const;
+    void setTrack(const QJSValue& track);
     QJSValue getSetSizeHint() const;
     void setSetSizeHint(const QJSValue& function);
     QJSValue getterAtRole(const QString& roleName);
@@ -123,6 +127,7 @@ class QmlTableFromListModelColumn : public QObject {
     const QHash<QString, QJSValue> getters() const;
     static const QHash<int, QString> supportedRoleNames();
   Q_SIGNALS:
+    void trackChanged();
     void indexChanged();
     void displayChanged();
     void setDisplayChanged();

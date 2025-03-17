@@ -11,6 +11,7 @@ namespace {
 const QHash<int, QByteArray> kRoleNames = {
         {QmlCuesModel::StartPositionRole, "startPosition"},
         {QmlCuesModel::EndPositionRole, "endPosition"},
+        {QmlCuesModel::ColorRole, "color"},
         {QmlCuesModel::LabelRole, "label"},
         {QmlCuesModel::IsLoopRole, "isLoop"},
         {QmlCuesModel::HotcueNumberRole, "hotcueNumber"},
@@ -53,6 +54,8 @@ QVariant QmlCuesModel::data(const QModelIndex& index, int role) const {
         return pCue->getType() == CueType::Loop;
     case QmlCuesModel::HotcueNumberRole:
         return pCue->getHotCue();
+    case QmlCuesModel::ColorRole:
+        return mixxx::RgbColor::toQColor(pCue->getColor());
     default:
         return QVariant();
     }

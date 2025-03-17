@@ -8,6 +8,7 @@
 
 namespace {
 
+const QString trackRoleName = QStringLiteral("track");
 const QString displayRoleName = QStringLiteral("display");
 const QString decorationRoleName = QStringLiteral("decoration");
 const QString editRoleName = QStringLiteral("edit");
@@ -176,6 +177,27 @@ DEFINE_ROLE_PROPERTIES(sizeHint,
         setSetSizeHint,
         setSizeHintChanged,
         sizeHintRoleName)
+
+QJSValue QmlTableFromListModelColumn::track() const {
+    return m_getters.value(trackRoleName);
+}
+
+void QmlTableFromListModelColumn::setTrack(
+        const QJSValue& stringOrFunction) {
+    if (!stringOrFunction.isString() && !stringOrFunction.isCallable()) {
+        qWarning().quote()
+                << "getter for " << trackRoleName << " must be a function";
+        return;
+    }
+
+    if (stringOrFunction.strictlyEquals(track())) {
+        return;
+    }
+
+    m_getters[trackRoleName] = stringOrFunction;
+    emit trackChanged();
+}
+
 QJSValue QmlTableFromListModelColumn::getterAtRole(const QString& roleName) {
     auto it = m_getters.find(roleName);
     if (it == m_getters.end())
