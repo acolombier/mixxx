@@ -243,10 +243,10 @@ Item {
             mouseStatus = WaveformDisplay.MouseStatus.Normal;
         }
 
-        onWheel: {
-            if (wheel.angleDelta.y < 0 && zoomControl.value > 1) {
+        onWheel: (mouse) => {
+            if (mouse.angleDelta.y < 0 && zoomControl.value > 1) {
                 zoomControl.value -= 1;
-            } else if (wheel.angleDelta.y > 0 && zoomControl.value < 10.0) {
+            } else if (mouse.angleDelta.y > 0 && zoomControl.value < 10.0) {
                 zoomControl.value += 1;
             }
         }

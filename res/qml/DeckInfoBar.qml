@@ -161,8 +161,9 @@ Rectangle {
         width: root.rightColumnWidth
         visible: root.deckPlayer.isLoaded
 
-        RowLayout {
-            anchors.fill: parent
+        Row {
+            id: stars
+            anchors.centerIn: parent
             spacing: 0
             Repeater {
                 model: 5
@@ -171,10 +172,12 @@ Rectangle {
                     antialiasing: true
                     layer.enabled: true
                     layer.samples: 4
-                    Layout.preferredWidth: 16
-                    Layout.preferredHeight: 14
+                    // Layout.preferredWidth: 16
+                    // Layout.preferredHeight: 14
+                    width: 16
+                    height: 14
                     ShapePath {
-                        fillColor: root.currentTrack.stars > index || mouse.containsMouse && mouse.mouseX > star.x ? '#D9D9D9' : '#96d9d9d9'
+                        fillColor: mouse.containsMouse && !(mouse.pressedButtons & Qt.RightButton) && mouse.mouseX > star.x + stars.x ? "#3a60be" : (!mouse.containsMouse || mouse.pressedButtons & Qt.RightButton) && root.currentTrack.stars > index ? (mouse.containsMouse ? "#7D3B3B" : '#D9D9D9') : '#96d9d9d9'
                         strokeColor: 'transparent'
                         startX: 8; startY: 0
                         PathLine { x: 9.78701; y: 5.18237; }
@@ -195,8 +198,15 @@ Rectangle {
             id: mouse
             anchors.fill: parent
             hoverEnabled: true
-            onClicked: {
-                console.warn(mouseX/16)
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: (event) => {
+                let selectedStars = Math.ceil((mouseX - stars.x)/16);
+                if (event.button === Qt.RightButton) {
+                    root.currentTrack.stars = 0
+                } else if (selectedStars >= 0 && selectedStars <= 5) {
+                    root.currentTrack.stars = selectedStars;
+                    console.warn(root.currentTrack.stars)
+                }
             }
         }
     }

@@ -612,7 +612,7 @@ Item {
                                                 //     key: "vu_meter_right"
                                                 // }
 
-                                                Skin.ControlSlider {
+                                                Skin.ControlFader {
                                                     id: volumeSlider
                                                     implicitWidth: 10
 
@@ -1462,7 +1462,7 @@ Item {
                     activeColor: Theme.deckActiveColor
                 }
             }
-            Skin.ControlSlider {
+            Skin.ControlFader {
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignHCenter
                 id: rateSlider

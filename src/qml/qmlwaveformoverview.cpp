@@ -63,6 +63,9 @@ void QmlWaveformOverview::slotWaveformUpdated() {
 }
 
 void QmlWaveformOverview::paint(QPainter* pPainter) {
+    if (!m_pTrack) {
+        return;
+    }
     TrackPointer pTrack = m_pTrack->internal();
     if (!pTrack) {
         return;

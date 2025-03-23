@@ -112,6 +112,7 @@ case "$1" in
             qml6-module-qtquick-templates \
             qml6-module-qtquick-window \
             qml6-module-qt-labs-qmlmodels \
+            qml6-module-qtquick-dialogs \
             "${PACKAGES_EXTRA[@]}"
         ;;
     *)

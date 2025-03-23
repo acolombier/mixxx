@@ -64,17 +64,17 @@ Row {
         height: parent.height
         width: 56
 
-        Skin.OrientationToggleButton {
-            id: orientationButton
+        // Skin.OrientationToggleButton {
+        //     id: orientationButton
 
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.verticalCenter
-            group: root.group
-            key: "orientation"
-            color: Theme.crossfaderOrientationColor
-        }
+        //     anchors.left: parent.left
+        //     anchors.right: parent.right
+        //     anchors.top: parent.top
+        //     anchors.bottom: parent.verticalCenter
+        //     group: root.group
+        //     key: "orientation"
+        //     color: Theme.crossfaderOrientationColor
+        // }
 
         Skin.InfoBarButton {
             id: fx1Button

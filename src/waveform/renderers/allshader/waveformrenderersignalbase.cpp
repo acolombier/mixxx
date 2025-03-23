@@ -6,7 +6,8 @@ namespace allshader {
 
 WaveformRendererSignalBase::WaveformRendererSignalBase(
         WaveformWidgetRenderer* waveformWidget)
-        : ::WaveformRendererSignalBase(waveformWidget) {
+        : ::WaveformRendererSignalBase(waveformWidget),
+          m_ignoreStem(false) {
 }
 
 void WaveformRendererSignalBase::draw(QPainter*, QPaintEvent*) {
@@ -15,6 +16,11 @@ void WaveformRendererSignalBase::draw(QPainter*, QPaintEvent*) {
 
 void WaveformRendererSignalBase::setAxesColor(const QColor& axesColor) {
     getRgbF(axesColor, &m_axesColor_r, &m_axesColor_g, &m_axesColor_b, &m_axesColor_a);
+}
+
+void WaveformRendererSignalBase::setColor(const QColor& color) {
+    getRgbF(color, &m_signalColor_r, &m_signalColor_g, &m_signalColor_b);
+    getHsvF(color, &m_signalColor_h, &m_signalColor_s, &m_signalColor_v);
 }
 
 void WaveformRendererSignalBase::setLowColor(const QColor& lowColor) {

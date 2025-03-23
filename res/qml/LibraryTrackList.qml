@@ -8,577 +8,429 @@ import QtQuick.Layouts
 import QtQuick.Controls 2.15
 import "Theme"
 
-Skin.LibraryPanel {
+Rectangle {
     id: root
 
-    signal activated(panel: Item)
+    color: '#161616'
 
-    required property color color
+    required property var model
 
-    Rectangle {
-        id: panel
-        anchors.fill: parent
+    LibraryControl {
+        id: libraryControl
 
-        DragHandler {
-            id: dragHandler
+        onMoveVertical: (offset) => {
+            view.selectionModel.moveSelectionVertical(offset);
         }
-
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            onPressed: {
-                root.activated(root)
-            }
+        onLoadSelectedTrack: (group, play) => {
+            view.loadSelectedTrack(group, play);
         }
-
-        // onWidthChanged: {
-        //     tableView.forceLayout()
-        // }
-
-        Drag.active: dragHandler.active
-        Drag.onActiveChanged: {
-            if (Drag.active) {
-                root.dragStart()
-            } else {
-                root.dragStop()
+        onLoadSelectedTrackIntoNextAvailableDeck: (play) => {
+            view.loadSelectedTrackIntoNextAvailableDeck(play);
+        }
+        onFocusWidgetChanged: {
+            switch (focusWidget) {
+                case FocusedWidgetControl.WidgetKind.LibraryView:
+                    view.forceActiveFocus();
+                    break;
             }
         }
-        Drag.source: parent
-        Drag.dragType: Drag.Automatic
-        Drag.supportedActions: Qt.MoveAction
-        Drag.hotSpot.x: mouseArea.mouseX
-        Drag.hotSpot.y: mouseArea.mouseY
+    }
 
-        color: Theme.deckBackgroundColor
+    HorizontalHeaderView {
+        id: horizontalHeader
 
-        LibraryControl {
-            id: libraryControl
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 5
+        syncView: view
 
-            onMoveVertical: (offset) => {
-                tableView.selectionModel.moveSelectionVertical(offset);
-            }
-            onLoadSelectedTrack: (group, play) => {
-                tableView.loadSelectedTrack(group, play);
-            }
-            onLoadSelectedTrackIntoNextAvailableDeck: (play) => {
-                tableView.loadSelectedTrackIntoNextAvailableDeck(play);
-            }
-            onFocusWidgetChanged: {
-                switch (focusWidget) {
-                    case FocusedWidgetControl.WidgetKind.LibraryView:
-                        tableView.forceActiveFocus();
-                        break;
-                }
-            }
-        }
+        property int sortingColumn: -1
+        property var sortingOrder: Qt.Descending
 
-        HorizontalHeaderView {
-            id: horizontalHeader
+        delegate: Item {
+            id: column
+            required property string display
+            required property int index
 
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 5
-            model: tableView.model.columns.length
-            syncView: tableView
+            implicitHeight: columnName.contentHeight + 5
+            implicitWidth: columnName.contentWidth + 5
 
-            delegate: DropArea {
-                id: headerDlgt
+            // required property var label
 
-                required property int index
-                property Mixxx.TableFromListModelColumn modelData: tableView.model.columns[index]
-
-                implicitHeight: columnName.contentHeight + 5
-                implicitWidth: columnName.contentWidth + 5
-
-                property int dragOffset: 0
-
-                onEntered: function(drag) {
-                    columnMouseHandler.hoverEnabled = true
-                }
-
-                onExited: function() {
-                    columnMouseHandler.hoverEnabled = false
-                }
-
-                onPositionChanged: function(_) {
-                    if (drag.x > width / 2 && drag.source.index < index && dragOffset >= 0) {
-                        drag.source.dragOffset+=1;
-                        x -= drag.source.width
-                        drag.source.x += width
-                    } else if (drag.x < width / 2 && drag.source.index > index && dragOffset <= 0) {
-                        drag.source.dragOffset-=1;
-                        x += drag.source.width
-                        drag.source.x -= width
-                    }
-                }
-
-                Item {
-
-                    anchors.fill: parent
-
-                    z: columnDragHandler.active || columnResizeHandler.drag.active ? 100 : 0
-
-                    onWidthChanged: {
-                        headerDlgt.modelData = tableView.model.columns[index]
-                    }
-
-                    DragHandler {
-                        id: columnDragHandler
-                        dragThreshold: 0
-                        cursorShape: Qt.DragMoveCursor
-                        yAxis.enabled: false
-                        onActiveChanged: {
-                            if (active) {
-                                headerDlgt.dragOffset = 0
-                            } else if (headerDlgt.dragOffset) {
-                                for (let i = 0; i < headerDlgt.dragOffset; i++) {
-                                    tableView.model.columns[index + i] = tableView.model.columns[index + i + 1]
-                                }
-                                tableView.model.columns[index + headerDlgt.dragOffset] = headerDlgt.modelData;
-                                tableView.model.moveColumn(tableView.index(0, 0), index, tableView.index(0, 0), index + headerDlgt.dragOffset)
-                                tableView.forceLayout()
-                            }
+            MouseArea {
+                id: columnMouseHandler
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: (event) => {
+                    if (event.button === Qt.RightButton)
+                        contextMenu.popup()
+                    else {
+                        if (horizontalHeader.sortingColumn == index) {
+                            horizontalHeader.sortingOrder = horizontalHeader.sortingOrder == Qt.DescendingOrder ? Qt.AscendingOrder : Qt.DescendingOrder
+                        } else {
+                            horizontalHeader.sortingColumn = index
+                            horizontalHeader.sortingOrder = Qt.AscendingOrder
                         }
+                        console.log(horizontalHeader.sortingColumn, horizontalHeader.sortingOrder)
+                        view.model.sourceModel.sort(horizontalHeader.sortingColumn, horizontalHeader.sortingOrder);
+                        root.model.columnCount()
                     }
+                }
+                // onReleased: (event) => {
+                //     columnDragHandler.persistentTranslation = Qt.vector2d(0,0)
+                // }
+                onPressAndHold: (event) => {
+                    if (event.source === Qt.MouseEventNotSynthesized)
+                        contextMenu.popup()
+                }
 
-                    Drag.active: columnDragHandler.active
-                    Drag.source: parent
-                    Drag.dragType: Drag.Automatic
-                    Drag.supportedActions: Qt.MoveAction
-                    Drag.hotSpot.x: parent.implicitWidth / 2
-
-                    // BorderImage {
-                    //     anchors.fill: parent
-                    //     horizontalTileMode: BorderImage.Stretch
-                    //     verticalTileMode: BorderImage.Stretch
-                    //     source: Theme.imgPopupBackground
-
-                    //     border {
-                    //         top: 10
-                    //         left: 20
-                    //         right: 20
-                    //         bottom: 10
+                Menu {
+                    id: contextMenu
+                    // Repeater {
+                    //     id: columnListMenu
+                    //     model: view.model.columns
+                    //     MenuItem {
+                    //         required property int index
+                    //         checkable: true
+                    //         checked: (hidden.fillSpan > 0 || hidden.preferredWidth > 0) && !hidden.hidden
+                    //         text: hidden.columnName
+                    //         onCheckedChanged: {
+                    //             model.hidden = !checked
+                    //             view.model.updateColumnProperty()
+                    //             contextMenu.close()
+                    //             // view.forceLayout()
+                    //         }
                     //     }
                     // }
-
-                    MouseArea {
-                        id: columnMouseHandler
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                        onClicked: (event) => {
-                            if (event.button === Qt.RightButton)
-                                contextMenu.popup()
-                        }
-                        onReleased: (event) => {
-                            columnDragHandler.persistentTranslation = Qt.vector2d(0,0)
-                        }
-                        onPressAndHold: (event) => {
-                            if (event.source === Qt.MouseEventNotSynthesized)
-                                contextMenu.popup()
-                        }
-
-                        Menu {
-                            id: contextMenu
-                            Repeater {
-                                id: columnListMenu
-                                model: tableView.model.columns.length
-                                MenuItem {
-                                    required property int index
-                                    property Mixxx.TableFromListModelColumn modelData: tableView.model.columns[index]
-                                    checkable: true
-                                    checked: (modelData.fillSpan > 0 || modelData.prefferedWidth > 0) && !modelData.hidden
-                                    text: modelData.columnName
-                                    onTriggered: {
-                                        tableView.model.columns[index].hidden = !checked
-                                        tableView.model.updateColumnProperty()
-                                        tableView.forceLayout()
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: columnName
-
-                        text: headerDlgt.modelData.columnName
-                        anchors.fill: parent
-                        anchors.leftMargin: 15
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignLeft
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: Theme.fontFamily
-                        font.capitalization: Font.Capitalize
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                        color: "#D9D9D9"
-                    }
-
-                    Text {
-                        id: sortIndicator
-
-                        anchors.fill: parent
-                        anchors.margins: 5
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignRight
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: Theme.fontFamily
-                        font.capitalization: Font.AllUppercase
-                        font.bold: true
-                        font.pixelSize: Theme.buttonFontPixelSize
-                        color: Theme.buttonNormalColor
-                    }
                 }
-                Rectangle {
-                    id: columnResizer
-                    color: '#202020'
-                    width: 2
-                    anchors {
-                        top: parent.top
-                        bottom: parent.bottom
-                        right: parent.right
-                    }
-                    MouseArea {
-                        id: columnResizeHandler
+            }
 
-                        property int sizeOffset: 0
+            Text {
+                id: columnName
 
-                        anchors.fill: parent
-                        preventStealing: true
-                        drag {
-                            target: parent
-                            axis: Drag.XAxis
-                            threshold: 2
-                            onActiveChanged: {
-                                if (!drag.active && columnResizeHandler.sizeOffset !== 0) {
-                                    tableView.model.columns[index].prefferedWidth = headerDlgt.width + sizeOffset
-                                    tableView.model.updateColumnProperty()
-                                    columnResizeHandler.sizeOffset = 0
-                                    tableView.forceLayout()
-                                }
+                text: display
+                anchors.fill: parent
+                anchors.leftMargin: 15
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+                font.family: Theme.fontFamily
+                font.capitalization: Font.Capitalize
+                font.pixelSize: 12
+                font.weight: Font.Medium
+                color: "#D9D9D9"
+            }
+
+            Item {
+                anchors {
+                    left: parent.left
+                    leftMargin: 5
+                    top: parent.top
+                    bottom: parent.bottom
+                }
+                Label {
+                    id: sortIndicator
+
+                    visible: horizontalHeader.sortingColumn == index
+
+                    text: "▶"
+                    rotation: horizontalHeader.sortingOrder == Qt.AscendingOrder ? 90 : -90
+
+                    anchors.centerIn: parent
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignRight
+                    verticalAlignment: Text.AlignVCenter
+                    font.family: Theme.fontFamily
+                    font.capitalization: Font.AllUppercase
+                    font.bold: true
+                    font.pixelSize: Theme.buttonFontPixelSize
+                    color: "red"
+                }
+            }
+            Rectangle {
+                id: columnResizer
+                color: '#202020'
+                width: 1
+                anchors {
+                    top: parent.top
+                    bottom: parent.bottom
+                    right: parent.right
+                }
+                MouseArea {
+                    id: columnResizeHandler
+
+                    property int sizeOffset: 0
+
+                    anchors.fill: parent
+                    preventStealing: true
+                    drag {
+                        target: parent
+                        axis: Drag.XAxis
+                        threshold: 2
+                        onActiveChanged: {
+                            if (!drag.active && columnResizeHandler.sizeOffset !== 0) {
+                                view.model.columns[index].preferredWidth = headerDlgt.width + sizeOffset
+                                view.model.updateColumnProperty()
+                                columnResizeHandler.sizeOffset = 0
+                                // view.forceLayout()
                             }
                         }
-                        cursorShape: Qt.SizeHorCursor
-                        onMouseXChanged: {
-                            if (drag.active) {
-                                headerDlgt.width = headerDlgt.width + mouseX
-                                sizeOffset = mouseX
-                            }
+                    }
+                    cursorShape: Qt.SizeHorCursor
+                    onMouseXChanged: {
+                        if (drag.active) {
+                            headerDlgt.width = headerDlgt.width + mouseX
+                            sizeOffset = mouseX
                         }
                     }
                 }
             }
         }
+    }
 
-        TableView {
-            id: tableView
+    TableView {
+        id: view
 
-            function loadSelectedTrackIntoNextAvailableDeck(play) {
-                const urls = this.selectionModel.selectedTrackUrls();
-                if (urls.length == 0)
-                    return ;
+        function loadSelectedTrackIntoNextAvailableDeck(play) {
+            const urls = this.selectionModel.selectedTrackUrls();
+            if (urls.length == 0)
+                return ;
 
-                Mixxx.PlayerManager.loadLocationUrlIntoNextAvailableDeck(urls[0], play);
-            }
+            Mixxx.PlayerManager.loadLocationUrlIntoNextAvailableDeck(urls[0], play);
+        }
 
-            function loadSelectedTrack(group, play) {
-                const urls = this.selectionModel.selectedTrackUrls();
-                if (urls.length == 0)
-                    return ;
+        function loadSelectedTrack(group, play) {
+            const urls = this.selectionModel.selectedTrackUrls();
+            if (urls.length == 0)
+                return ;
 
-                player.loadTrackFromLocationUrl(urls[0], play);
-            }
+            player.loadTrackFromLocationUrl(urls[0], play);
+        }
 
-            anchors.top: horizontalHeader.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: 5
-            clip: true
-            focus: true
-            reuseItems: false
-            Keys.onUpPressed: this.selectionModel.moveSelectionVertical(-1)
-            Keys.onDownPressed: this.selectionModel.moveSelectionVertical(1)
-            Keys.onEnterPressed: this.loadSelectedTrackIntoNextAvailableDeck(false)
-            Keys.onReturnPressed: this.loadSelectedTrackIntoNextAvailableDeck(false)
-            columnWidthProvider: function(column) {
-                const columnDef = tableView.model.columns[column]
-                if (columnDef.hidden) {
-                    return 0;
-                }
-                if (columnDef.prefferedWidth >= 0) {
-                    return columnDef.prefferedWidth;
+        anchors.top: horizontalHeader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 5
+        clip: true
+        reuseItems: true
+        Keys.onUpPressed: this.selectionModel.moveSelectionVertical(-1)
+        Keys.onDownPressed: this.selectionModel.moveSelectionVertical(1)
+        Keys.onEnterPressed: this.loadSelectedTrackIntoNextAvailableDeck(false)
+        Keys.onReturnPressed: this.loadSelectedTrackIntoNextAvailableDeck(false)
+        model: root.model
+        function updateColumnSize() {
+            usedWidth = 0;
+            dynamicColumnCount = 0;
+            for (let c = 0; c < model.columns.length; c++) {
+                if (model.columns[c].hidden) {
+                    continue
+                } else if (model.columns[c].preferredWidth > 0) {
+                    usedWidth += model.columns[c].preferredWidth;
                 } else {
-                    const span = columnDef.fillSpan || 1;
-                    return span * (tableView.width - tableView.model.usedWidth) / tableView.model.dynamicColumnCount;
+                    dynamicColumnCount += model.columns[c].fillSpan || 1
                 }
             }
+        }
+        Component.onCompleted: this.updateColumnSize()
+        onModelChanged: this.updateColumnSize()
 
-            model: Mixxx.TableFromListModel {
-                sourceModel: Mixxx.Library.model
+        property int usedWidth: 0
+        property int dynamicColumnCount: 0
 
-                property int dynamicColumnCount: 0
-                property int usedWidth: 0
+        columnWidthProvider: function(column) {
+            const columnDef = view.model.columns[column]
+            if (columnDef.hidden) {
+                return 0;
+            }
+            if (columnDef.preferredWidth >= 0) {
+                return columnDef.preferredWidth;
+            } else {
+                const span = columnDef.fillSpan || 1;
+                return span * (view.width - view.usedWidth) / view.dynamicColumnCount;
+            }
+            return 100;
+        }
 
-                Mixxx.TableFromListModelColumn {
-                    id: coverColumnModel
-
-                    readonly property string columnName: "Cover"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 110
-
-                    display: "coverArtUrl"
-                    decoration: "coverArtColor"
-                    edit: "fileUrl"
+        selectionModel: ItemSelectionModel {
+            function selectRow(row) {
+                const rowCount = this.model.rowCount();
+                if (rowCount == 0) {
+                    this.clear();
+                    return ;
                 }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Preview"
-                    property bool hidden: false
-                    property int fillSpan: 3
-                    property int prefferedWidth: 300
-
-                    display: "track"
-                    decoration: "color"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Title"
-                    property bool hidden: false
-                    property int fillSpan: 3
-                    property int prefferedWidth: -1
-
-                    display: "title"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Artist"
-                    property bool hidden: false
-                    property int fillSpan: 2
-                    property int prefferedWidth: -1
-
-                    display: "artist"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Album"
-                    property bool hidden: false
-                    property int fillSpan: 1
-                    property int prefferedWidth: -1
-
-                    display: "album"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Year"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 80
-
-                    display: "year"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Bpm"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 60
-
-                    display: "bpm"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "Key"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 70
-
-                    display: "key"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    readonly property string columnName: "File Type"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 70
-
-                    display: "fileType"
-                    edit: "fileUrl"
-                }
-
-                Mixxx.TableFromListModelColumn {
-                    id: bitrateColumModel
-                    readonly property string columnName: "Bitrate"
-                    property bool hidden: false
-                    property int fillSpan: 0
-                    property int prefferedWidth: 70
-
-                    display: "bitrate"
-                    edit: "fileUrl"
-                }
-
-                Component.onCompleted: updateColumnProperty()
-
-                function updateColumnProperty() {
-                    usedWidth = 0;
-                    dynamicColumnCount = 0;
-                    for (let c = 0; c < tableView.model.columns.length; c++) {
-                        if (tableView.model.columns[c].hidden) {
-                            continue
-                        } else if (tableView.model.columns[c].prefferedWidth > 0) {
-                            usedWidth += tableView.model.columns[c].prefferedWidth;
-                        } else {
-                            dynamicColumnCount += tableView.model.columns[c].fillSpan || 1
-                        }
-                    }
-                }
-
-                function indexOfColumn(column) {
-                    for (let c = 0; c < tableView.model.columns.length; c++) {
-                        if (tableView.model.columns[c] == column) return c;
-                    }
-                    return -1
-                }
+                const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
+                this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
             }
 
-            selectionModel: ItemSelectionModel {
-                function selectRow(row) {
-                    const rowCount = this.model.rowCount();
-                    if (rowCount == 0) {
-                        this.clear();
-                        return ;
-                    }
-                    const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
-                    this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
-                }
+            function moveSelectionVertical(value) {
+                if (value == 0)
+                    return ;
 
-                function moveSelectionVertical(value) {
-                    if (value == 0)
-                        return ;
-
-                    const selected = this.selectedIndexes;
-                    const oldRow = (selected.length == 0) ? 0 : selected[0].row;
-                    this.selectRow(oldRow + value);
-                }
-
-                function selectedTrackUrls() {
-                    return this.selectedIndexes.map((index) => {
-                            return this.model.sourceModel.get(index.row).fileUrl;
-                    });
-                }
-
-                model: tableView.model
+                const selected = this.selectedIndexes;
+                const oldRow = (selected.length == 0) ? 0 : selected[0].row;
+                this.selectRow(oldRow + value);
             }
 
-            delegate: DelegateChooser {
-                DelegateChoice {
-                    column: 0
+            function selectedTrackUrls() {
+                return this.selectedIndexes.map((index) => {
+                        return this.model.getUrl(index.row);
+                });
+            }
+            model: view.model
+        }
 
-                    Rectangle {
-                        id: coverArtDelegate
+        delegate: Item {
+            id: item
+            required property bool selected
+            required property color decoration
+            required property var display
+            required property var track
+            required property string file_url
+            required property url cover_art
+            required property int row
 
-                        required property color decoration
-                        required property url display
+            implicitHeight: 30
 
-                        implicitHeight: 30
-                        color: coverArtDelegate.decoration
+            Loader {
+                id: loader
+                anchors.fill: parent
+                property bool selected: item.selected
+                property color decoration: item.decoration
+                property var display: item.display
+                property var track: item.track
+                property url file_url: item.file_url
+                property url cover_art: item.cover_art
+                property int row: item.row
+                property var tableView: view
+                property var model: root.model
+                sourceComponent: delegate
 
-                        Image {
-                            anchors.fill: parent
-                            fillMode: Image.PreserveAspectCrop
-                            source: coverArtDelegate.display
-                            clip: true
-                            asynchronous: true
-                        }
-                    }
+                onLoaded: {
+                    Mixxx.Library.analyze(track)
                 }
+            }
+            TableView.onReused: {
+                Mixxx.Library.analyze(track)
+            }
+        }
+    }
 
-                DelegateChoice {
-                    column: 1
+    MouseArea {
+        anchors.fill: parent
+        enabled: search.open
+        onPressed: {
+            search.open = false
+        }
+    }
 
-                    Rectangle {
-                        id: trackColorDelegate
+    Rectangle {
+        id: search
 
-                        required property bool selected
-                        required property color decoration
-                        required property var display
+        property bool open: false
 
-                        implicitHeight: 30
-                        color: 'transparent'
-                        Mixxx.WaveformOverview {
-                            anchors.fill: parent
-                            channels: Mixxx.WaveformOverview.Channels.LeftChannel
-                            renderer: Mixxx.WaveformOverview.Renderer.Filtered
-                            colorHigh: Theme.white
-                            colorMid: Theme.blue
-                            colorLow: Theme.green
-                            track: display
-                        }
-                    }
+        color: '#D9D9D9'
+        radius: 16
+        width: search.open ? 504 : 280
+        height: search.open ? 160 : 56
+        anchors {
+            bottom: parent.bottom
+            right: parent.right
+            bottomMargin: -16
+            rightMargin: -16
+        }
+        TextInput {
+            id: input
+            visible: search.open
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+                leftMargin: 16
+                rightMargin: 16
+                topMargin: 14
+            }
+            cursorVisible: true
+            cursorDelegate: Rectangle {
+                color: '#50808080'
+                width: 2
+                height: 18
+            }
+            text: ""
+        }
+        Label {
+            id: instruction
+            anchors {
+                top: parent.top
+                left: search.open ? undefined : parent.left
+                leftMargin: search.open ? 0 : 16
+                topMargin: 14
+            }
+            x: search.open ? input.cursorRectangle.right+16 : null
+            text: search.open ? "Start typing to get suggestion" : "Search..."
+            font.weight: search.open ? Font.ExtraLight : Font.DemiBold
+            font.italic: search.open
+            color: '#808080'
+        }
+        Rectangle {
+            id: splitter
+            width: parent.width
+            height: 1
+            color: '#757575'
+            anchors {
+                top: instruction.bottom
+                topMargin: 12
+            }
+        }
+        Rectangle {
+            id: criteria
+            anchors {
+                top: splitter.bottom
+                left: parent.left
+                topMargin: 4
+                leftMargin: 4
+            }
+            width: key.implicitWidth + value.implicitWidth + 16
+            height: key.implicitHeight + 12
+            color: '#2D4EA1'
+            radius: 7
+            Label {
+                id: key
+                anchors {
+                    left: parent.left
+                    leftMargin: 5
+                    verticalCenter: parent.verticalCenter
                 }
-
-                DelegateChoice {
-                    Rectangle {
-                        id: itemDelegate
-
-                        required property int row
-                        required property bool selected
-                        required property string display
-
-                        color: selected ? '#2c454f' : (row % 2 == 0 ? '#0C0C0C' : '#272727')
-
-                        implicitHeight: 30
-
-                        Text {
-                            anchors.fill: parent
-                            anchors.leftMargin: 15
-                            font.pixelSize: 14
-                            text: itemDelegate.display
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                            color: '#D9D9D9'
-                        }
-
-                        Image {
-                            id: dragItem
-
-                            Drag.active: dragArea.drag.active
-                            Drag.dragType: Drag.Automatic
-                            Drag.supportedActions: Qt.CopyAction
-                            Drag.mimeData: {
-                                "text/uri-list": edit,
-                                "text/plain": edit
-                            }
-                            anchors.fill: parent
-                        }
-
-                        MouseArea {
-                            id: dragArea
-
-                            anchors.fill: parent
-                            drag.target: dragItem
-                            onPressed: {
-                                tableView.selectionModel.selectRow(itemDelegate.row);
-                                parent.grabToImage((result) => {
-                                        dragItem.Drag.imageSource = result.url;
-                                });
-                            }
-                            onDoubleClicked: {
-                                tableView.selectionModel.selectRow(itemDelegate.row);
-                                tableView.loadSelectedTrackIntoNextAvailableDeck(false);
-                            }
-                        }
-                    }
+                color: "#D9D9D9"
+                text: "Artist:"
+            }
+            Rectangle {
+                color: '#D9D9D9'
+                radius: 7
+                width: value.implicitWidth + 5
+                height: parent.height - 6
+                anchors {
+                    right: parent.right
+                    rightMargin: 3
+                    verticalCenter: parent.verticalCenter
                 }
+                Label {
+                    id: value
+                    anchors {
+                        centerIn: parent
+                    }
+                    color: "#202020"
+                    text: "..."
+                }
+            }
+        }
+        MouseArea {
+            enabled: !search.open
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onPressed: {
+                search.open = true
             }
         }
     }

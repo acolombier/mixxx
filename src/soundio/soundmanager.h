@@ -100,9 +100,9 @@ class SoundManager : public QObject {
         m_underflowHappened = 1;
         // Disable the engine warnings by default, because printing a warning is a
         // locking function that will make the problem worse
-        if (CmdlineArgs::Instance().getDeveloper()) {
-            qWarning() << "underflowHappened code:" << code;
-        }
+        // if (CmdlineArgs::Instance().getDeveloper()) {
+        //     qWarning() << "underflowHappened code:" << code;
+        // }
     }
 
     void processUnderflowHappened(SINT framesPerBuffer);

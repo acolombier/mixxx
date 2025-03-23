@@ -12,113 +12,422 @@ import "Theme"
 Item {
     id: root
 
-    Item {
+    Mixxx.LibrarySourceTree {
+        id: librarySources
 
-        id: panelRoot
-        property Item activePanel: null
+        component DefaultDelegate: LibraryCell {
+            Drag.active: dragArea.drag.active
+
+            Menu {
+                id: contextMenu
+                title: qsTr("File")
+
+                Menu {
+                    title: qsTr("Load to")
+                    enabled: {
+                        model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck) |
+                        model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler) |
+                        model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToPreviewDeck)
+                    }
+
+                    Menu {
+                        id: loadToDeckMenu
+                        title: qsTr("Deck")
+                        enabled: model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck)
+                        Instantiator {
+                            model: 4
+                            delegate: MenuItem {
+                                text: `Deck ${modelData+1}`
+                                onTriggered: Mixxx.PlayerManager.getPlayer(`[Channel${modelData+1}]`).loadTrack(track)
+                            }
+
+                            onObjectAdded: (index, object) => loadToDeckMenu.insertItem(index, object)
+                            onObjectRemoved: (index, object) => loadToDeckMenu.removeItem(object)
+                        }
+                    }
+
+                    Menu {
+                        title: qsTr("Sampler")
+                        enabled: model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler)
+                    }
+
+                    // Instantiator {
+                    //     id: recentFilesInstantiator
+                    //     model: settings.recentFiles
+                    //     delegate: MenuItem {
+                    //         text: settings.displayableFilePath(modelData)
+                    //         onTriggered: loadFile(modelData)
+                    //     }
+
+                    //     onObjectAdded: (index, object) => recentFilesMenu.insertItem(index, object)
+                    //     onObjectRemoved: (index, object) => recentFilesMenu.removeItem(object)
+                    // }
+                }
+
+                Menu {
+                    id: addToPlaylistMenu
+                    title: qsTr("Add to playlists")
+                    enabled: {
+                        model.hasCapabilities(Mixxx.LibraryTrackListModel.Capability.AddToTrackSet)
+                    }
+
+                    Instantiator {
+                        model: 2
+                        delegate: MenuItem {
+                            text: `Playlist ${modelData+1}`
+                            // onTriggered: loadFile(modelData)
+                        }
+
+                        onObjectAdded: (index, object) => addToPlaylistMenu.insertItem(index, object)
+                        onObjectRemoved: (index, object) => addToPlaylistMenu.removeItem(object)
+                    }
+
+                    MenuSeparator {}
+
+                    MenuItem {
+                        text: qsTr("Create New Playlist")
+                        // onTriggered: settings.clearRecentFiles()
+                    }
+                }
+            }
+            MouseArea {
+                id: dragArea
+
+                anchors.fill: parent
+                drag.target: value
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onPressed: {
+                    if (pressedButtons == Qt.LeftButton) {
+                        tableView.selectionModel.selectRow(row);
+                        parent.dragImage.grabToImage((result) => {
+                                parent.Drag.imageSource = result.url;
+                        });
+                    } else {
+                    }
+                }
+                onDoubleClicked: {
+                    tableView.selectionModel.selectRow(row);
+                    tableView.loadSelectedTrackIntoNextAvailableDeck(false);
+                }
+                onClicked: {
+                    if (mouse.button === Qt.RightButton)
+                        contextMenu.popup()
+                }
+                onPressAndHold: {
+                    if (mouse.source === Qt.MouseEventNotSynthesized)
+                        contextMenu.popup()
+                }
+            }
+
+            Text {
+                id: value
+                anchors.fill: parent
+                anchors.leftMargin: 15
+                font.pixelSize: 14
+                text: display
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+                color: '#D9D9D9'
+            }
+        }
+
+        defaultColumns: [
+            Mixxx.TrackListColumn {
+                preferredWidth: 110
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Album
+
+                delegate: Rectangle {
+                    color: decoration
+                    implicitHeight: 30
+
+                    Image {
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        source: cover_art
+                        clip: true
+                        asynchronous: true
+                    }
+                }
+            },
+            Mixxx.TrackListColumn {
+                label: "Preview"
+                fillSpan: 3
+                preferredWidth: 300
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+
+                delegate: Rectangle {
+                    color: 'transparent'
+                    // implicitHeight: 30
+                    anchors.fill: parent
+
+                    readonly property var trackProxy: track
+
+                    Mixxx.WaveformOverview {
+                        anchors.fill: parent
+                        channels: Mixxx.WaveformOverview.Channels.LeftChannel
+                        renderer: Mixxx.WaveformOverview.Renderer.Filtered
+                        colorHigh: Theme.white
+                        colorMid: Theme.blue
+                        colorLow: Theme.green
+                        track: trackProxy
+                    }
+                    Rectangle {
+                        id: border
+                        color: '#202020'
+                        width: 1
+                        anchors {
+                            top: parent.top
+                            bottom: parent.bottom
+                            right: parent.right
+                        }
+                    }
+                }
+
+            },
+            Mixxx.TrackListColumn {
+                label: "Title"
+                fillSpan: 3
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Artist"
+                fillSpan: 2
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Artist
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Album"
+                fillSpan: 1
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Album
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Year"
+                preferredWidth: 80
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Year
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Bpm"
+                preferredWidth: 60
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Bpm
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Key"
+                preferredWidth: 70
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Key
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "File Type"
+                preferredWidth: 70
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.FileType
+                delegate: DefaultDelegate { }
+            },
+            Mixxx.TrackListColumn {
+                label: "Bitrate"
+                preferredWidth: 70
+
+                columnIdx: Mixxx.TrackListColumn.SQLColumns.Bitrate
+                delegate: DefaultDelegate { }
+            }
+        ]
+        Mixxx.LibraryPlaylistSource {
+            label: "Playlist"
+            icon: "images/library_playlist.png"
+
+            columns: librarySources.defaultColumns
+        }
+        Mixxx.LibraryCrateSource {
+            label: "Crate"
+            icon: "images/library_crate.png"
+
+            columns: librarySources.defaultColumns
+        }
+        Mixxx.LibraryExplorerSource {
+            label: "Explorer"
+            icon: "images/library_explorer.png"
+            columns: [
+                Mixxx.TrackListColumn {
+
+                    label: "Preview"
+                    delegate: Rectangle {
+                        color: decoration
+                        implicitHeight: 30
+
+                        Image {
+                            anchors.fill: parent
+                            fillMode: Image.PreserveAspectCrop
+                            source: cover_art
+                            clip: true
+                            asynchronous: true
+                        }
+                    }
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Filename"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Artist"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Title"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Album"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Track #"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Year"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Genre"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Composer"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Comment"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Duration"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "BPM"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Key"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Type"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Bitrate"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Location"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Album Artist"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "Grouping"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "File Modified"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "File Created"
+                    delegate: DefaultDelegate {}
+                },
+                Mixxx.TrackListColumn {
+
+                    label: "ReplayGain"
+                    delegate: DefaultDelegate {}
+                }
+            ]
+        }
+    }
+
+    property var featureModel: librarySources.sidebar()
+    property var tracksModel: librarySources.allTracks()
+
+    Connections {
+        target: featureModel
+        function onTrackModelRequested(model) {
+            console.log(`REQUESTED ${model} ${root.tracksModel}`)
+            root.tracksModel = model
+        }
+    }
+
+    SplitView {
+        orientation: Qt.Horizontal
         anchors.fill: parent
 
-        component ColumnCreator: DropArea {
-            required property int columnIndex
-            width: 50
-            property bool isRightSplitter: false
-            onDropped: function moveToNewColumn(drag) {
-                let cell = null
-                let preferredWidth = 0
-                let fillWidth = true
-                let usedWidth = 0, expandedColumn = 1;
-                for (let i = 0; i < rootPanelModel.count; i++) {
-                    usedWidth += rootPanelModel.get(i).preferredWidth;
-                    if (!rootPanelModel.get(i).preferredWidth) {
-                        expandedColumn++;
-                    }
-                }
-                preferredWidth = (splitView.width - usedWidth) / expandedColumn;
+        handle: Rectangle {
+            id: handleDelegate
+            implicitWidth: 8
+            implicitHeight: 8
+            color: Theme.libraryPanelSplitterBackground
+            clip: true
+            property color handleColor: SplitHandle.pressed || SplitHandle.hovered ? Theme.libraryPanelSplitterHandleActive : Theme.libraryPanelSplitterHandle
+            property int handleSize: SplitHandle.pressed || SplitHandle.hovered ? 6 : 5
 
-                if (drag.action == Qt.CopyAction && drag.source.element instanceof Object) {
-                    cell = {
-                        "type": "TrackList",
-                        "preferredHeight": 0 ,
-                        "fillHeight": true,
-                    };
-                } else if ((drag.source.columnIndex != root.columnIndex || drag.source.rowIndex != root.rowIndex ) && drag.source instanceof LibraryPanel) {
-                    cell = rootPanelModel.get(drag.source.columnIndex).rows.get(drag.source.rowIndex)
-                    cell = JSON.parse(JSON.stringify(cell))
-
-                    rootPanelModel.get(drag.source.columnIndex).rows.remove(drag.source.rowIndex)
-                    if (rootPanelModel.get(drag.source.columnIndex).rows.count == 0) {
-                        preferredWidth = rootPanelModel.get(drag.source.columnIndex).preferredWidth
-                        rootPanelModel.remove(drag.source.columnIndex)
-                    } else if (rootPanelModel.get(drag.source.columnIndex).preferredWidth) {
-                        preferredWidth = rootPanelModel.get(drag.source.columnIndex).preferredWidth
-                        fillWidth = false
-                    }
-                }
-
-                if (cell == null) return;
-
-                rootPanelModel.insert(columnIndex + isRightSplitter, {
-                        "rows": [
-                            cell
-                        ],
-                        "fillWidth": false,
-                        "preferredWidth": preferredWidth
-                })
-                drag.acceptProposedAction()
-                splitPanel.visible = false
-                removePanel.visible = false
-            }
-
-            onEntered: function(drag) {
-                if (drag.action == Qt.MoveAction && (drag.source.columnIndex == undefined || (drag.source.columnIndex == columnIndex + isRightSplitter && rootPanelModel.get(drag.source.columnIndex).rows.count == 1))) return;
-                splitPanel.visible = true
-            }
-
-            onExited: function() {
-                splitPanel.visible = false
-            }
-
-            Rectangle  {
-                id: splitPanel
-                color: 'white'
-                opacity: 0.4
-                visible: false
-                anchors.fill: parent
-            }
-        }
-
-        function panelActivate(panel) {
-            panelRoot.activePanel = panel
-        }
-        function panelSelected(selection) {
-            if (!panelRoot.activePanel) {
-                return;
-            }
-            panelRoot.activePanel.color = selection
-        }
-        function panelDragStart() {
-            let panelCount = 0
-            for (let i = 0; i < rootPanelModel.count; i++) {
-                for (let j = 0; j < rootPanelModel.get(i).rows.count; j++) {
-                    if (rootPanelModel.get(i).rows.get(j).type == "TrackList") {
-                        panelCount++;
+            ColumnLayout {
+                anchors.centerIn: parent
+                Repeater {
+                    model: 3
+                    Rectangle {
+                        width: handleSize
+                        height: handleSize
+                        radius: handleSize
+                        color: handleColor
                     }
                 }
             }
-            removePanel.visible = panelCount > 1
-        }
-        function panelDragStop() {
-            removePanel.visible = false
+
+            containmentMask: Item {
+                x: (handleDelegate.width - width) / 2
+                width: 8
+                height: splitView.height
+            }
         }
 
         SplitView {
-            id: splitView
+            SplitView.minimumWidth: 100
+            SplitView.preferredWidth: 415
+            SplitView.maximumWidth: 600
 
-            anchors.fill: parent
-
-            Component.onCompleted: {
-                panelRoot.activePanel = rootPanelModel.get(0).rows.get(0)
-            }
+            orientation: Qt.Vertical
 
             handle: Rectangle {
                 id: handleDelegate
@@ -129,7 +438,7 @@ Item {
                 property color handleColor: SplitHandle.pressed || SplitHandle.hovered ? Theme.libraryPanelSplitterHandleActive : Theme.libraryPanelSplitterHandle
                 property int handleSize: SplitHandle.pressed || SplitHandle.hovered ? 6 : 5
 
-                ColumnLayout {
+                RowLayout {
                     anchors.centerIn: parent
                     Repeater {
                         model: 3
@@ -144,307 +453,43 @@ Item {
 
                 containmentMask: Item {
                     x: (handleDelegate.width - width) / 2
-                    width: 8
-                    height: splitView.height
+                    height: 8
+                    width: splitView.width
+                }
+            }
+            LibraryBrowser {
+                model: root.featureModel
+                SplitView.minimumHeight: 200
+                SplitView.preferredHeight: 500
+
+                SplitView.fillHeight: true
+
+                onAllModel: {
+                    root.tracksModel = librarySources.allTracks()
                 }
             }
 
-            Repeater {
-                model: DelegateModel {
-                    model: ListModel {
-                        id: rootPanelModel
-                        ListElement {
-                            preferredWidth: 300
-                            fillWidth: false
-                            rows: [
-                                ListElement {
-                                    preferredHeight: 500
-                                    type: "Browser"
-                                    fillHeight: true
-                                },
-                                ListElement {
-                                    preferredHeight: 100
-                                    type: "PreviewDeck"
-                                    fillHeight: false
-                                }
-                                // ListElement {
-                                //     preferredHeight: 300
-                                //     type: "CoverPreview"
-                                //     fillHeight: false
-                                // }
-                            ]
-                        }
-                        ListElement {
-                            preferredWidth: 0
-                            fillWidth: true
-                            rows: [
-                                ListElement {
-                                    preferredHeight: 100
-                                    type: "TrackList"
-                                    fillHeight: true
-                                }
-                            ]
-                        }
+            Skin.LibraryPreviewDeck {
+                SplitView.minimumHeight: 100
+                SplitView.preferredHeight: 100
+                SplitView.maximumHeight: 200
+                MouseArea {
+                    id: mouseArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onPressed: {
+                        root.tracksModel = librarySources.allTracks()
                     }
-                    delegate: Item {
-                        id: columnView
-
-                        required property var rows
-                        required property real preferredWidth
-                        required property bool fillWidth
-                        property int index: DelegateModel.itemsIndex
-
-                        SplitView.preferredWidth: preferredWidth
-                        SplitView.fillWidth: fillWidth
-
-                        SplitView {
-
-                            orientation: Qt.Vertical
-
-                            anchors.fill: parent
-
-                            handle: Rectangle {
-                                id: handleDelegate
-                                implicitWidth: 8
-                                implicitHeight: 8
-                                color: Theme.libraryPanelSplitterBackground
-                                clip: true
-                                property color handleColor: SplitHandle.pressed || SplitHandle.hovered ? Theme.libraryPanelSplitterHandleActive : Theme.libraryPanelSplitterHandle
-                                property int handleSize: SplitHandle.pressed || SplitHandle.hovered ? 6 : 5
-
-                                RowLayout {
-                                    anchors.centerIn: parent
-                                    Repeater {
-                                        model: 3
-                                        Rectangle {
-                                            width: handleSize
-                                            height: handleSize
-                                            radius: handleSize
-                                            color: handleColor
-                                        }
-                                    }
-                                }
-
-                                containmentMask: Item {
-                                    x: (handleDelegate.width - width) / 2
-                                    width: 8
-                                    height: splitView.height
-                                }
-                            }
-
-                            Repeater {
-                                model: rows
-
-                                DelegateChooser {
-
-                                    id: loader
-
-                                    role: "type"
-
-                                    DelegateChoice {
-                                        roleValue: "Browser"
-                                        LibraryBrowser {
-                                            required property int index
-
-                                            required property real preferredHeight
-                                            required property bool fillHeight
-
-                                            SplitView.fillHeight: fillHeight
-                                            SplitView.preferredHeight: preferredHeight
-                                            columnIndex: columnView.index
-                                            rowIndex: index
-                                            panelModel: rootPanelModel
-
-                                            onSelected: panelRoot.panelSelected()
-                                        }
-                                    }
-                                    DelegateChoice {
-                                        roleValue: "TrackList"
-                                        LibraryTrackList {
-                                            required property int index
-
-                                            required property real preferredHeight
-                                            required property bool fillHeight
-
-                                            SplitView.fillHeight: fillHeight
-                                            SplitView.preferredHeight: preferredHeight
-
-                                            color: 'transparent'
-                                            columnIndex: columnView.index
-                                            rowIndex: index
-                                            panelModel: rootPanelModel
-
-                                            onActivated: panelRoot.panelActivate(this)
-                                            onDragStart: panelRoot.panelDragStart()
-                                            onDragStop: panelRoot.panelDragStop()
-                                        }
-                                    }
-                                    DelegateChoice {
-                                        roleValue: "PreviewDeck"
-
-                                        Skin.LibraryPreviewDeck {
-                                            required property int index
-
-                                            required property real preferredHeight
-                                            required property bool fillHeight
-
-                                            SplitView.fillHeight: fillHeight
-                                            SplitView.preferredHeight: preferredHeight
-
-                                            columnIndex: columnView.index
-                                            rowIndex: index
-                                            panelModel: rootPanelModel
-                                        }
-                                    }
-                                    // DelegateChoice {
-                                    //     roleValue: "CoverPreview"
-                                    //     Skin.LibraryPanel {
-                                    //         required property int index
-
-                                    //         required property real preferredHeight
-                                    //         required property bool fillHeight
-
-                                    //         SplitView.fillHeight: fillHeight
-                                    //         SplitView.preferredHeight: preferredHeight
-
-                                    //         columnIndex: columnView.index
-                                    //         rowIndex: index
-                                    //         panelModel: rootPanelModel
-
-                                    //         Rectangle {
-                                    //             id: treeView
-
-                                    //             anchors.fill: parent
-
-                                    //             color: 'transparent'
-
-                                    //             MouseArea {
-                                    //                 id: mouseArea
-                                    //                 anchors.fill: parent
-                                    //                 drag {
-                                    //                     target: parent
-                                    //                 }
-                                    //             }
-                                    //             Shape {
-                                    //                 anchors.fill: parent
-                                    //                 ShapePath {
-                                    //                     strokeColor: "#40ffffff"
-                                    //                     strokeWidth: 1
-                                    //                     fillColor: "transparent"
-                                    //                     capStyle: ShapePath.RoundCap
-
-                                    //                     startX: 0
-                                    //                     startY: 0
-                                    //                     PathLine { x: width; y: 0 }
-                                    //                     PathLine { x: width; y: height }
-                                    //                     PathLine { x: 0; y: height }
-                                    //                     PathLine { x: 0; y: 0 }
-                                    //                     PathLine { x: width; y: height }
-                                    //                     PathLine { x: 0; y: height }
-                                    //                     PathLine { x: width; y: 0 }
-                                    //                 }
-                                    //             }
-
-                                    //             Text {
-                                    //                 anchors.centerIn: parent
-                                    //                 color: 'white'
-                                    //                 text: "CovertArt placeholder"
-                                    //             }
-
-                                    //             Drag.active: mouseArea.drag.active
-                                    //             Drag.source: parent
-                                    //             Drag.dragType: Drag.Automatic
-                                    //             Drag.supportedActions: Qt.MoveAction
-                                    //             Drag.hotSpot.x: mouseArea.mouseX
-                                    //             Drag.hotSpot.y: mouseArea.mouseY
-                                    //         }
-                                    //     }
-                                    // }
-                                }
-                            }
-                        }
-                        ColumnCreator {
-                            columnIndex: columnView.index
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            anchors.left: parent.left
-                        }
-                        ColumnCreator {
-                            columnIndex: columnView.index
-                            isRightSplitter: true
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            anchors.right: parent.right
-                        }
-                    }
+                    // drag {
+                    //     target: parent
+                    // }
                 }
             }
         }
+        LibraryTrackList {
+            SplitView.fillHeight: true
 
-        DropArea {
-            id: removePanel
-            visible: false
-            height: 40
-            width: 40
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 10;
-            anchors.horizontalCenter: parent.horizontalCenter
-            onDropped: function(drag) {
-                if (drag.source.columnIndex == undefined) return;
-
-                rootPanelModel.get(drag.source.columnIndex).rows.remove(drag.source.rowIndex)
-                if (rootPanelModel.get(drag.source.columnIndex).rows.count == 0) {
-                    rootPanelModel.remove(drag.source.columnIndex)
-                }
-                drag.acceptProposedAction()
-                visible = false
-            }
-
-            property Item itemToRemove
-
-            onEntered: function(drag) {
-                if (drag.source.columnIndex == undefined) return;
-                deleteIndicator.hovered = true
-                drag.source.opacity = 0.5
-                itemToRemove = drag.source
-                drag.acceptProposedAction()
-            }
-
-            onExited: function() {
-                itemToRemove.opacity = 1
-                deleteIndicator.hovered = false
-                itemToRemove = null
-            }
-
-            Rectangle  {
-                id: deleteIndicator
-
-                property bool hovered: false
-
-                radius: 20
-                clip: true
-                color: Qt.alpha(hovered ? '#ff7f7f' : '#ffffff', 0.5)
-                opacity: hovered ? 0.6 : 0.4
-
-                anchors.fill: parent
-
-                Shape {
-                    anchors.fill: parent
-                    ShapePath {
-                        strokeColor: "#ffffff"
-                        strokeWidth: 2
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-
-                        startX: 10
-                        startY: 10
-                        PathLine { x: 30; y: 30 }
-                        PathLine { x: 20; y: 20 }
-                        PathLine { x: 10; y: 30 }
-                        PathLine { x: 30; y: 10 }
-                    }
-                }
-            }
+            model: root.tracksModel
         }
     }
 }

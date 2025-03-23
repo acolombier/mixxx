@@ -13,6 +13,7 @@
 #include "qml/qmlbeatsmodel.h"
 #include "qml/qmlcuesmodel.h"
 #include "qml/qmlstemsmodel.h"
+#include "track/track_decl.h"
 #include "waveform/waveform.h"
 
 namespace mixxx {
@@ -37,6 +38,8 @@ class QmlTrackProxy : public QObject {
     Q_PROPERTY(QString comment READ getComment WRITE setComment NOTIFY commentChanged)
     Q_PROPERTY(QString keyText READ getKeyText WRITE setKeyText NOTIFY keyTextChanged)
     Q_PROPERTY(QColor color READ getColor WRITE setColor NOTIFY colorChanged)
+    Q_PROPERTY(double duration READ getDuration NOTIFY durationChanged)
+    Q_PROPERTY(int sampleRate READ getSampleRate NOTIFY sampleRateChanged)
     Q_PROPERTY(QUrl coverArtUrl READ getCoverArtUrl NOTIFY coverArtUrlChanged)
     Q_PROPERTY(QUrl trackLocationUrl READ getTrackLocationUrl NOTIFY trackLocationUrlChanged)
 
@@ -66,6 +69,8 @@ class QmlTrackProxy : public QObject {
     QString getComment() const;
     QString getKeyText() const;
     QColor getColor() const;
+    double getDuration() const;
+    int getSampleRate() const;
     QUrl getCoverArtUrl() const;
     QUrl getTrackLocationUrl() const;
 
@@ -115,6 +120,8 @@ class QmlTrackProxy : public QObject {
     void commentChanged();
     void keyTextChanged();
     void colorChanged();
+    void durationChanged();
+    void sampleRateChanged();
     void coverArtUrlChanged();
     void trackLocationUrlChanged();
     void cuesChanged();
@@ -147,6 +154,7 @@ class QmlPlayerProxy : public QObject {
         return m_pTrackPlayer;
     }
 
+    Q_INVOKABLE void loadTrack(QmlTrackProxy* track, bool play = false);
     Q_INVOKABLE void loadTrackFromLocation(const QString& trackLocation, bool play = false);
     Q_INVOKABLE void loadTrackFromLocationUrl(const QUrl& trackLocationUrl, bool play = false);
 
@@ -167,6 +175,9 @@ class QmlPlayerProxy : public QObject {
     void cloneFromGroup(const QString& group);
 
     void loadTrackFromLocationRequested(const QString& trackLocation, bool play);
+    void loadTrackRequested(TrackPointer track,
+            mixxx::StemChannelSelection stemSelection,
+            bool play);
 
   private:
     QPointer<BaseTrackPlayer> m_pTrackPlayer;

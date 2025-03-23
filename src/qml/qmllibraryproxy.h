@@ -5,6 +5,7 @@
 
 #include "qml/qmllibrarytracklistmodel.h"
 #include "qml/qmllibrarytreeviewmodel.h"
+#include "qmlplayerproxy.h"
 #include "util/parented_ptr.h"
 
 class Library;
@@ -17,12 +18,12 @@ class QmlLibraryTrackListModel;
 class QmlLibraryProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(mixxx::qml::QmlLibraryTreeviewModel* sidebar MEMBER m_pSidebarProperty CONSTANT)
-    Q_PROPERTY(mixxx::qml::QmlLibraryTrackListModel* model MEMBER m_pModelProperty CONSTANT)
+    Q_PROPERTY(QmlLibraryTrackListModel* model READ model CONSTANT)
     QML_NAMED_ELEMENT(Library)
     QML_SINGLETON
 
   public:
-    explicit QmlLibraryProxy(std::shared_ptr<Library> pLibrary, QObject* parent = nullptr);
+    explicit QmlLibraryProxy(QObject* parent = nullptr);
 
     static QmlLibraryProxy* create(QQmlEngine* pQmlEngine, QJSEngine* pJsEngine);
     static void registerLibrary(std::shared_ptr<Library> pLibrary) {
@@ -33,11 +34,12 @@ class QmlLibraryProxy : public QObject {
         return s_pLibrary.get();
     }
 
+    QmlLibraryTrackListModel* model() const;
+    Q_INVOKABLE void analyze(const QmlTrackProxy* track) const;
+
   private:
     static inline std::shared_ptr<Library> s_pLibrary;
 
-    /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
-    QmlLibraryTrackListModel* m_pModelProperty;
     /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
     QmlLibraryTreeviewModel* m_pSidebarProperty;
 };

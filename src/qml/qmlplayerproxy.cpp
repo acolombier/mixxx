@@ -101,6 +101,10 @@ QmlTrackProxy::QmlTrackProxy(TrackPointer track, QObject* parent)
             &Track::cuesUpdated,
             this,
             &QmlTrackProxy::slotHotcuesChanged);
+    connect(m_pTrack.get(),
+            &Track::durationChanged,
+            this,
+            &QmlTrackProxy::durationChanged);
 #ifdef __STEM__
     connect(m_pTrack.get(),
             &Track::stemsUpdated,
@@ -182,6 +186,20 @@ QColor QmlTrackProxy::getColor() const {
     return RgbColor::toQColor(m_pTrack->getColor());
 }
 
+double QmlTrackProxy::getDuration() const {
+    if (m_pTrack == nullptr) {
+        return -1;
+    }
+    return m_pTrack->getDuration();
+}
+
+int QmlTrackProxy::getSampleRate() const {
+    if (m_pTrack == nullptr) {
+        return 0;
+    }
+    return m_pTrack->getSampleRate();
+}
+
 void QmlTrackProxy::setColor(const QColor& value) {
     if (m_pTrack != nullptr) {
         std::optional<RgbColor> color = RgbColor::fromQColor(value);
@@ -197,8 +215,8 @@ int QmlTrackProxy::getStars() const {
 }
 
 void QmlTrackProxy::setStars(int value) {
-    if (m_pTrack != nullptr && value >= mixxx::TrackRecord::kMaxRating &&
-            value <= mixxx::TrackRecord::kMinRating) {
+    if (m_pTrack != nullptr && value <= mixxx::TrackRecord::kMaxRating &&
+            value >= mixxx::TrackRecord::kMinRating) {
         m_pTrack->setRating(value);
     }
 }
@@ -238,6 +256,13 @@ QmlPlayerProxy::QmlPlayerProxy(BaseTrackPlayer* pTrackPlayer, QObject* parent)
     if (m_pTrackPlayer && m_pTrackPlayer->getLoadedTrack()) {
         slotTrackLoaded(pTrackPlayer->getLoadedTrack());
     }
+}
+
+void QmlPlayerProxy::loadTrack(QmlTrackProxy* track, bool play) {
+    if (track == nullptr || track->internal() == nullptr) {
+        return;
+    }
+    emit loadTrackRequested(track->internal(), mixxx::StemChannel::All, play);
 }
 
 void QmlPlayerProxy::loadTrackFromLocation(const QString& trackLocation, bool play) {

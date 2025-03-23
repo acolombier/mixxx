@@ -1,5 +1,8 @@
 #include "qml/qmltablefromlistmodel.h"
 
+#include <qabstractitemmodel.h>
+#include <qnamespace.h>
+
 #include <QAbstractListModel>
 #include <QVariant>
 #include <QtDebug>
@@ -127,6 +130,14 @@ void QmlTableFromListModel::setSourceModel(QAbstractItemModel* pSourceModel) {
                     Q_UNUSED(end);
                     endRemoveRows();
                 });
+        connect(m_pSourceModel,
+                &QAbstractItemModel::layoutAboutToBeChanged,
+                this,
+                &QAbstractItemModel::layoutAboutToBeChanged);
+        connect(m_pSourceModel,
+                &QAbstractItemModel::layoutChanged,
+                this,
+                &QAbstractItemModel::layoutChanged);
     }
     emit sourceModelChanged();
     endResetModel();
@@ -266,7 +277,8 @@ QVariant QmlTableFromListModel::data(const QModelIndex& index, int role) const {
     const ColumnRoleMetadata roleData = columnMetadata.roles.value(roleName);
     const int sourceRole = m_sourceRoles.value(roleData.name);
     const QModelIndex modelIndex = m_pSourceModel->index(row, 0);
-    return m_pSourceModel->data(modelIndex, sourceRole);
+    auto ret = m_pSourceModel->data(modelIndex, sourceRole);
+    return ret;
 }
 bool QmlTableFromListModel::setData(
         const QModelIndex& index, const QString& role, const QVariant& value) {

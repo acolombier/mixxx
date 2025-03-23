@@ -2111,6 +2111,9 @@ endif()
 
 if(WIN32)
   target_compile_definitions(mixxx-lib PUBLIC __WINDOWS__)
+  if(QML)
+    target_compile_definitions(mixxx-qml-lib PUBLIC __WINDOWS__)
+  endif()
 
   # Helps prevent duplicate symbols
   target_compile_definitions(mixxx-lib PUBLIC _ATL_MIN_CRT)
@@ -2808,6 +2811,9 @@ if(LOCALECOMPARE)
     )
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __SQLITE3__)
+  if(QML)
+    target_compile_definitions(mixxx-lib PUBLIC __SQLITE3__)
+  endif()
   target_link_libraries(mixxx-lib PRIVATE SQLite::SQLite3)
 elseif(SQLite3_IS_STATIC)
   # in the static case we need to link SQLite3 uncoditionally
@@ -3326,6 +3332,11 @@ if(QML)
 
   set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
   qt_add_library(mixxx-qml-lib STATIC)
+
+  if(ENGINEPRIME)
+    target_compile_definitions(mixxx-qml-lib PUBLIC __ENGINEPRIME__)
+  endif()
+
   foreach(component ${QT_COMPONENTS})
     target_link_libraries(
       mixxx-qml-lib
@@ -3382,7 +3393,7 @@ if(QML)
     OPTIONAL_IMPORTS Mixxx
     QML_FILES
       res/qml/Mixxx/Controls/Knob.qml
-      res/qml/Mixxx/Controls/Slider.qml
+      res/qml/Mixxx/Controls/Fader.qml
       res/qml/Mixxx/Controls/Spinny.qml
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
@@ -3400,6 +3411,7 @@ if(QML)
       src/qml/qmlbeatsmodel.cpp
       src/qml/qmlcuesmodel.cpp
       src/qml/qmlcontrolproxy.cpp
+      src/qml/qmlcontrollerproxy.cpp
       src/qml/qmlconfigproxy.cpp
       src/qml/qmldlgpreferencesproxy.cpp
       src/qml/qmleffectmanifestparametersmodel.cpp

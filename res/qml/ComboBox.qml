@@ -38,7 +38,6 @@ ComboBox {
 
     contentItem: Text {
         leftPadding: 5
-        rightPadding: root.indicator.width + root.spacing
         text: root.displayText
         font: root.font
         color: Theme.deckTextColor

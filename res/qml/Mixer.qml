@@ -11,7 +11,7 @@ Item {
     property bool show4decks: false
 
     implicitWidth: content.width + 10
-    implicitHeight: content.height + crossfader.height + 10
+    implicitHeight: content.height + crossfader.height + 20
 
     Skin.SectionBackground {
         anchors.fill: parent
@@ -38,7 +38,7 @@ Item {
             group: root.groups[2]
             anchors {
                 left: parent.left
-                top: mixerDeck4.bottom
+                top: parent.top
             }
         }
 
@@ -60,7 +60,7 @@ Item {
             group: root.groups[2]
             anchors {
                 left: parent.left
-                top: parent.top
+                top: eqDeck3.bottom
             }
         }
 
@@ -94,7 +94,7 @@ Item {
             group: root.groups[3]
             anchors {
                 right: parent.right
-                top: parent.top
+                top: eqDeck4.bottom
             }
         }
 
@@ -115,7 +115,7 @@ Item {
             group: root.groups[3]
             anchors {
                 right: parent.right
-                top: mixerDeck4.bottom
+                top: parent.top
             }
         }
 
@@ -127,34 +127,34 @@ Item {
                     target: eqDeck1
                     anchors {
                         left: eqDeck3.right
-                        top: mixerDeck1.bottom
+                        top: parent.top
                     }
                 }
                 AnchorChanges {
                     target: mixerDeck1
                     anchors {
                         left: mixerDeck3.right
-                        top: parent.top
+                        top: eqDeck1.bottom
                     }
                 }
                 AnchorChanges {
                     target: mixerDeck2
                     anchors {
                         right: mixerDeck4.left
-                        top: parent.top
+                        top: eqDeck2.bottom
                     }
                 }
                 AnchorChanges {
                     target: eqDeck2
                     anchors {
                         right: eqDeck4.left
-                        top: mixerDeck2.bottom
+                        top: parent.top
                     }
                 }
             }
         ]
     }
-    Row {
+    RowLayout {
         id: crossfader
 
         anchors.bottom: parent.bottom
@@ -162,9 +162,9 @@ Item {
         anchors.right: parent.right
         // anchors.horizontalCenter: parent.horizontalCenter
         anchors.margins: 5
+        height: crossfaderSlider.implicitHeight
         GridLayout {
             id: leftDeckAssignment
-            anchors.left: parent.left
             columnSpacing: 1
             rowSpacing: 1
             Repeater {
@@ -187,12 +187,11 @@ Item {
                 }
             }
         }
-        Skin.ControlSlider {
+        Skin.ControlFader {
             id: crossfaderSlider
-            anchors.left: leftDeckAssignment.right
-            anchors.right: rightDeckAssignment.left
-            anchors.leftMargin: 2
-            anchors.rightMargin: 2
+            Layout.fillWidth: true
+            Layout.leftMargin: 2
+            Layout.rightMargin: 2
             // height: leftDeckAssignment.height
 
             orientation: Qt.Horizontal
@@ -205,7 +204,6 @@ Item {
         }
         GridLayout {
             id: rightDeckAssignment
-            anchors.right: parent.right
             columnSpacing: 1
             rowSpacing: 1
             Repeater {

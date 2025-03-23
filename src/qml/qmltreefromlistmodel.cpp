@@ -6,11 +6,17 @@
 #include <QAbstractListModel>
 #include <QVariant>
 #include <QtDebug>
+#include <cstddef>
+#include <memory>
 
 #include "library/browse/browsefeature.h"
+#include "library/library.h"
+#include "library/librarytablemodel.h"
 #include "library/trackset/crate/cratefeature.h"
 #include "library/trackset/playlistfeature.h"
 #include "moc_qmltreefromlistmodel.cpp"
+#include "qmllibrarytracklistmodel.h"
+#include "util/assert.h"
 
 namespace mixxx {
 namespace qml {
@@ -35,13 +41,43 @@ QVariant QmlSidebarModelProxy::get(int row) const {
     return dataMap;
 }
 
-QmlLibrarySource::QmlLibrarySource(QObject* parent)
-        : QObject(parent) {
+void QmlSidebarModelProxy::activate(const QModelIndex& index) {
+    VERIFY_OR_DEBUG_ASSERT(index.isValid()) {
+        return;
+    }
+    if (index.internalPointer() == this) {
+        m_sFeatures[index.row()]->activate();
+    } else {
+        TreeItem* pTreeItem = static_cast<TreeItem*>(index.internalPointer());
+        VERIFY_OR_DEBUG_ASSERT(pTreeItem != nullptr) {
+            return;
+        }
+        LibraryFeature* pFeature = pTreeItem->feature();
+        DEBUG_ASSERT(pFeature);
+        pFeature->activateChild(index);
+        pFeature->onLazyChildExpandation(index);
+    }
 }
 
+QmlLibrarySource::QmlLibrarySource(QObject* parent, const QList<QmlTrackListColumn*>& columns)
+        : QObject(parent),
+          m_columns(columns) {
+}
+
+QmlLibraryAllTrackSource::QmlLibraryAllTrackSource(
+        QObject* parent, const QList<QmlTrackListColumn*>& columns)
+        : QmlLibrarySource(parent, columns) {
+}
 QmlLibraryPlaylistSource::QmlLibraryPlaylistSource(QObject* parent)
         : QmlLibrarySource(parent) {
 }
+
+Q_INVOKABLE QmlLibraryTrackListModel* QmlLibrarySourceTree::allTracks() const {
+    auto* pModel = new QmlLibraryTrackListModel(
+            m_defaultColumns, QmlLibraryProxy::get()->trackTableModel());
+    QQmlEngine::setObjectOwnership(pModel, QQmlEngine::JavaScriptOwnership);
+    return pModel;
+};
 
 QmlLibraryCrateSource::QmlLibraryCrateSource(QObject* parent)
         : QmlLibrarySource(parent) {
@@ -125,7 +161,16 @@ void QmlSidebarModelProxy::update(const QList<QmlLibrarySource*>& sources) {
     beginResetModel();
     qDeleteAll(m_sFeatures);
     for (const auto& librarySource : sources) {
-        addLibraryFeature(librarySource->create());
+        auto* pFeature = librarySource->create();
+        connect(pFeature,
+                &LibraryFeature::showTrackModel,
+                this,
+                [this, librarySource](QAbstractItemModel* pModel) {
+                    emit QmlSidebarModelProxy::trackModelRequested(
+                            new QmlLibraryTrackListModel(
+                                    librarySource->columns(), pModel));
+                });
+        addLibraryFeature(pFeature);
         qDebug() << "LibrarySource:" << librarySource;
     }
     endResetModel();

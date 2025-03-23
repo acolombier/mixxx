@@ -123,7 +123,7 @@ AbstractButton {
             id: labelGlow
 
             anchors.fill: parent
-            radius: 5
+            radius: 1
             spread: 0.1
             color: label.color
             source: label
@@ -131,6 +131,8 @@ AbstractButton {
 
         Label {
             id: label
+
+            visible: root.text != null
 
             anchors.fill: parent
             text: root.text
@@ -141,6 +143,25 @@ AbstractButton {
             font.bold: true
             font.pixelSize: Theme.buttonFontPixelSize
             color: root.normalColor
+        }
+        Image {
+            id: image
+
+            height: icon.height
+            width: icon.width
+            anchors.centerIn: parent
+
+            source: icon.source
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            visible: false
+        }
+        ColorOverlay {
+            anchors.fill: image
+            source: image
+            visible: icon.source != null
+            color: root.normalColor
+            antialiasing: true
         }
     }
 }

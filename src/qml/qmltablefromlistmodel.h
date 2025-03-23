@@ -98,6 +98,7 @@ class QmlTableFromListModel : public QAbstractTableModel, public QQmlParserStatu
     // value = role name
     QAbstractItemModel* m_pSourceModel;
     QHash<QString, int> m_sourceRoles;
+    QMutex m_lock;
 };
 
 } // namespace qml
