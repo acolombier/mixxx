@@ -394,7 +394,12 @@ QStringList SoundSourceProviderFFmpeg::getSupportedFileTypes() const {
             } else if (!strcmp(pavInputFormat->name, "mov,mp4,m4a,3gp,3g2,mj2")) {
                 list.append("mov"); // QuickTime File Format video/quicktime
                 list.append("mp4");
+#ifndef __APPLE__
+                // FIXME there appears to be a problem with the FFMPEG encoder
+                // for this file type. Disabling as already supported by
+                // CoreAudio
                 list.append("m4a");
+#endif
                 list.append("3gp"); // 3GPP file format audio/3gpp
                 list.append("3g2"); // 3GPP2 file format audio/3gpp2
                 list.append("mj2"); // Motion JPEG 2000 video/mj2
