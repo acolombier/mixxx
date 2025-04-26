@@ -7,6 +7,7 @@
 #include <QWaitCondition>
 #include <memory>
 
+#include "controllers/controllershareddata.h"
 #include "util/runtimeloggingcategory.h"
 #ifdef MIXXX_USE_QML
 #include "controllers/controllerenginethreadcontrol.h"
@@ -53,6 +54,13 @@ class ControllerScriptEngineBase : public QObject {
         return m_bTesting;
     }
 
+    /// Takes ownership of `runtimeData`
+    void setSharedData(ControllerNamespacedSharedData* runtimeData);
+
+    ControllerNamespacedSharedData* getSharedData() {
+        return m_runtimeData.get();
+    }
+
 #ifdef MIXXX_USE_QML
     static void registerTrackCollectionManager(
             std::shared_ptr<TrackCollectionManager> pTrackCollectionManager);
@@ -80,6 +88,7 @@ class ControllerScriptEngineBase : public QObject {
     bool m_bErrorsAreFatal;
 #endif
     std::shared_ptr<QJSEngine> m_pJSEngine;
+    std::unique_ptr<ControllerNamespacedSharedData> m_runtimeData;
 
     Controller* m_pController;
     const RuntimeLoggingCategory m_logger;
@@ -118,4 +127,5 @@ class ControllerScriptEngineBase : public QObject {
 
     friend class ColorMapperJSProxy;
     friend class MidiControllerTest;
+    friend class ControllerSharedDataTest;
 };
