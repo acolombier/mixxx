@@ -384,7 +384,7 @@ void allshader::WaveformRenderMark::update() {
                             sampleEndPosition, positionType));
 
             if (visible || currentMarkEndPos > 0.f) {
-                if (pMark->fillRange()) {
+                if (pMark->isLoop()) {
                     // Reuse, or create new when needed
                     if (!pRangeChild) {
                         auto pNode = std::make_unique<GeometryNode>();

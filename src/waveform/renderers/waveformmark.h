@@ -83,17 +83,28 @@ class WaveformMark {
     double getSamplePosition() const {
         return m_pPositionCO->get();
     }
+    bool isJump() const {
+        return m_typeCO.valid() &&
+                static_cast<mixxx::CueType>(m_typeCO.get()) ==
+                mixxx::CueType::Jump;
+    }
+    bool isLoop() const {
+        return m_typeCO.valid() &&
+                static_cast<mixxx::CueType>(m_typeCO.get()) ==
+                mixxx::CueType::Loop;
+    }
+    bool isStandard() const {
+        // A Waveform mark should always have either `isJump`, `isLoop` or
+        // `isNormal` returning true!
+        return !isLoop() && !isJump();
+    }
     double getSampleEndPosition() const {
         if (!m_pEndPositionCO ||
                 // A hotcue may have an end position although it isn't a saved
                 // loop or jump anymore. This happens when the user changes the cue
                 // type. However, we persist the end position if the user wants
                 // to restore the cue to a saved loop
-                (m_typeCO.valid() &&
-                        static_cast<mixxx::CueType>(m_typeCO.get()) !=
-                                mixxx::CueType::Loop &&
-                        static_cast<mixxx::CueType>(m_typeCO.get()) !=
-                                mixxx::CueType::Jump)) {
+                isStandard()) {
             return Cue::kNoPosition;
         }
         return m_pEndPositionCO->get();
@@ -112,20 +123,12 @@ class WaveformMark {
         }
         return m_pVisibleCO->toBool();
     }
-    // A cue is always considered active if it isn't a saved loop or a saved jump
+    // A cue is always considered active if it isn't a saved loop or a saved
+    // jump (a.k.a a "standard" cue)
     bool isActive() const {
-        return (!m_typeCO.valid() || !m_statusCO.valid() ||
-                (static_cast<mixxx::CueType>(m_typeCO.get()) !=
-                                mixxx::CueType::Loop &&
-                        static_cast<mixxx::CueType>(m_typeCO.get()) !=
-                                mixxx::CueType::Jump) ||
+        return !isStandard() ||
                 static_cast<HotcueControl::Status>(m_statusCO.get()) ==
-                        HotcueControl::Status::Active);
-    }
-    bool fillRange() const {
-        return (!m_typeCO.valid() ||
-                static_cast<mixxx::CueType>(m_typeCO.get()) ==
-                        mixxx::CueType::Loop);
+                HotcueControl::Status::Active;
     }
     bool isShowUntilNext() const {
         return m_showUntilNext;

@@ -158,7 +158,7 @@
               <Align>bottom|right</Align>
               <Color>#FF0000</Color>
               <TextColor>#FFFFFF</TextColor>
-              <EndIcon>skins:LateNight/palemoon/buttons/btn__beatjump_right.svg</EndIcon>
+              <EndIcon>skins:LateNight/palemoon/buttons/btn__beatjump_%1.svg</EndIcon>
               <DisabledOpacity>0.25</DisabledOpacity>
               <Text> %1 </Text>
             </DefaultMark>

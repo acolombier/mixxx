@@ -2,6 +2,7 @@
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <optional>
 
 #include "control/controlobject.h"
 #include "moc_wcuemenupopup.cpp"
@@ -67,7 +68,6 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
           m_pConfig(pConfig),
           m_colorPaletteSettings(ColorPaletteSettings(pConfig)),
           m_pBeatLoopSize(ControlFlag::AllowMissingOrInvalid),
-          m_pBeatJumpSize(ControlFlag::AllowMissingOrInvalid),
           m_pPlayPos(ControlFlag::AllowMissingOrInvalid),
           m_pTrackSample(ControlFlag::AllowMissingOrInvalid),
           m_pQuantizeEnabled(ControlFlag::AllowMissingOrInvalid) {
@@ -195,10 +195,6 @@ void WCueMenuPopup::setTrackCueGroup(
 
     if (m_pBeatLoopSize.getKey().group != group) {
         m_pBeatLoopSize = PollingControlProxy(group, "beatloop_size");
-    }
-
-    if (m_pBeatJumpSize.getKey().group != group) {
-        m_pBeatJumpSize = PollingControlProxy(group, "beatjump_size");
     }
 
     if (m_pPlayPos.getKey().group != group) {
@@ -348,6 +344,20 @@ void WCueMenuPopup::slotSavedLoopCueAuto() {
     slotUpdate();
 }
 
+std::optional<mixxx::audio::FramePos> WCueMenuPopup::getCurrentPlayPositionWithQuantize() const {
+    const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
+    auto position = mixxx::audio::FramePos::fromEngineSamplePos(
+            m_pPlayPos.get() * m_pTrackSample.get());
+    if (m_pQuantizeEnabled.toBool() && pBeats) {
+        mixxx::audio::FramePos nextBeatPosition, prevBeatPosition;
+        pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false);
+        return (nextBeatPosition - position > position - prevBeatPosition)
+                ? prevBeatPosition
+                : nextBeatPosition;
+    }
+    return position;
+}
+
 void WCueMenuPopup::slotSavedLoopCueManual() {
     VERIFY_OR_DEBUG_ASSERT(m_pCue != nullptr) {
         return;
@@ -365,20 +375,11 @@ void WCueMenuPopup::slotSavedLoopCueManual() {
         cueStartEnd.startPosition = endPosition;
         m_pCue->setStartAndEndPosition(cueStartEnd.startPosition, cueStartEnd.endPosition);
     }
-    const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
-    auto position = mixxx::audio::FramePos::fromEngineSamplePos(
-            m_pPlayPos.get() * m_pTrackSample.get());
-    if (m_pQuantizeEnabled.toBool() && pBeats) {
-        mixxx::audio::FramePos nextBeatPosition, prevBeatPosition;
-        pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false);
-        position = (nextBeatPosition - position > position - prevBeatPosition)
-                ? prevBeatPosition
-                : nextBeatPosition;
-    }
-    if (position <= m_pCue->getPosition()) {
+    auto newPosition = getCurrentPlayPositionWithQuantize();
+    if (!newPosition.has_value() || newPosition <= m_pCue->getPosition()) {
         return;
     }
-    m_pCue->setEndPosition(position);
+    m_pCue->setEndPosition(newPosition.value());
     updateTypeAndColorIfDefault(mixxx::CueType::Loop);
     slotUpdate();
 }
@@ -390,9 +391,6 @@ void WCueMenuPopup::slotSavedJumpCueAuto() {
     VERIFY_OR_DEBUG_ASSERT(m_pTrack != nullptr) {
         return;
     }
-    VERIFY_OR_DEBUG_ASSERT(m_pBeatJumpSize.valid()) {
-        return;
-    }
     auto cueStartEnd = m_pCue->getStartAndEndPosition();
     // If we are changing the cue type from a loop, we need to permute the position
     // Also, if the type is already a jump, we swap to the to/from point
@@ -402,17 +400,11 @@ void WCueMenuPopup::slotSavedJumpCueAuto() {
         cueStartEnd.startPosition = endPosition;
     }
     if (!cueStartEnd.endPosition.isValid()) {
-        double beatjumpSize = m_pBeatJumpSize.get();
-        const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
-        if (beatjumpSize <= 0 || !pBeats) {
+        auto newPosition = getCurrentPlayPositionWithQuantize();
+        if (!newPosition.has_value() || newPosition == cueStartEnd.startPosition) {
             return;
         }
-        auto position = pBeats->findNBeatsFromPosition(
-                cueStartEnd.startPosition, -beatjumpSize);
-        if (position == cueStartEnd.startPosition) {
-            return;
-        }
-        cueStartEnd.endPosition = position;
+        cueStartEnd.endPosition = newPosition.value();
     }
     m_pCue->setStartAndEndPosition(cueStartEnd.startPosition, cueStartEnd.endPosition);
     updateTypeAndColorIfDefault(mixxx::CueType::Jump);
@@ -433,20 +425,11 @@ void WCueMenuPopup::slotSavedJumpCueManual() {
         cueStartEnd.endPosition = cueStartEnd.startPosition;
         cueStartEnd.startPosition = endPosition;
     }
-    const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
-    auto position = mixxx::audio::FramePos::fromEngineSamplePos(
-            m_pPlayPos.get() * m_pTrackSample.get());
-    if (m_pQuantizeEnabled.toBool() && pBeats) {
-        mixxx::audio::FramePos nextBeatPosition, prevBeatPosition;
-        pBeats->findPrevNextBeats(position, &prevBeatPosition, &nextBeatPosition, false);
-        position = (nextBeatPosition - position > position - prevBeatPosition)
-                ? prevBeatPosition
-                : nextBeatPosition;
-    }
-    if (position == cueStartEnd.startPosition) {
+    auto newPosition = getCurrentPlayPositionWithQuantize();
+    if (!newPosition.has_value() || newPosition == cueStartEnd.startPosition) {
         return;
     }
-    cueStartEnd.endPosition = position;
+    cueStartEnd.endPosition = newPosition.value();
     m_pCue->setStartAndEndPosition(cueStartEnd.startPosition, cueStartEnd.endPosition);
     updateTypeAndColorIfDefault(mixxx::CueType::Jump);
     slotUpdate();

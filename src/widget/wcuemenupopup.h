@@ -81,11 +81,11 @@ class WCueMenuPopup : public QWidget {
 
   private:
     void updateTypeAndColorIfDefault(mixxx::CueType newType);
+    std::optional<mixxx::audio::FramePos> getCurrentPlayPositionWithQuantize() const;
 
     UserSettingsPointer m_pConfig;
     ColorPaletteSettings m_colorPaletteSettings;
     PollingControlProxy m_pBeatLoopSize;
-    PollingControlProxy m_pBeatJumpSize;
     PollingControlProxy m_pPlayPos;
     PollingControlProxy m_pTrackSample;
     PollingControlProxy m_pQuantizeEnabled;

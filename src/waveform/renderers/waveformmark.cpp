@@ -2,6 +2,8 @@
 
 #include <QOpenGLTexture>
 #include <QPainterPath>
+#include <QStringLiteral>
+#include <QSvgRenderer>
 #include <QtDebug>
 
 #include "skin/legacy/skincontext.h"
@@ -645,8 +647,16 @@ QImage WaveformMark::generateEndImage(float devicePixelRatio) {
                                 2.f -
                         markerGeometry.contentRect().y());
 
-        QSvgRenderer svgRenderer(m_endIconPath);
-        svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
+        if (isJump()) {
+            auto svgRenderer = QSvgRenderer(m_endIconPath.arg(
+                    getSampleEndPosition() > getSamplePosition()
+                            ? QStringLiteral("backward")
+                            : QStringLiteral("forward")));
+            svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
+        } else {
+            auto svgRenderer = QSvgRenderer(m_endIconPath);
+            svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
+        }
     }
 
     painter.end();
