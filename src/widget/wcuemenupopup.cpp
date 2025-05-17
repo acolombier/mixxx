@@ -252,6 +252,13 @@ void WCueMenuPopup::slotUpdate() {
         m_pStandardCue->setChecked(m_pCue->getType() == mixxx::CueType::HotCue);
         m_pSavedLoopCue->setChecked(m_pCue->getType() == mixxx::CueType::Loop);
         m_pSavedJumpCue->setChecked(m_pCue->getType() == mixxx::CueType::Jump);
+        m_pSavedJumpCue->setProperty("direction",
+                m_pCue->getType() != mixxx::CueType::Jump ||
+                                m_pCue->getPosition() > m_pCue->getEndPosition()
+                        ? "forward"
+                        : "backward");
+        m_pSavedJumpCue->style()->polish(m_pSavedJumpCue.get());
+        m_pSavedJumpCue->repaint();
     } else {
         m_pTrack.reset();
         m_pCue.reset();
@@ -348,8 +355,10 @@ void WCueMenuPopup::slotSavedLoopCueManual() {
     VERIFY_OR_DEBUG_ASSERT(m_pTrack != nullptr) {
         return;
     }
-    // If we are changing the cue type from a jump, we need to permute the positions
-    if (m_pCue->getType() == mixxx::CueType::Jump) {
+    // If we are changing the cue type from a jump, we need to permute the
+    // positions if it wasn't going backward
+    if (m_pCue->getType() == mixxx::CueType::Jump &&
+            m_pCue->getPosition() > m_pCue->getEndPosition()) {
         auto cueStartEnd = m_pCue->getStartAndEndPosition();
         auto endPosition = cueStartEnd.endPosition;
         cueStartEnd.endPosition = cueStartEnd.startPosition;
@@ -386,7 +395,8 @@ void WCueMenuPopup::slotSavedJumpCueAuto() {
     }
     auto cueStartEnd = m_pCue->getStartAndEndPosition();
     // If we are changing the cue type from a loop, we need to permute the position
-    if (m_pCue->getType() == mixxx::CueType::Loop) {
+    // Also, if the type is already a jump, we swap to the to/from point
+    if (m_pCue->getType() == mixxx::CueType::Loop || m_pCue->getType() == mixxx::CueType::Jump) {
         auto endPosition = cueStartEnd.endPosition;
         cueStartEnd.endPosition = cueStartEnd.startPosition;
         cueStartEnd.startPosition = endPosition;

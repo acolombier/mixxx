@@ -91,6 +91,18 @@ void WHotcueButton::setup(const QDomNode& node, const SkinContext& context) {
     m_pCoType->connectValueChanged(this, &WHotcueButton::slotTypeChanged);
     slotTypeChanged(m_pCoType->get());
 
+    m_pCoPosition = make_parented<ControlProxy>(
+            createConfigKey(QStringLiteral("position")),
+            this,
+            ControlFlag::NoAssertIfMissing);
+    m_pCoPosition->connectValueChanged(this, &WHotcueButton::slotUpdateDirection);
+    m_pCoEndPosition = make_parented<ControlProxy>(
+            createConfigKey(QStringLiteral("endposition")),
+            this,
+            ControlFlag::NoAssertIfMissing);
+    m_pCoEndPosition->connectValueChanged(this, &WHotcueButton::slotUpdateDirection);
+    slotUpdateDirection();
+
     m_pCoActive = make_parented<ControlProxy>(
             createConfigKey(QStringLiteral("status")),
             this,
@@ -279,6 +291,13 @@ void WHotcueButton::slotColorChanged(double color) {
     }
 
     setStyleSheet(style);
+    restyleAndRepaint();
+}
+
+void WHotcueButton::slotUpdateDirection(double) {
+    m_direction = m_pCoPosition->get() >= m_pCoEndPosition->get()
+            ? QStringLiteral("forward")
+            : QStringLiteral("backward");
     restyleAndRepaint();
 }
 
