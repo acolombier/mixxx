@@ -4,7 +4,7 @@
    version="1.1"
    height="48"
    width="40"
-   sodipodi:docname="btn__1_jump_set.svg"
+   sodipodi:docname="btn__7_jump_backward_active.svg"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
    viewBox="0 0 20 24"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -27,9 +27,9 @@
      inkscape:window-height="1331"
      id="namedview7"
      showgrid="false"
-     inkscape:zoom="10.871075"
-     inkscape:cx="32.931426"
-     inkscape:cy="8.0948756"
+     inkscape:zoom="8.8653513"
+     inkscape:cx="26.282094"
+     inkscape:cy="1.9175777"
      inkscape:window-x="26"
      inkscape:window-y="23"
      inkscape:window-maximized="0"
@@ -117,16 +117,16 @@
        id="tspan1"
        x="5.8255696"
        y="17.235025"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.6667px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold';fill:#000000;fill-opacity:1">3</tspan></text>
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.6667px;font-family:'Open Sans';-inkscape-font-specification:'Open Sans Bold';fill:#000000;fill-opacity:1">2</tspan></text>
   <text
      xml:space="preserve"
-     style="font-style:normal;font-weight:normal;font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#5e5e5e;fill-opacity:1;stroke:none;stroke-width:1.69742"
-     x="4.2831869"
+     style="font-style:normal;font-weight:normal;font-size:17.3333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.69742"
+     x="0.48312664"
      y="12.99669"
      id="text836-5"
      transform="scale(1.0526149,0.95001506)"><tspan
        id="tspan834-8"
-       x="4.2831869"
+       x="0.48312664"
        y="12.99669"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.3333px;font-family:'Droid Sans';-inkscape-font-specification:'Droid Sans';fill:#5e5e5e;fill-opacity:1;stroke-width:1.69742">↷</tspan></text>
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.3333px;font-family:'Droid Sans';-inkscape-font-specification:'Droid Sans';fill:#000000;fill-opacity:1;stroke-width:1.69742">↶</tspan></text>
 </svg>
