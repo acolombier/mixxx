@@ -489,8 +489,30 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
     // Determine drawing geometries
     const MarkerGeometry markerGeometry{text, useIcon, m_align, m_breadth, m_level};
 
+    float linePos;
     if (labelMark) {
         labelMark->setAreaRect(markerGeometry.labelRect());
+
+        const Qt::Alignment alignH = m_align & Qt::AlignHorizontal_Mask;
+        const float imgw = static_cast<float>(markerGeometry.imageSize().width());
+        switch (alignH) {
+        case Qt::AlignHCenter:
+            m_linePosition = imgw / 2.f;
+            m_offset = -(imgw - 1.f) / 2.f;
+            break;
+        case Qt::AlignLeft:
+            m_linePosition = imgw - 1.5f;
+            m_offset = -imgw + 2.f;
+            break;
+        case Qt::AlignRight:
+        default:
+            m_linePosition = 1.5f;
+            m_offset = -1.f;
+            break;
+        }
+        linePos = m_linePosition;
+    } else {
+        linePos = markerGeometry.imageSize().width() / 2.f;
     }
 
     const QSize size{markerGeometry.getImageSize(devicePixelRatio)};
@@ -516,26 +538,7 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
 
     painter.setWorldMatrixEnabled(false);
 
-    const Qt::Alignment alignH = m_align & Qt::AlignHorizontal_Mask;
-    const float imgw = static_cast<float>(markerGeometry.imageSize().width());
-    switch (alignH) {
-    case Qt::AlignHCenter:
-        m_linePosition = imgw / 2.f;
-        m_offset = -(imgw - 1.f) / 2.f;
-        break;
-    case Qt::AlignLeft:
-        m_linePosition = imgw - 1.5f;
-        m_offset = -imgw + 2.f;
-        break;
-    case Qt::AlignRight:
-    default:
-        m_linePosition = 1.5f;
-        m_offset = -1.f;
-        break;
-    }
-
     // Note: linePos has to be at integer + 0.5 to draw correctly
-    const float linePos = m_linePosition;
     [[maybe_unused]] const float epsilon = 1e-6f;
     DEBUG_ASSERT(std::abs(linePos - std::floor(linePos) - 0.5) < epsilon);
 
