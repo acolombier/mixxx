@@ -47,7 +47,11 @@ class WaveformMark {
             QColor color,
             int priority,
             int hotCue = Cue::kNoHotCue,
-            const WaveformSignalColors& signalColors = {});
+            const WaveformSignalColors& signalColors = {},
+            const QString& endPixmapPath = {},
+            const QString& endIconPath = {},
+            float disabledOpacity = 1.0f,
+            float enabledOpacity = 1.0f);
     ~WaveformMark();
 
     // Disable copying

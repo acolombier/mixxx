@@ -95,7 +95,8 @@ bool isShowUntilNextPositionControl(const QString& positionControl) {
 
 } // anonymous namespace
 
-WaveformMark::WaveformMark(const QString& group,
+WaveformMark::WaveformMark(
+        const QString& group,
         QString positionControl,
         const QString& visibilityControl,
         const QString& textColor,
@@ -106,22 +107,34 @@ WaveformMark::WaveformMark(const QString& group,
         QColor color,
         int priority,
         int hotCue,
-        const WaveformSignalColors& signalColors)
+        const WaveformSignalColors& signalColors,
+        const QString& endPixmapPath,
+        const QString& endIconPath,
+        float disabledOpacity,
+        float enabledOpacity)
         : m_textColor(textColor),
           m_pixmapPath(pixmapPath),
+          m_endPixmapPath(endPixmapPath),
           m_iconPath(iconPath),
+          m_endIconPath(endIconPath),
+          m_enabledOpacity(enabledOpacity),
+          m_disabledOpacity(disabledOpacity),
           m_linePosition{},
           m_breadth{},
           m_level{},
+          m_typeCO(ControlFlag::AllowMissingOrInvalid),
+          m_statusCO(ControlFlag::AllowMissingOrInvalid),
           m_iPriority(priority),
           m_iHotCue(hotCue),
           m_showUntilNext{} {
     QString endPositionControl;
     QString typeControl;
+    QString statusControl;
     if (hotCue != Cue::kNoHotCue) {
         QString hotcueNumber = QString::number(hotCue + 1);
         positionControl = QStringLiteral("hotcue_%1_position").arg(hotcueNumber);
         endPositionControl = QStringLiteral("hotcue_%1_endposition").arg(hotcueNumber);
+        statusControl = QStringLiteral("hotcue_%1_status").arg(hotcueNumber);
         typeControl = QStringLiteral("hotcue_%1_type").arg(hotcueNumber);
         m_showUntilNext = true;
     } else {
@@ -134,6 +147,7 @@ WaveformMark::WaveformMark(const QString& group,
     if (!endPositionControl.isEmpty()) {
         m_pEndPositionCO = std::make_unique<ControlProxy>(group, endPositionControl);
         m_typeCO = PollingControlProxy(group, typeControl);
+        m_statusCO = PollingControlProxy(group, statusControl);
     }
 
     if (!visibilityControl.isEmpty()) {
