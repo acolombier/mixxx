@@ -338,7 +338,7 @@ elseif(APPLE)
   endif()
 endif()
 
-project(mixxx VERSION 2.6.0 LANGUAGES C CXX)
+project(mixxx VERSION 2.7.0 LANGUAGES C CXX)
 # Work around missing version suffixes support https://gitlab.kitware.com/cmake/cmake/-/issues/16716
 set(MIXXX_VERSION_PRERELEASE "alpha") # set to "alpha" "beta" or ""
 
@@ -1262,6 +1262,7 @@ add_library(
   src/library/missing_hidden/hiddentablemodel.cpp
   src/library/missing_hidden/missingtablemodel.cpp
   src/library/mixxxlibraryfeature.cpp
+  src/library/overviewcache.cpp
   src/library/parser.cpp
   src/library/parsercsv.cpp
   src/library/parserm3u.cpp
@@ -1291,6 +1292,7 @@ add_library(
   src/library/tabledelegates/keydelegate.cpp
   src/library/tabledelegates/locationdelegate.cpp
   src/library/tabledelegates/multilineeditdelegate.cpp
+  src/library/tabledelegates/overviewdelegate.cpp
   src/library/tabledelegates/previewbuttondelegate.cpp
   src/library/tabledelegates/stardelegate.cpp
   src/library/tabledelegates/stareditor.cpp
@@ -1513,11 +1515,13 @@ add_library(
   src/util/workerthreadscheduler.cpp
   src/util/xml.cpp
   src/waveform/guitick.cpp
+  src/waveform/overviewtype.cpp
   src/waveform/renderers/glwaveformrenderbackground.cpp
   src/waveform/renderers/glvsynctestrenderer.cpp
   src/waveform/renderers/waveformmark.cpp
   src/waveform/renderers/waveformmarkrange.cpp
   src/waveform/renderers/waveformmarkset.cpp
+  src/waveform/renderers/waveformoverviewrenderer.cpp
   src/waveform/renderers/waveformrenderbackground.cpp
   src/waveform/renderers/waveformrenderbeat.cpp
   src/waveform/renderers/waveformrendererabstract.cpp
@@ -3125,6 +3129,9 @@ target_link_libraries(mixxx-lib PRIVATE FLAC::FLAC)
 # inlining It is compiled without optimization and allows to use these function
 # from -ffast-math optimized objects. The MSVC option /fp:fast does not suffer this issue
 add_library(FpClassify STATIC EXCLUDE_FROM_ALL src/util/fpclassify.cpp)
+# With gcc >= 14 and -flto some code is inlined to fast-math code and then
+# optimized away. Disable it explicit for all compiler just in case.
+set_target_properties(FpClassify PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 
 if(
   CMAKE_CXX_COMPILER_ID MATCHES "Clang"
@@ -3445,6 +3452,7 @@ if(QML)
       src/qml/qmlmixxxcontrollerscreen.cpp
       src/qml/qmlwaveformdisplay.cpp
       src/qml/qmlwaveformrenderer.cpp
+      src/qml/qmlsettingparameter.cpp
       src/waveform/renderers/allshader/digitsrenderer.cpp
       src/waveform/renderers/allshader/waveformrenderbeat.cpp
       src/waveform/renderers/allshader/waveformrenderer.cpp

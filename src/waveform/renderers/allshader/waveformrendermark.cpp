@@ -190,7 +190,7 @@ allshader::WaveformRenderMark::WaveformRenderMark(
         m_pPlayPosNode->initForRectangles<TextureMaterial>(1);
         appendChildNode(std::move(pNode));
     }
-
+#ifndef __SCENEGRAPH__
     auto* pWaveformWidgetFactory = WaveformWidgetFactory::instance();
     connect(pWaveformWidgetFactory,
             &WaveformWidgetFactory::untilMarkShowBeatsChanged,
@@ -212,6 +212,7 @@ allshader::WaveformRenderMark::WaveformRenderMark(
             &WaveformWidgetFactory::untilMarkTextHeightLimitChanged,
             this,
             &WaveformRenderMark::setUntilMarkTextHeightLimit);
+#endif
 }
 
 void allshader::WaveformRenderMark::draw(QPainter*, QPaintEvent*) {
@@ -432,8 +433,9 @@ void allshader::WaveformRenderMark::update() {
 
     // Remove unused nodes
     while (pRangeChild) {
+        auto* pNextChild = static_cast<GeometryNode*>(pRangeChild->nextSibling());
         auto pNode = m_pRangeNodesParent->detachChildNode(pRangeChild);
-        pRangeChild = static_cast<GeometryNode*>(pRangeChild->nextSibling());
+        pRangeChild = pNextChild;
     }
 
     m_waveformRenderer->setMarkPositions(marksOnScreen);
