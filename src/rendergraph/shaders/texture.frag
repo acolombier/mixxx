@@ -13,6 +13,6 @@ layout(location = 0) out vec4 fragColor;
 void main() {
     fragColor = texture(texture1, vTexcoord);
     if (ubuf.alpha > 0.0) {
-        fragColor.a *= ubuf.alpha;
+        fragColor *= ubuf.alpha;
     }
 }
