@@ -126,7 +126,7 @@ class WaveformMark {
     // A cue is always considered active if it isn't a saved loop or a saved
     // jump (a.k.a a "standard" cue)
     bool isActive() const {
-        return !isStandard() ||
+        return !m_statusCO.valid() ||
                 static_cast<HotcueControl::Status>(m_statusCO.get()) ==
                 HotcueControl::Status::Active;
     }
@@ -208,6 +208,7 @@ class WaveformMark {
     QString m_text;
     Qt::Alignment m_align;
     QString m_pixmapPath;
+    QString m_endPixmapPath;
     QString m_iconPath;
     QString m_endIconPath;
 
@@ -226,6 +227,12 @@ class WaveformMark {
     WaveformMarkLabel m_label;
 
   private:
+    QImage performImageGeneration(float devicePixelRatio,
+            const QString& pixmapPath,
+            const QString& text,
+            WaveformMarkLabel* labelMark,
+            const QString& iconPath);
+
     std::unique_ptr<ControlProxy> m_pPositionCO;
     std::unique_ptr<ControlProxy> m_pEndPositionCO;
     std::unique_ptr<ControlProxy> m_pVisibleCO;

@@ -241,6 +241,11 @@ WaveformMark::WaveformMark(const QString& group,
         m_pixmapPath = context.makeSkinPath(m_pixmapPath);
     }
 
+    m_endPixmapPath = context.selectString(node, "EndPixmap");
+    if (!m_endPixmapPath.isEmpty()) {
+        m_endPixmapPath = context.makeSkinPath(m_endPixmapPath);
+    }
+
     m_iconPath = context.selectString(node, "Icon");
     if (!m_iconPath.isEmpty()) {
         m_iconPath = context.makeSkinPath(m_iconPath);
@@ -421,9 +426,11 @@ class MarkerGeometry {
     QSizeF m_imageSize;
 };
 
-QImage WaveformMark::generateImage(float devicePixelRatio) {
-    DEBUG_ASSERT(needsImageUpdate());
-
+QImage WaveformMark::performImageGeneration(float devicePixelRatio,
+        const QString& pixmapPath,
+        const QString& text,
+        WaveformMarkLabel* labelMark,
+        const QString& iconPath) {
     if (m_breadth == 0.0f) {
         return {};
     }
@@ -431,8 +438,8 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
     // Load the pixmap from file.
     // If that succeeds loading the text and stroke is skipped.
 
-    if (!m_pixmapPath.isEmpty()) {
-        QString path = m_pixmapPath;
+    if (!pixmapPath.isEmpty()) {
+        QString path = pixmapPath;
         // Use devicePixelRatio to properly scale the image
         QImage image = *WImageStore::getImage(path, devicePixelRatio);
         // If loading the image didn't fail, then we're done. Otherwise fall
@@ -463,23 +470,14 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
             return image;
         }
     }
-
-    QString label = m_text;
-
-    // Determine mark text.
-    if (getHotCue() >= 0) {
-        if (!label.isEmpty()) {
-            label.prepend(": ");
-        }
-        label.prepend(QString::number(getHotCue() + 1));
-    }
-
-    const bool useIcon = m_iconPath != "";
+    const bool useIcon = iconPath != "";
 
     // Determine drawing geometries
-    const MarkerGeometry markerGeometry{label, useIcon, m_align, m_breadth, m_level};
+    const MarkerGeometry markerGeometry{text, useIcon, m_align, m_breadth, m_level};
 
-    m_label.setAreaRect(markerGeometry.labelRect());
+    if (labelMark) {
+        labelMark->setAreaRect(markerGeometry.labelRect());
+    }
 
     const QSize size{markerGeometry.getImageSize(devicePixelRatio)};
 
@@ -541,7 +539,7 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
             linePos + 1.f,
             markerGeometry.imageSize().height()));
 
-    if (useIcon || label.length() != 0) {
+    if (useIcon || text.length() != 0) {
         painter.setPen(borderColor());
 
         // Draw the label rounded rect with border
@@ -550,7 +548,7 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
         painter.fillPath(path, fillColor());
         painter.drawPath(path);
 
-        // Center m_contentRect.width() and m_contentRect.height() inside m_labelRect
+        // Center m_contentRect.width() and m_contentRect.height() inside labelRectMarl
         // and apply the offset x,y so the text ends up in the centered width,height.
         QPointF pos(markerGeometry.labelRect().x() +
                         (markerGeometry.labelRect().width() -
@@ -564,7 +562,7 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
                         markerGeometry.contentRect().y());
 
         if (useIcon) {
-            QSvgRenderer svgRenderer(m_iconPath);
+            QSvgRenderer svgRenderer(iconPath);
             svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
         } else {
             // Draw the text
@@ -572,7 +570,7 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
             painter.setPen(labelColor());
             painter.setFont(markerGeometry.font());
 
-            painter.drawText(pos, label);
+            painter.drawText(pos, text);
         }
     }
 
@@ -581,85 +579,32 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
     return image;
 }
 
+QImage WaveformMark::generateImage(float devicePixelRatio) {
+    DEBUG_ASSERT(needsImageUpdate());
+
+    QString label = m_text;
+
+    // Determine mark text.
+    if (getHotCue() >= 0) {
+        if (!label.isEmpty()) {
+            label.prepend(": ");
+        }
+        label.prepend(QString::number(getHotCue() + 1));
+    }
+
+    return performImageGeneration(devicePixelRatio, m_pixmapPath, label, &m_label, m_iconPath);
+}
+
 QImage WaveformMark::generateEndImage(float devicePixelRatio) {
     assert(needsEndImageUpdate());
 
-    const bool useIcon = m_endIconPath != "";
+    QString icon = m_endIconPath;
 
-    // Determine drawing geometries
-    const MarkerGeometry markerGeometry{"", useIcon, m_align, m_breadth, m_level};
-
-    m_label.setAreaRect(markerGeometry.labelRect());
-
-    // Create the image
-    QImage image{markerGeometry.getImageSize(devicePixelRatio),
-            QImage::Format_ARGB32_Premultiplied};
-    image.setDevicePixelRatio(devicePixelRatio);
-
-    // Fill with transparent pixels
-    image.fill(Qt::transparent);
-
-    QPainter painter;
-
-    painter.begin(&image);
-    painter.setRenderHint(QPainter::TextAntialiasing);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    painter.setWorldMatrixEnabled(false);
-
-    // Draw marker lines
-    const auto hcenter = markerGeometry.imageSize().width() / 2.f;
-    m_linePosition = static_cast<float>(hcenter);
-
-    // Draw the center line
-    painter.setPen(fillColor());
-    painter.drawLine(QLineF(hcenter, 0.f, hcenter, markerGeometry.imageSize().height()));
-
-    painter.setPen(borderColor());
-    painter.drawLine(QLineF(hcenter - 1.f,
-            0.f,
-            hcenter - 1.f,
-            markerGeometry.imageSize().height()));
-    painter.drawLine(QLineF(hcenter + 1.f,
-            0.f,
-            hcenter + 1.f,
-            markerGeometry.imageSize().height()));
-
-    if (useIcon) {
-        painter.setPen(borderColor());
-
-        // Draw the label rounded rect with border
-        QPainterPath path;
-        path.addRoundedRect(markerGeometry.labelRect(), 2.f, 2.f);
-        painter.fillPath(path, fillColor());
-        painter.drawPath(path);
-
-        // Center m_contentRect.width() and m_contentRect.height() inside m_labelRect
-        // and apply the offset x,y so the text ends up in the centered width,height.
-        QPointF pos(markerGeometry.labelRect().x() +
-                        (markerGeometry.labelRect().width() -
-                                markerGeometry.contentRect().width()) /
-                                2.f -
-                        markerGeometry.contentRect().x(),
-                markerGeometry.labelRect().y() +
-                        (markerGeometry.labelRect().height() -
-                                markerGeometry.contentRect().height()) /
-                                2.f -
-                        markerGeometry.contentRect().y());
-
-        if (isJump()) {
-            auto svgRenderer = QSvgRenderer(m_endIconPath.arg(
-                    getSampleEndPosition() > getSamplePosition()
-                            ? QStringLiteral("backward")
-                            : QStringLiteral("forward")));
-            svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
-        } else {
-            auto svgRenderer = QSvgRenderer(m_endIconPath);
-            svgRenderer.render(&painter, QRectF(pos, markerGeometry.contentRect().size()));
-        }
+    if (isJump()) {
+        icon = m_endIconPath.arg(
+                getSampleEndPosition() > getSamplePosition()
+                        ? QStringLiteral("backward")
+                        : QStringLiteral("forward"));
     }
-
-    painter.end();
-
-    return image;
+    return performImageGeneration(devicePixelRatio, m_endPixmapPath, "", nullptr, icon);
 }
