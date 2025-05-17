@@ -68,6 +68,7 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
           m_pConfig(pConfig),
           m_colorPaletteSettings(ColorPaletteSettings(pConfig)),
           m_pBeatLoopSize(ControlFlag::AllowMissingOrInvalid),
+          m_pBeatJumpSize(ControlFlag::AllowMissingOrInvalid),
           m_pPlayPos(ControlFlag::AllowMissingOrInvalid),
           m_pTrackSample(ControlFlag::AllowMissingOrInvalid),
           m_pQuantizeEnabled(ControlFlag::AllowMissingOrInvalid) {
@@ -139,8 +140,11 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
                "the current play position or the current beatjump size ") +
             "\n\n" +
             tr("Left-click: Toggle this cue type to saved beatjump, using \n"
-               "the current play position if not previous destination was known. \nIf "
-               "the play position is the cue position, uses the current beatjump size") +
+               "the current play position if not previous jump position was "
+               "known. \nIf "
+               "the play position is the cue position, uses the current "
+               "beatjump size. If a previous jump position exists, it will "
+               "swap the jump position and the cue/target position.") +
             "\n" +
             tr("Right-click: Set the current play position as the jump \n"
                "destination and make the cue a saved jump if not"));
@@ -195,6 +199,10 @@ void WCueMenuPopup::setTrackCueGroup(
 
     if (m_pBeatLoopSize.getKey().group != group) {
         m_pBeatLoopSize = PollingControlProxy(group, "beatloop_size");
+    }
+
+    if (m_pBeatJumpSize.getKey().group != group) {
+        m_pBeatJumpSize = PollingControlProxy(group, "beatjump_size");
     }
 
     if (m_pPlayPos.getKey().group != group) {
@@ -401,10 +409,19 @@ void WCueMenuPopup::slotSavedJumpCueAuto() {
     }
     if (!cueStartEnd.endPosition.isValid()) {
         auto newPosition = getCurrentPlayPositionWithQuantize();
-        if (!newPosition.has_value() || newPosition == cueStartEnd.startPosition) {
+        if (!newPosition.has_value()) {
             return;
         }
-        cueStartEnd.endPosition = newPosition.value();
+        if (newPosition == cueStartEnd.startPosition) {
+            double beatjumpSize = m_pBeatJumpSize.get();
+            const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
+            if (beatjumpSize <= 0 || !pBeats) {
+                return;
+            }
+            newPosition = pBeats->findNBeatsFromPosition(
+                    cueStartEnd.startPosition, -beatjumpSize);
+            cueStartEnd.endPosition = newPosition.value();
+        }
     }
     m_pCue->setStartAndEndPosition(cueStartEnd.startPosition, cueStartEnd.endPosition);
     updateTypeAndColorIfDefault(mixxx::CueType::Jump);
