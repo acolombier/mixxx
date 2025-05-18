@@ -68,6 +68,12 @@ class WaveformMark {
     int getPriority() const {
         return m_iPriority;
     };
+    mixxx::CueType getType() const {
+        if (!m_typeCO) {
+            return mixxx::CueType::Invalid;
+        }
+        return static_cast<mixxx::CueType>(m_typeCO->get());
+    }
 
     // The m_pPositionCO related function
     bool isValid() const {
@@ -84,17 +90,30 @@ class WaveformMark {
             m_pEndPositionCO->connectValueChanged(receiver, slot, Qt::AutoConnection);
         }
     };
+    template<typename Receiver, typename Slot>
+    void connectTypeChanged(Receiver receiver, Slot slot) const {
+        if (m_typeCO) {
+            m_typeCO->connectValueChanged(receiver, slot, Qt::AutoConnection);
+        }
+    };
+    template<typename Receiver, typename Slot>
+    void connectStatusChanged(Receiver receiver, Slot slot) const {
+        if (m_statusCO) {
+            m_statusCO->connectValueChanged(receiver, slot, Qt::AutoConnection);
+        }
+    };
+
     double getSamplePosition() const {
         return m_pPositionCO->get();
     }
     bool isJump() const {
-        return m_typeCO.valid() &&
-                static_cast<mixxx::CueType>(m_typeCO.get()) ==
+        return m_typeCO &&
+                static_cast<mixxx::CueType>(m_typeCO->get()) ==
                 mixxx::CueType::Jump;
     }
     bool isLoop() const {
-        return m_typeCO.valid() &&
-                static_cast<mixxx::CueType>(m_typeCO.get()) ==
+        return m_typeCO &&
+                static_cast<mixxx::CueType>(m_typeCO->get()) ==
                 mixxx::CueType::Loop;
     }
     bool isStandard() const {
@@ -130,8 +149,8 @@ class WaveformMark {
     // A cue is always considered active if it isn't a saved loop or a saved
     // jump (a.k.a a "standard" cue)
     bool isActive() const {
-        return !m_statusCO.valid() ||
-                static_cast<HotcueControl::Status>(m_statusCO.get()) ==
+        return !m_statusCO ||
+                static_cast<HotcueControl::Status>(m_statusCO->get()) ==
                 HotcueControl::Status::Active;
     }
     bool isShowUntilNext() const {
@@ -240,8 +259,8 @@ class WaveformMark {
     std::unique_ptr<ControlProxy> m_pPositionCO;
     std::unique_ptr<ControlProxy> m_pEndPositionCO;
     std::unique_ptr<ControlProxy> m_pVisibleCO;
-    PollingControlProxy m_typeCO;
-    PollingControlProxy m_statusCO;
+    std::unique_ptr<ControlProxy> m_typeCO;
+    std::unique_ptr<ControlProxy> m_statusCO;
 
     std::unique_ptr<Graphics> m_pGraphics;
     std::unique_ptr<Graphics> m_pEndGraphics;

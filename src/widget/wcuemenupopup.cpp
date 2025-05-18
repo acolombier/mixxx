@@ -111,14 +111,14 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
 
     m_pStandardCue = std::make_unique<QPushButton>("", this);
     m_pStandardCue->setToolTip(
-            tr("Toggle this cue type to normal cue if not."));
+            tr("Turn this cue into a regular hotcue"));
     m_pStandardCue->setObjectName("CueStandardButton");
     m_pStandardCue->setCheckable(true);
     connect(m_pStandardCue.get(), &QPushButton::clicked, this, &WCueMenuPopup::slotStandardCue);
 
     m_pSavedLoopCue = std::make_unique<CueTypePushButton>(this);
     m_pSavedLoopCue->setToolTip(
-            tr("Toggle this cue type between normal cue and saved loop") +
+            tr("Turn this cue into a saved loop") +
             "\n\n" +
             tr("Left-click: Use the old size or the current beatloop size as the loop size") +
             "\n" +
@@ -136,8 +136,10 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
 
     m_pSavedJumpCue = std::make_unique<CueTypePushButton>(this);
     m_pSavedJumpCue->setToolTip(
-            tr("Toggle this cue type between normal cue and saved jump, to \n"
-               "the current play position or the current beatjump size ") +
+            //: \n is a linebreak. Try to not to extend the translation beyond the length
+            //: of the longest source line so the tooltip remains compact.
+            tr("Turn this cue into a saved jump, to the current play position \n"
+               "or that minus the current beatjump size") +
             "\n\n" +
             tr("Left-click: Toggle this cue type to saved beatjump, using \n"
                "the current play position if not previous jump position was "
@@ -145,7 +147,7 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
                "the play position is the cue position, uses the current "
                "beatjump size. If a previous jump position exists, it will "
                "swap the jump position and the cue/target position.") +
-            "\n" +
+            "\n\n" +
             tr("Right-click: Set the current play position as the jump \n"
                "destination and make the cue a saved jump if not"));
     m_pSavedJumpCue->setObjectName("CueSavedJumpButton");
@@ -233,20 +235,26 @@ void WCueMenuPopup::slotUpdate() {
         Cue::StartAndEndPositions pos = m_pCue->getStartAndEndPosition();
         if (pos.startPosition.isValid()) {
             double startPositionSeconds = pos.startPosition.value() / m_pTrack->getSampleRate();
-            positionText = mixxx::Duration::formatTime(startPositionSeconds, mixxx::Duration::Precision::CENTISECONDS);
+            QString startPositionText =
+                    mixxx::Duration::formatTime(startPositionSeconds,
+                            mixxx::Duration::Precision::CENTISECONDS);
             if (pos.endPosition.isValid() && m_pCue->getType() != mixxx::CueType::HotCue) {
                 double endPositionSeconds = pos.endPosition.value() / m_pTrack->getSampleRate();
+                QString endPositionText = mixxx::Duration::formatTime(
+                        endPositionSeconds,
+                        mixxx::Duration::Precision::
+                                CENTISECONDS);
+                if (m_pCue->getType() == mixxx::CueType::Jump) {
+                    std::swap(startPositionText, endPositionText);
+                }
                 positionText =
                         QString("%1 %2 %3")
-                                .arg(positionText,
+                                .arg(startPositionText,
                                         m_pCue->getType() ==
                                                         mixxx::CueType::Loop
                                                 ? "-"
                                                 : "->",
-                                        mixxx::Duration::formatTime(
-                                                endPositionSeconds,
-                                                mixxx::Duration::Precision::
-                                                        CENTISECONDS));
+                                        endPositionText);
             }
         }
         m_pCuePosition->setText(positionText);

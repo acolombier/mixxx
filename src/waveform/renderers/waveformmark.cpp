@@ -122,8 +122,8 @@ WaveformMark::WaveformMark(
           m_linePosition{},
           m_breadth{},
           m_level{},
-          m_typeCO(ControlFlag::AllowMissingOrInvalid),
-          m_statusCO(ControlFlag::AllowMissingOrInvalid),
+          m_typeCO{},
+          m_statusCO{},
           m_iPriority(priority),
           m_iHotCue(hotCue),
           m_showUntilNext{} {
@@ -146,8 +146,8 @@ WaveformMark::WaveformMark(
     }
     if (!endPositionControl.isEmpty()) {
         m_pEndPositionCO = std::make_unique<ControlProxy>(group, endPositionControl);
-        m_typeCO = PollingControlProxy(group, typeControl);
-        m_statusCO = PollingControlProxy(group, statusControl);
+        m_statusCO = std::make_unique<ControlProxy>(group, statusControl);
+        m_typeCO = std::make_unique<ControlProxy>(group, typeControl);
     }
 
     if (!visibilityControl.isEmpty()) {
@@ -189,8 +189,6 @@ WaveformMark::WaveformMark(const QString& group,
           m_offset{},
           m_breadth{},
           m_level{},
-          m_typeCO(ControlFlag::AllowMissingOrInvalid),
-          m_statusCO(ControlFlag::AllowMissingOrInvalid),
           m_iPriority(priority),
           m_iHotCue(hotCue),
           m_showUntilNext{} {
@@ -214,8 +212,8 @@ WaveformMark::WaveformMark(const QString& group,
     }
     if (!endPositionControl.isEmpty()) {
         m_pEndPositionCO = std::make_unique<ControlProxy>(group, endPositionControl);
-        m_typeCO = PollingControlProxy(group, typeControl);
-        m_statusCO = PollingControlProxy(group, statusControl);
+        m_typeCO = std::make_unique<ControlProxy>(group, typeControl);
+        m_statusCO = std::make_unique<ControlProxy>(group, statusControl);
     }
 
     QString visibilityControl = context.selectString(node, "VisibilityControl");

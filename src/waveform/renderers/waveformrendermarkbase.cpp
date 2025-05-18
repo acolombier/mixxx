@@ -20,6 +20,8 @@ bool WaveformRenderMarkBase::init() {
     m_marks.connectSamplePositionChanged(this, &WaveformRenderMarkBase::onMarkChanged);
     m_marks.connectSampleEndPositionChanged(this, &WaveformRenderMarkBase::onMarkChanged);
     m_marks.connectVisibleChanged(this, &WaveformRenderMarkBase::onMarkChanged);
+    m_marks.connectTypeChanged(this, &WaveformRenderMarkBase::onMarkChanged);
+    m_marks.connectStatusChanged(this, &WaveformRenderMarkBase::onMarkChanged);
     return true;
 }
 
