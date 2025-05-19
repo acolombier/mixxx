@@ -1021,9 +1021,9 @@ void WOverview::drawMarks(QPainter* pPainter, const float offset, const float ga
             // the waveform image.
             // TODO Use played color for forward jumps to clarify we'll skip that region?
             if (pMark->getType() == mixxx::CueType::Jump && pMark->isActive()) {
-                rangeColor.setAlphaF(0.2f);
-            } else {
                 rangeColor.setAlphaF(0.5f);
+            } else {
+                rangeColor.setAlphaF(0.2f);
             }
             // TODO Instead of uniform painting, use different types of gradients
             // loops, jump, intro/outro

@@ -510,7 +510,7 @@ QImage WaveformMark::performImageGeneration(float devicePixelRatio,
         }
         linePos = m_linePosition;
     } else {
-        linePos = markerGeometry.imageSize().width() / 2.f;
+        linePos = static_cast<float>(markerGeometry.imageSize().width()) / 2.f;
     }
 
     const QSize size{markerGeometry.getImageSize(devicePixelRatio)};
