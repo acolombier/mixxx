@@ -170,21 +170,22 @@ mixxx::audio::FramePos CueControl::nextTrigger(bool reverse,
             continue;
         }
 
-        if (!reverse
-                // Saved jumps store the position to jump from as their end
-                // position
-                && pControl->getEndPosition() >= currentPosition &&
-                (!triggerPosition.isValid() || pControl->getEndPosition() < triggerPosition)) {
-            triggerPosition = pControl->getEndPosition();
-            *pTargetPosition = pControl->getPosition();
-            pNextJump = pControl;
-        } else if (reverse
-                // Saved jumps store the position to jump from as their end
-                // position, but here we want to take the jump backward
-                && pControl->getPosition() <= currentPosition &&
-                (!triggerPosition.isValid() || pControl->getPosition() > triggerPosition)) {
-            triggerPosition = pControl->getPosition();
-            *pTargetPosition = pControl->getEndPosition();
+        if (!reverse) {
+            // Saved jumps store the position to jump from as their end position
+            if (pControl->getEndPosition() >= currentPosition &&
+                    (!triggerPosition.isValid() || pControl->getEndPosition() < triggerPosition)) {
+                triggerPosition = pControl->getEndPosition();
+                *pTargetPosition = pControl->getPosition();
+                pNextJump = pControl;
+            }
+        } else {
+            // Saved jumps store the position to jump from as their end
+            // position, but here we want to take the jump backward
+            if (pControl->getPosition() <= currentPosition &&
+                    (!triggerPosition.isValid() || pControl->getPosition() > triggerPosition)) {
+                triggerPosition = pControl->getPosition();
+                *pTargetPosition = pControl->getEndPosition();
+            }
         }
     }
 
@@ -202,16 +203,19 @@ void CueControl::notifySeek(mixxx::audio::FramePos position) {
     // Iterate over all the hotcues to find saved jump. If we sought inside the
     // jump range, ensure the jump is disabled to prevent double seek
     for (const auto& pControl : std::as_const(m_hotcueControls)) {
-        if (!pControl->getCue() ||
+        const bool isJump = pControl->getCue() &&
+                pControl->getCue()->getType() == mixxx::CueType::Jump;
+        if (!isJump ||
                 pControl->getStatus() != HotcueControl::Status::Active ||
-                pControl->getCue()->getType() != mixxx::CueType::Jump ||
                 !pControl->getEndPosition().isValid()) {
             continue;
         }
-        if ((pControl->getPosition() < pControl->getEndPosition() &&
+        const bool isForwardJump = pControl->getPosition() > pControl->getEndPosition();
+
+        if ((!isForwardJump &&
                     pControl->getPosition() <= position &&
                     pControl->getEndPosition() > position) ||
-                (pControl->getPosition() > pControl->getEndPosition() &&
+                (isForwardJump &&
                         pControl->getPosition() > position &&
                         pControl->getEndPosition() <= position)) {
             pControl->setStatus(HotcueControl::Status::Set);

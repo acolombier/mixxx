@@ -338,8 +338,11 @@ void WCueMenuPopup::slotSavedLoopCueAuto() {
     // If we are changing the cue type from a jump, we need to permute the positions
     if (m_pCue->getType() == mixxx::CueType::Jump) {
         auto endPosition = cueStartEnd.endPosition;
-        cueStartEnd.endPosition = cueStartEnd.startPosition;
-        cueStartEnd.startPosition = endPosition;
+        if (cueStartEnd.endPosition < cueStartEnd.startPosition) {
+            // Only swap value if this is a forward jump
+            cueStartEnd.endPosition = cueStartEnd.startPosition;
+            cueStartEnd.startPosition = endPosition;
+        }
         m_pCue->setStartAndEndPosition(cueStartEnd.startPosition, cueStartEnd.endPosition);
     }
     if (!cueStartEnd.endPosition.isValid() ||

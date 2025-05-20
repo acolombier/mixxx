@@ -613,13 +613,14 @@ QImage WaveformMark::generateImage(float devicePixelRatio) {
 QImage WaveformMark::generateEndImage(float devicePixelRatio) {
     assert(needsEndImageUpdate());
 
-    QString icon = m_endIconPath;
+    QString direction = QStringLiteral("forward");
 
-    if (isJump()) {
-        icon = m_endIconPath.arg(
-                getSampleEndPosition() > getSamplePosition()
-                        ? QStringLiteral("backward")
-                        : QStringLiteral("forward"));
+    if (isJump() && getSampleEndPosition() > getSamplePosition()) {
+        direction = QStringLiteral("backward");
     }
-    return performImageGeneration(devicePixelRatio, m_endPixmapPath, "", nullptr, icon);
+    return performImageGeneration(devicePixelRatio,
+            m_endPixmapPath,
+            "",
+            nullptr,
+            m_endIconPath.arg(direction));
 }

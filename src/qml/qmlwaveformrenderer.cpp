@@ -232,7 +232,7 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererMark::create(
         const QString endIcon = pMark->endIcon().toLocalFile();
         // FIXME: the following checks should be done on the WaveformMarker
         // setter (depends of #14515)
-        if (!pixmap.isEmpty() && !QFileInfo(pixmap).exists()) {
+        if (!QFileInfo::exists(pixmap)) {
             qmlEngine(this)->throwError(tr("Cannot find the marker pixmap") + " \"" + pixmap + '"');
         }
 
