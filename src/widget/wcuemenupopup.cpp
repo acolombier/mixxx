@@ -12,6 +12,8 @@ namespace {
 const ConfigKey kHotcueDefaultColorIndexConfigKey("[Controls]", "HotcueDefaultColorIndex");
 const ConfigKey kLoopDefaultColorIndexConfigKey("[Controls]", "LoopDefaultColorIndex");
 const ConfigKey kJumpDefaultColorIndexConfigKey("[Controls]", "jump_default_color_index");
+
+constexpr mixxx::audio::FrameDiff_t kMinimumAudibleLoopSizeFrames = 150;
 } // namespace
 
 void CueTypePushButton::mousePressEvent(QMouseEvent* e) {
@@ -423,7 +425,8 @@ void WCueMenuPopup::slotSavedJumpCueAuto() {
         if (!newPosition.has_value()) {
             return;
         }
-        if (newPosition == cueStartEnd.startPosition) {
+        if (std::abs(newPosition.value() - cueStartEnd.startPosition) <=
+                kMinimumAudibleLoopSizeFrames) {
             double beatjumpSize = m_pBeatJumpSize.get();
             const mixxx::BeatsPointer pBeats = m_pTrack->getBeats();
             if (beatjumpSize <= 0 || !pBeats) {
