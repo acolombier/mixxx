@@ -622,5 +622,5 @@ QImage WaveformMark::generateEndImage(float devicePixelRatio) {
             m_endPixmapPath,
             "",
             nullptr,
-            m_endIconPath.arg(direction));
+            m_endIconPath.contains("%1") ? m_endIconPath.arg(direction) : m_endIconPath);
 }

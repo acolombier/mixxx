@@ -86,7 +86,6 @@ class WCueMenuPopup : public QWidget {
     UserSettingsPointer m_pConfig;
     ColorPaletteSettings m_colorPaletteSettings;
     PollingControlProxy m_pBeatLoopSize;
-    PollingControlProxy m_pBeatJumpSize;
     PollingControlProxy m_pPlayPos;
     PollingControlProxy m_pTrackSample;
     PollingControlProxy m_pQuantizeEnabled;
