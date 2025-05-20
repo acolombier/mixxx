@@ -162,6 +162,26 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
             this,
             &WCueMenuPopup::slotSavedJumpCueManual);
 
+    m_pSavedBackwardJumpCue = std::make_unique<CueTypePushButton>(this);
+    m_pSavedBackwardJumpCue->setToolTip(
+            //: \n is a linebreak. Try to not to extend the translation beyond the length
+            //: of the longest source line so the tooltip remains compact.
+            tr("Turn this cue into a saved jump, to the current play position \n"
+               "or that minus the current beatjump size") +
+            "\n\n" +
+            tr("Left-click: Toggle this cue type to saved beatjump, using \n"
+               "the current play position if not previous jump position was "
+               "known. \nIf "
+               "a previous jump position exists, it will "
+               "swap the jump position and the cue/target position."
+               "\nThe cue type will remain unchanged if the jump position cannot be figured out.") +
+            "\n\n" +
+            tr("Right-click: Set the current play position as the jump \n"
+               "destination and make the cue a saved jump if not"));
+    m_pSavedBackwardJumpCue->setObjectName("CueSavedJumpButton");
+    m_pSavedBackwardJumpCue->setProperty("direction", "backward");
+    m_pSavedBackwardJumpCue->setCheckable(true);
+
     QHBoxLayout* pLabelLayout = new QHBoxLayout();
     pLabelLayout->addWidget(m_pCueNumber.get());
     pLabelLayout->addStretch(1);
@@ -179,6 +199,8 @@ WCueMenuPopup::WCueMenuPopup(UserSettingsPointer pConfig, QWidget* parent)
     pRightLayout->addWidget(m_pSavedLoopCue.get());
     pRightLayout->addStretch(1);
     pRightLayout->addWidget(m_pSavedJumpCue.get());
+    pRightLayout->addStretch(1);
+    pRightLayout->addWidget(m_pSavedBackwardJumpCue.get());
 
     QHBoxLayout* pMainLayout = new QHBoxLayout();
     pMainLayout->addLayout(pLeftLayout);

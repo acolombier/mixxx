@@ -100,6 +100,7 @@ class WCueMenuPopup : public QWidget {
     std::unique_ptr<QPushButton> m_pStandardCue;
     std::unique_ptr<CueTypePushButton> m_pSavedLoopCue;
     std::unique_ptr<CueTypePushButton> m_pSavedJumpCue;
+    std::unique_ptr<CueTypePushButton> m_pSavedBackwardJumpCue;
 
   protected:
     void closeEvent(QCloseEvent* event) override;

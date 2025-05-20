@@ -2133,7 +2133,7 @@ QPushButton#pushButtonRepeatPlaylist:!checked {
   To get the final size for the Delete button consider border width.
   It's a tall button, about the same height as cue number + label edit box */
   width: 24px;
-  height: 42px;
+  height: 32px;
   border-width: 2px;
   border-image: url(skins:LateNight/classic/buttons/btn_embedded_library.svg) 2 2 2 2;
   /* make the icon slightly larger than default 16px */
@@ -2161,7 +2161,7 @@ QPushButton#pushButtonRepeatPlaylist:!checked {
   To get the final size for the Delete button consider border width.
   It's a tall button, about the same height as cue number + label edit box */
   width: 24px;
-  height: 42px;
+  height: 32px;
   border-width: 2px;
   border-image: url(skins:LateNight/classic/buttons/btn_embedded_library.svg) 2 2 2 2;
   /* make the icon slightly larger than default 16px */
@@ -2176,7 +2176,7 @@ QPushButton#pushButtonRepeatPlaylist:!checked {
   To get the final size for the Delete button consider border width.
   It's a tall button, about the same height as cue number + label edit box */
   width: 24px;
-  height: 42px;
+  height: 32px;
   border-width: 2px;
   border-image: url(skins:LateNight/classic/buttons/btn_embedded_library.svg) 2 2 2 2;
   /* make the icon slightly larger than default 16px */
