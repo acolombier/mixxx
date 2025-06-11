@@ -82,12 +82,12 @@ const TempoFaderTicksPerMm = 4096 / 77; // 53.1948..
 const TempoCenterRangeTicks = TempoFaderTicksPerMm * TempoCenterRangeMm;
 // Value center may be off the labeled center.
 // Use this setting to compensate per device.
-const TempoCenterValueOffsetL = (engine.getSetting("tempoCenterOffsetMmL") || 0.0) * TempoFaderTicksPerMm;
-const TempoCenterValueOffsetR = (engine.getSetting("tempoCenterOffsetMmR") || 0.0) * TempoFaderTicksPerMm;
-const TempoCenterUpperL = (4096 / 2) + (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetL;
-const TempoCenterLowerL = (4096 / 2) - (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetL;
-const TempoCenterUpperR = (4096 / 2) + (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetR;
-const TempoCenterLowerR = (4096 / 2) - (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetR;
+const TempoCenterValueOffsetLeft = (engine.getSetting("tempoCenterOffsetMmLeft") || 0.0) * TempoFaderTicksPerMm;
+const TempoCenterValueOffsetRright = (engine.getSetting("tempoCenterOffsetMmRight") || 0.0) * TempoFaderTicksPerMm;
+const TempoCenterUpperLeft = (4096 / 2) + (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetLeft;
+const TempoCenterLowerLeft = (4096 / 2) - (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetLeft;
+const TempoCenterUpperRight = (4096 / 2) + (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetRright;
+const TempoCenterLowerRight = (4096 / 2) - (TempoCenterRangeTicks / 2) + TempoCenterValueOffsetRright;
 
 // Define whether or not to keep LED that have only one color (reverse, flux, play, shift) dimmed if they are inactive.
 // 'true' will keep them dimmed, 'false' will turn them off. Default: true
@@ -428,7 +428,7 @@ class ComponentContainer extends Component {
 
 /* eslint no-redeclare: "off" */
 class Deck extends ComponentContainer {
-    constructor(decks, colors) {
+    constructor(decks, colors, settings) {
         super();
         if (typeof decks === "number") {
             this.group = Deck.groupForNumber(decks);
@@ -446,6 +446,7 @@ class Deck extends ComponentContainer {
             }
             this.color = colors[0];
         }
+        this.settings = settings;
         this.secondDeckModes = null;
     }
     toggleDeck() {
@@ -1585,8 +1586,8 @@ class S4Mk3EffectUnit extends ComponentContainer {
 }
 
 class S4Mk3Deck extends Deck {
-    constructor(decks, colors, effectUnit, mixer, inReports, outReport, io) {
-        super(decks, colors);
+    constructor(decks, colors, settings, effectUnit, mixer, inReports, outReport, io) {
+        super(decks, colors, settings);
 
         this.playButton = new PlayButton({
             output: InactiveLightsAlwaysBacklit ? undefined : Button.prototype.uncoloredOutput
@@ -1650,28 +1651,15 @@ class S4Mk3Deck extends Deck {
             inKey: "rate",
             outKey: "rate",
             appliedValue: null,
-            tempoCenterLower: null,
-            tempoCenterUpper: null,
             input: function(value) {
                 const receivingFirstValue = this.appliedValue === null;
 
-                if (receivingFirstValue) {
-                    // Initialize center range incl. offset
-                    if (this.deck === TraktorS4MK3.leftDeck) {
-                        this.tempoCenterLower = TempoCenterLowerL;
-                        this.tempoCenterUpper = TempoCenterUpperL;
-                    } else {
-                        this.tempoCenterLower = TempoCenterLowerR;
-                        this.tempoCenterUpper = TempoCenterUpperR;
-                    }
-                }
-
-                if (value < this.tempoCenterLower) {
+                if (value < this.deck?.settings?.tempoCenterLower) {
                     // scale input for lower range
-                    this.appliedValue = script.absoluteLin(value, -1, 0, 0, this.tempoCenterLower);
-                } else if (value > this.tempoCenterUpper) {
+                    this.appliedValue = script.absoluteLin(value, -1, 0, 0, this.deck?.settings?.tempoCenterLower);
+                } else if (value > this.deck?.settings?.tempoCenterUpper) {
                     // scale input for upper range
-                    this.appliedValue = script.absoluteLin(value, 0, 1, this.tempoCenterUpper, 4096);
+                    this.appliedValue = script.absoluteLin(value, 0, 1, this.deck?.settings?.tempoCenterUpper, 4096);
                 } else {
                     // reset rate in center region
                     this.appliedValue = 0;
@@ -3022,7 +3010,10 @@ class S4MK3 {
         // so every single components' IO needs to be specified individually
         // for both decks.
         this.leftDeck = new S4Mk3Deck(
-            [1, 3], [DeckColors[0], DeckColors[2]], this.effectUnit1, this.mixer,
+            [1, 3], [DeckColors[0], DeckColors[2]], {
+                tempoCenterLower: TempoCenterLowerLeft,
+                tempoCenterUpper: TempoCenterUpperLeft,
+            }, this.effectUnit1, this.mixer,
             this.inReports, this.outReports[128],
             {
                 playButton: {inByte: 4, inBit: 0, outByte: 55},
@@ -3072,7 +3063,10 @@ class S4MK3 {
         );
 
         this.rightDeck = new S4Mk3Deck(
-            [2, 4], [DeckColors[1], DeckColors[3]], this.effectUnit2, this.mixer,
+            [2, 4], [DeckColors[1], DeckColors[3]], {
+                tempoCenterLower: TempoCenterLowerRight,
+                tempoCenterUpper: TempoCenterUpperRight,
+            }, this.effectUnit2, this.mixer,
             this.inReports, this.outReports[128],
             {
                 playButton: {inByte: 12, inBit: 0, outByte: 66},
