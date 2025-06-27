@@ -69,6 +69,12 @@ All of these are automatically built and deployed by [GitHub Actions](https://gi
 * Please help review other people's pull requests. When others review your pull requests, please return the favor. The continued progress of Mixxx depends on all of us working together. Even if you are not familiar with the area of the code being changed in a pull request, you can be helpful by building the branch, verifying that it works as described, and commenting with feedback about the user experience design.
 * If you demonstrate good coding skills, help review pull requests, contribute major features, and show a commitment to Mixxx over time, we may invite you to the core team.
 
+#### Github actions and CI
+
+Mixxx is committed to limit its environmental footprint. For this matter, actions on your fork's branch won't run the build and be terminated early to reduce the impact. If you wish to run the CI on your local fork, you may opt-in to run these by setting the environment variable `RUN_CI_ON_BRANCHES` on your local fork. Note that this will have no action for branch that have an associated open PR in the Mixxx main repo, as you can al;ready see the build results in the PR actions.
+
+To set this variable, select the `Settings` tab on your fork, then `Secrets and variables`, `Actions` and click the `Variables` tab. In here, you should be able to click `New repository variable`, then type `RUN_CI_ON_BRANCHES` as **Name**, and anything as **Value** (`true` or `on` recommended)
+
 ### Core Team
 
 Mixxx core team members are contributors who have write access to the [upstream mixxxdj repositories](https://github.com/mixxxdj/) on GitHub, access to the Jenkins web interface for the build servers, and access to the private Zulip stream for the core team.
