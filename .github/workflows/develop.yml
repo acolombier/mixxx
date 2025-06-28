@@ -9,6 +9,7 @@ on:
       - edited
   push:
     branches:
+      - "*"
       - "!main"
       - "![0-9].[0-9]"
 
@@ -21,23 +22,31 @@ jobs:
     name: Check if build should be stopped
     runs-on: ubuntu-latest
     outputs:
-      result: steps.stop-build.outputs.result
+      result: ${{ github.event_name == 'push' && steps.stop-build.outputs.result || 'false' }}
     steps:
       - name: Check if there is a PR open or the developer wants to always run CI
         id: stop-build
+        if: ${{ github.event_name == 'push' }}
         uses: actions/github-script@v7
+        env:
+          RUN_CI_ON_BRANCHES: ${{ vars.RUN_CI_ON_BRANCHES }}
+          ORG: mixxxdj
+          REPO: mixxx
         with:
           script: |
+            console.log(`The RUN_CI_ON_BRANCHES is '${process.env.RUN_CI_ON_BRANCHES}'`);
             try {
+              const branch = context.ref.replace('refs/heads/', '');
               const { data: pullRequests } = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: `${context.repo.owner}:${{ github.event.inputs.branch }}`
+                owner: process.env.ORG,
+                repo: process.env.REPO,
+                head: `${context.repo.owner}:${branch}`,
                 state: 'open'
               });
-              return pullRequests.length > 0;
+              console.log(`There is ${pullRequests.length} PR open upstream for branch '${context.repo.owner}:${branch}'`);
+              return pullRequests.length == 0 && !process.env.RUN_CI_ON_BRANCHES;
             } catch (error) {
-              console.log(`Didn't find a PR for branch '${context.repo.owner}:${branch}' of '${context.repo.owner}/${context.repo.repo}.'`);
+              console.log(`Didn't find a PR for branch '${context.repo.owner}:${branch}' on '${process.env.ORG}/${process.env.REPO}'.`);
               console.log(`The RUN_CI_ON_BRANCHES is '${process.env.RUN_CI_ON_BRANCHES}'`);
               return !process.env.RUN_CI_ON_BRANCHES;
             }
