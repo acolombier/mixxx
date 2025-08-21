@@ -3,6 +3,7 @@
 #include <QJSEngine>
 #include <algorithm>
 
+#include "controllers/controllershareddata.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "moc_controller.cpp"
 #include "util/cmdlineargs.h"
@@ -16,8 +17,7 @@ QString loggingCategoryPrefix(const QString& deviceName) {
 } // namespace
 
 Controller::Controller(const QString& deviceName)
-        : m_sDeviceName(deviceName),
-          m_logBase(loggingCategoryPrefix(deviceName)),
+        : m_sDeviceName(deviceName),m_logBase(loggingCategoryPrefix(deviceName)),
           m_logInput(loggingCategoryPrefix(deviceName) + QStringLiteral(".input")),
           m_logOutput(loggingCategoryPrefix(deviceName) + QStringLiteral(".output")),
           m_pScriptEngineLegacy(nullptr),
@@ -79,7 +79,8 @@ void Controller::stopEngine() {
     emit engineStopped();
 }
 
-bool Controller::applyMapping(const QString& resourcePath) {
+bool Controller::applyMapping(const QString& resourcePath,
+        std::shared_ptr<ControllerSharedData> runtimeData) {
     qCInfo(m_logBase) << "Applying controller mapping...";
 
     // Load the script code into the engine
@@ -106,6 +107,10 @@ bool Controller::applyMapping(const QString& resourcePath) {
 #else
     Q_UNUSED(resourcePath);
 #endif
+
+    if (runtimeData != nullptr) {
+        m_pScriptEngineLegacy->setSharedData(runtimeData->namespaced(getSharedDataNamespace()));
+    }
     return m_pScriptEngineLegacy->initialize();
 }
 
