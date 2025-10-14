@@ -7,24 +7,15 @@ struct libusb_context;
 namespace mixxx {
 namespace android {
 
-enum class DeviceType : int {
-    HID,
-    BULK
-};
+const QJniObject& getIntent();
+bool waitForPermission(const QJniObject& device);
+void usbDeviceAccessResult(QJniObject device, bool granted);
 
-struct DeviceIface {
-    intptr_t fd;
-    int num;
-    DeviceType type;
-};
-
-extern std::vector<DeviceIface> devices;
-extern libusb_context* libusb_ctx;
-extern bool devicesReady;
-extern std::mutex m_deviceMutex;
-extern std::condition_variable m_deviceReadyWaitCond;
-
-bool wait_for_ready();
+extern std::mutex s_androidLock;
+extern std::condition_variable s_grantingWaitCond;
+extern std::vector<std::pair<QJniObject, bool>> s_grantingResult;
+extern QJniObject s_intent;
+extern QJniObject s_usbManager;
 
 } // namespace android
 } // namespace mixxx

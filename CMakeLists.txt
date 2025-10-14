@@ -72,8 +72,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Android)
     "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
   )
   set(QT_ANDROID_APP_PATH "$<TARGET_FILE:${SOURCE_TARGET}>")
-  set(QT_ANDROID_APP_NAME "Fooobaaar")
-  set(QT_ANDROID_APP_PACKAGE_NAME org.qtproject.${SOURCE_TARGET})
   set(QT_ANDROID_APP_PACKAGE_SOURCE_ROOT "${CMAKE_CURRENT_BINARY_DIR}/android")
 
   set(ANDROID_SDK_ROOT "/usr/lib/android-sdk")

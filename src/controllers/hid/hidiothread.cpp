@@ -1,5 +1,9 @@
 #include "controllers/hid/hidiothread.h"
 
+#include <android/log.h>
+
+#include "util/assert.h"
+
 #ifdef __ANDROID__
 #include <hidapi_libusb.h>
 #else
@@ -56,6 +60,11 @@ HidIoThread::HidIoThread(
 
 HidIoThread::~HidIoThread() {
     hid_close(m_pHidDevice);
+#ifdef Q_OS_ANDROID
+    if (m_androidConnection.isValid()) {
+        m_androidConnection.callMethod<void>("close");
+    }
+#endif
 }
 
 void HidIoThread::run() {

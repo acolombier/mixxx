@@ -3,6 +3,8 @@
 #ifdef __ANDROID__
 #include <hidapi_libusb.h>
 #include <libusb.h>
+
+#include "controllers/android.h"
 #else
 #include <hidapi.h>
 #endif
@@ -13,9 +15,11 @@
 
 class LegacyControllerMapping;
 
+#ifndef __ANDROID__
 namespace {
 constexpr size_t kMaxHidErrorMessageSize = 512;
 } // namespace
+#endif
 
 HidController::HidController(
         mixxx::hid::DeviceInfo&& deviceInfo)
@@ -94,15 +98,63 @@ int HidController::open(const QString& resourcePath) {
     }
 
 #ifdef __ANDROID__
+    QJniObject usbDeviceConnection;
+
+    QJniObject context = QNativeInterface::QAndroidApplication::context();
+    QJniObject USB_SERVICE =
+            QJniObject::getStaticObjectField(
+                    "android/content/Context",
+                    "USB_SERVICE",
+                    "Ljava/lang/String;");
+    auto usbManager = context.callObjectMethod("getSystemService",
+            "(Ljava/lang/String;)Ljava/lang/Object;",
+            USB_SERVICE.object());
+    if (!usbManager.isValid()) {
+        qDebug() << "usbManager invalid";
+        return -1;
+    }
+
+    auto usbDevice = m_deviceInfo.androidUsbDevice();
+
+    if (!usbManager.callMethod<jboolean>("hasPermission",
+                "(Landroid/hardware/usb/UsbDevice;)Z",
+                usbDevice)) {
+        auto pendingIntent = mixxx::android::getIntent();
+        usbManager.callMethod<void>("requestPermission",
+                "(Landroid/hardware/usb/UsbDevice;Landroid/app/"
+                "PendingIntent;)V",
+                usbDevice,
+                pendingIntent);
+        // Wait for permission
+        if (!mixxx::android::waitForPermission(usbDevice)) {
+            qDebug() << "access to device wasn't granted";
+            return -1;
+        }
+        m_deviceInfo.updateSerialNumber(
+                usbDevice.callMethod<jstring>("getSerialNumber").toString());
+    }
+    usbDeviceConnection = usbManager.callMethod<jobject>("openDevice",
+            "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/"
+            "UsbDeviceConnection;",
+            usbDevice);
+
+    if (!usbDeviceConnection.isValid()) {
+        qDebug() << "Unable to open HID device";
+        return -1;
+    }
+
+    auto fileDescriptor = static_cast<intptr_t>(
+            usbDeviceConnection.callMethod<jint>("getFileDescriptor"));
+
     // Open device by file descriptor
     qCInfo(m_logBase) << "Opening HID device" << getName()
                       << "by file descriptor"
-                      << m_deviceInfo.getFileDescriptor() << "and interface"
-                      << m_deviceInfo.getInterface();
+                      << fileDescriptor << "and interface"
+                      << m_deviceInfo.getUsbInterfaceNumber();
 
-    libusb_set_option(nullptr, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, LIBUSB_OPTION_LOG_LEVEL);
+    libusb_set_option(nullptr, LIBUSB_OPTION_NO_DEVICE_DISCOVERY);
     hid_device* pHidDevice = hid_libusb_wrap_sys_device(
-            m_deviceInfo.getFileDescriptor(), m_deviceInfo.getInterface());
+            fileDescriptor, m_deviceInfo.getUsbInterfaceNumber().value());
 #else
     // Open device by path
     qCInfo(m_logBase) << "Opening HID device" << getName() << "by HID path"
@@ -180,6 +232,9 @@ int HidController::open(const QString& resourcePath) {
     }
 
     m_pHidIoThread = std::make_unique<HidIoThread>(pHidDevice, m_deviceInfo);
+#ifdef Q_OS_ANDROID
+    m_pHidIoThread->setDeviceConnection(std::move(usbDeviceConnection));
+#endif
     m_pHidIoThread->setObjectName(QStringLiteral("HidIoThread ") + getName());
 
     connect(m_pHidIoThread.get(),
