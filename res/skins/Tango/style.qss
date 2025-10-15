@@ -647,8 +647,8 @@ WLabel#TrackBy,
 WLabel#TrackByMini,
 WLabel#TrackComment {
   color: #888;}
-#DeckContainer WLabel,
-#DeckContainerMini WLabel {
+#MixerChannelLeft WLabel,
+#MixerChannelRight WLabel {
   color: #b4b4b4;}
 
 #DeckMini_TitlePlayPosKeyBPM {
