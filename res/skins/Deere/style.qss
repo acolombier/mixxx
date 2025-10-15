@@ -1483,10 +1483,10 @@ WNumberRate {
   margin: 1px;
 }
 
-#EQKillButton[value="1"] {
+#EQKillButton[value="1"], #StemMuteButton[value="1"] {
   background-color: #bb0000;
   }
-  #EQKillButton[value="1"]:hover {
+  #EQKillButton[value="1"]:hover, #StemMuteButton[value="1"]:hover {
     background-color: #e30000;
   }
 
