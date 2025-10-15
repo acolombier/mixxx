@@ -105,6 +105,19 @@ Variables:
         </Connection>
       </WidgetGroup><!-- /Spinny + VUMeter -->
 
+      <WidgetGroup><!-- Stem -->
+        <Layout>vertical</Layout>
+        <SizePolicy>15f,min</SizePolicy>
+        <Children>
+          <Template src="skins:Tango/mixer/stem_left_control.xml">
+          </Template>
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[Skin],show_stem_controls</ConfigKey>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup><!-- /Stem -->
+
       <WidgetGroup><!-- Mixer -->
         <Layout>vertical</Layout>
         <SizePolicy>f,min</SizePolicy>

@@ -154,6 +154,19 @@ Variables:
         </Connection>
       </WidgetGroup><!-- /Mixer -->
 
+      <WidgetGroup><!-- Stem -->
+        <Layout>vertical</Layout>
+        <SizePolicy>15f,min</SizePolicy>
+        <Children>
+          <Template src="skins:Tango/mixer/stem_right_control.xml">
+          </Template>
+        </Children>
+        <Connection>
+          <ConfigKey persist="true">[Skin],show_stem_controls</ConfigKey>
+          <BindProperty>visible</BindProperty>
+        </Connection>
+      </WidgetGroup><!-- /Stem -->
+
       <WidgetGroup><!-- [Overview, Comment, ArtistTitle] + [Loop/Beatjump, DeckButtons] -->
         <ObjectName>Deck<Variable name="chanNum"/></ObjectName>
         <SizePolicy>me,min</SizePolicy>

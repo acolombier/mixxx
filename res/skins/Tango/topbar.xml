@@ -210,6 +210,17 @@ Description:
                 <SetVariable name="state_1_icon">4decks.svg</SetVariable>
                 <SetVariable name="ConfigKey">[Skin],show_4decks</SetVariable>
               </Template>
+
+              <WidgetGroup><Size>3f,1min</Size></WidgetGroup>
+
+              <Template src="skins:Tango/controls/button_2state_persist.xml"><!-- 4 Decks -->
+                <SetVariable name="ObjectName">GuiToggleButton3</SetVariable>
+                <SetVariable name="Size">20f,20f</SetVariable>
+                <SetVariable name="TooltipId">show_stem_controls</SetVariable>
+                <SetVariable name="state_0_icon">stem.svg</SetVariable>
+                <SetVariable name="state_1_icon">stem.svg</SetVariable>
+                <SetVariable name="ConfigKey">[Skin],show_stem_controls</SetVariable>
+              </Template>
             </Children>
             <Connection>
               <ConfigKey>[Skin],show_maximized_library</ConfigKey>
