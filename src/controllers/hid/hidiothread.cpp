@@ -1,7 +1,14 @@
 #include "controllers/hid/hidiothread.h"
 
-#include <hidapi.h>
+#include <android/log.h>
 
+#include "util/assert.h"
+
+#ifdef __ANDROID__
+#include <hidapi_libusb.h>
+#else
+#include <hidapi.h>
+#endif
 #include "moc_hidiothread.cpp"
 #include "util/runtimeloggingcategory.h"
 #include "util/string.h"
@@ -53,12 +60,18 @@ HidIoThread::HidIoThread(
 
 HidIoThread::~HidIoThread() {
     hid_close(m_pHidDevice);
+#ifdef Q_OS_ANDROID
+    if (m_androidConnection.isValid()) {
+        m_androidConnection.callMethod<void>("close");
+    }
+#endif
 }
 
 void HidIoThread::run() {
     const QSemaphoreReleaser releaser(m_runLoopSemaphore);
     m_runLoopSemaphore.acquire();
     while (!testAndSetThreadState(HidIoThreadState::StopRequested, HidIoThreadState::Stopped)) {
+        // qDebug() << "HidIoThread::run - Loop start";
         // Ensure that all InputReports are read from the ring buffer, before the next OutputReport blocks the IO again
         // Polling available Input-Reports is a cheap software only operation, which takes insignificiant time
         pollBufferedInputReports();
@@ -78,6 +91,7 @@ void HidIoThread::run() {
             // handle usleep wait times reliable under CPU load
             usleep(kSleepTimeWhenIdleMicros);
         }
+        // qDebug() << "HidIoThread::run - Loop end";
     }
 }
 
@@ -96,13 +110,14 @@ void HidIoThread::pollBufferedInputReports() {
     // - windows(64 reports)
     // If the interval between two polls is to long, multiple buffered HID InputReports
     // will be processed at the same time.
+    // qDebug() << "HidIoThread::pollBufferedInputReports - Start";
     while (m_state.loadAcquire() == static_cast<int>(HidIoThreadState::InputOutputActive)) {
         int bytesRead = hid_read(m_pHidDevice, m_pPollData[m_pollingBufferIndex], kBufferSize);
         if (bytesRead < 0) {
             // -1 is the only error value according to hidapi documentation.
             DEBUG_ASSERT(bytesRead == -1);
             if (!m_hidReadErrorLogged) {
-                qCWarning(m_logOutput)
+                qWarning()
                         << "Unable to read buffered HID InputReports from"
                         << m_deviceInfo.formatName() << ":"
                         << mixxx::convertWCStringToQString(
@@ -121,9 +136,13 @@ void HidIoThread::pollBufferedInputReports() {
                 // No InputReports left to be read
                 break;
             }
+            qDebug() << "HidIoThread::pollBufferedInputReports - Received"
+                     << bytesRead << "bytes on report"
+                     << m_pPollData[m_pollingBufferIndex][0];
         }
         processInputReport(bytesRead);
     }
+    // qDebug() << "HidIoThread::pollBufferedInputReports - End";
 }
 
 void HidIoThread::processInputReport(int bytesRead) {
@@ -140,6 +159,7 @@ void HidIoThread::processInputReport(int bytesRead) {
     // the last input report for each report ID.
     if (bytesRead == m_lastPollSize &&
             memcmp(pCurrentBuffer, pPreviousBuffer, bytesRead) == 0) {
+        qDebug() << "HidIoThread::processInputReport - Found duplicate buffer";
         return;
     }
     // Cycle between buffers so the memcmp above does not require deep copying to another buffer.

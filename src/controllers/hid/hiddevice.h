@@ -1,5 +1,7 @@
 #pragma once
 
+#include <qjniobject.h>
+
 #include <QObject>
 #include <QString>
 #include <string>
@@ -28,8 +30,13 @@ namespace hid {
 /// QString if needed.
 class DeviceInfo final {
   public:
+#ifndef Q_OS_ANDROID
     explicit DeviceInfo(
             const hid_device_info& device_info);
+#else
+    explicit DeviceInfo(
+            const QJniObject& usbDevice, const QJniObject& usbInterface);
+#endif
 
     // The VID.
     uint16_t getVendorId() const {
@@ -40,6 +47,7 @@ class DeviceInfo final {
         return product_id;
     }
 
+#ifndef Q_OS_ANDROID
     /// The releaseNumberBCD returns the version of the USB specification to
     /// which the device conforms. The bcdUSB field contains a BCD version
     /// number in the format 0xJJMN:
@@ -63,6 +71,14 @@ class DeviceInfo final {
     const wchar_t* serialNumberRaw() const {
         return m_serialNumberRaw.c_str();
     }
+#else
+    const QJniObject& androidUsbDevice() const {
+        return m_androidUsbDevice;
+    }
+    void updateSerialNumber(QString serialNumber) {
+        m_serialNumber = serialNumber;
+    }
+#endif
 
     const QString& getVendorString() const {
         return m_manufacturerString;
@@ -86,23 +102,45 @@ class DeviceInfo final {
     }
 
     uint16_t getUsagePage() const {
+#ifndef Q_OS_ANDROID
         return usage_page;
+#else
+        return 0;
+#endif
     }
 
     uint16_t getUsage() const {
+#ifndef Q_OS_ANDROID
         return usage;
+#else
+        return 0;
+#endif
     }
 
     QString getUsagePageDescription() const {
+#ifdef Q_OS_ANDROID
+        return QStringLiteral("N/A");
+#else
         return mixxx::hid::HidUsageTables::getUsagePageDescription(usage_page);
+#endif
     }
 
     QString getUsageDescription() const {
+#ifdef Q_OS_ANDROID
+        return QStringLiteral("N/A");
+#else
         return mixxx::hid::HidUsageTables::getUsageDescription(usage_page, usage);
+#endif
     }
 
     bool isValid() const {
-        return !getProductString().isNull() && !getSerialNumber().isNull();
+        return !getProductString().isNull()
+#ifdef Q_OS_ANDROID
+                && m_androidUsbDevice.isValid();
+#else
+                && !getSerialNumber().isNull();
+#endif
+        ;
     }
     QString formatName() const;
 
@@ -118,15 +156,21 @@ class DeviceInfo final {
     // members from hid_device_info
     unsigned short vendor_id;
     unsigned short product_id;
+#ifndef Q_OS_ANDROID
     unsigned short release_number;
     unsigned short usage_page;
     unsigned short usage;
+#else
+    QJniObject m_androidUsbDevice;
+#endif
 
     PhysicalTransportProtocol m_physicalTransportProtocol;
     int m_usbInterfaceNumber;
 
+#ifndef Q_OS_ANDROID
     std::string m_pathRaw;
     std::wstring m_serialNumberRaw;
+#endif
 
     QString m_manufacturerString;
     QString m_productString;
