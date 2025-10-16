@@ -158,7 +158,7 @@ Variables:
         <Layout>vertical</Layout>
         <SizePolicy>15f,min</SizePolicy>
         <Children>
-          <Template src="skins:Tango/mixer/stem_right_control.xml">
+          <Template src="skins:Tango/stem_right_control.xml">
           </Template>
         </Children>
         <Connection>
