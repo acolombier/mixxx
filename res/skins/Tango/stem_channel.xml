@@ -27,28 +27,16 @@
 
       <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
 
-      <WidgetGroup>
-        <SizePolicy>min,min</SizePolicy>
-        <Layout>stacked</Layout>
-        <Children>
-          <StemLabel>
-            <TooltipId>StemLabel</TooltipId>
-            <ObjectName>StemLabel</ObjectName>
-            <Group><Variable name="group"/></Group>
-            <StemNum><Variable name="stemNum"/></StemNum>
-            <Alignment>left</Alignment>
-            <Elide>right</Elide>
-            <Size>50,26</Size>
-            <Text></Text>
-          </StemLabel>
-
-          <Template src="skins:Tango/controls/button_2state.xml">
-            <SetVariable name="ObjectName">StemMutedUnderlay</SetVariable>
-            <SetVariable name="Size">20,26</SetVariable>
-            <SetVariable name="ConfigKey"><Variable name="stemGroup"/>,mute</SetVariable>
-          </Template>
-        </Children>
-      </WidgetGroup>
+      <StemLabel>
+        <TooltipId>StemLabel</TooltipId>
+        <ObjectName>StemLabel</ObjectName>
+        <Group><Variable name="group"/></Group>
+        <StemNum><Variable name="stemNum"/></StemNum>
+        <Alignment>left</Alignment>
+        <Elide>right</Elide>
+        <Size>50,26</Size>
+        <Text></Text>
+      </StemLabel>
 
       <WidgetGroup>
         <SizePolicy>min,min</SizePolicy>
@@ -66,6 +54,11 @@
               <ConfigKey><Variable name="stemGroup"/>,volume</ConfigKey>
             </Connection>
           </KnobComposed>
+          <Template src="skins:Tango/controls/button_2state.xml">
+            <SetVariable name="ObjectName">StemMutedUnderlay</SetVariable>
+            <SetVariable name="Size">20,26</SetVariable>
+            <SetVariable name="ConfigKey"><Variable name="stemGroup"/>,mute</SetVariable>
+          </Template>
         </Children>
       </WidgetGroup>
 
