@@ -143,7 +143,10 @@ QList<Controller*> HidEnumerator::queryDevices() {
     deviceListObject = deviceListObject.callMethod<jobject>("values", "()Ljava/util/Collection;");
     QJniArray<QJniObject> deviceList = QJniArray<QJniObject>(
             deviceListObject.callMethod<jobjectArray>("toArray"));
-    __android_log_print(ANDROID_LOG_VERBOSE, "mixxx", "found %d USB devices", deviceList.size());
+    __android_log_print(ANDROID_LOG_VERBOSE,
+            "mixxx",
+            "found %d USB devices for HID enumerator",
+            deviceList.size());
 
     for (const auto& usbDevice : deviceList) {
         for (jint ifaceIdx = 0;

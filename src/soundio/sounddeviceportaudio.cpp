@@ -248,8 +248,8 @@ SoundDeviceStatus SoundDevicePortAudio::open(bool isClkRefDevice, int syncBuffer
     m_outputParams.sampleFormat = paFloat32;
     m_outputParams.suggestedLatency = bufferMSec / 1000.0;
 #ifdef PA_USE_OBOE
+    PaOboeStreamInfo obeoStreamInfo;
     if (m_deviceTypeId == PaHostApiTypeId::paOboe) {
-        PaOboeStreamInfo obeoStreamInfo;
         PaOboe_InitializeStreamInfo(&obeoStreamInfo);
         obeoStreamInfo.androidOutputUsage = PaOboe_Usage::Media,
         obeoStreamInfo.androidInputPreset = PaOboe_InputPreset::Generic,

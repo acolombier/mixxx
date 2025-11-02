@@ -215,8 +215,6 @@ int BulkController::open(const QString& resourcePath) {
     m_interfaceNumber = pDevice->endpoints.interface_number;
 
 #ifdef __ANDROID__
-    QJniObject usbDeviceConnection;
-
     QJniObject context = QNativeInterface::QAndroidApplication::context();
     QJniObject USB_SERVICE =
             QJniObject::getStaticObjectField(
@@ -247,21 +245,21 @@ int BulkController::open(const QString& resourcePath) {
         }
         m_sUID = m_androidUsbDevice.callMethod<jstring>("getSerialNumber").toString();
     }
-    usbDeviceConnection = usbManager.callMethod<jobject>("openDevice",
+    m_androidConnection = usbManager.callMethod<jobject>("openDevice",
             "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/"
             "UsbDeviceConnection;",
             m_androidUsbDevice);
 
-    if (!usbDeviceConnection.isValid()) {
-        qDebug() << "Unable to open HID device";
+    if (!m_androidConnection.isValid()) {
+        qDebug() << "Unable to open BULK device";
         return -1;
     }
 
     auto fileDescriptor = static_cast<intptr_t>(
-            usbDeviceConnection.callMethod<jint>("getFileDescriptor"));
+            m_androidConnection.callMethod<jint>("getFileDescriptor"));
 
     // Open device by file descriptor
-    qCInfo(m_logBase) << "Opening HID device" << getName()
+    qCInfo(m_logBase) << "Opening BULK device" << getName()
                       << "by file descriptor"
                       << fileDescriptor << "and interface"
                       << m_interfaceNumber;
@@ -358,7 +356,6 @@ int BulkController::close() {
     stopEngine();
 
     // Close device
-#ifndef __ANDROID__
     if (m_interfaceNumber.has_value()) {
         int error = libusb_release_interface(m_phandle, *m_interfaceNumber);
         if (error < 0) {
@@ -366,9 +363,14 @@ int BulkController::close() {
                                  << ":" << libusb_error_name(error);
         }
     }
-#endif
     qCInfo(m_logBase) << "  Closing device";
     libusb_close(m_phandle);
+
+#ifdef Q_OS_ANDROID
+    if (m_androidConnection.isValid()) {
+        m_androidConnection.callMethod<void>("close");
+    }
+#endif
     m_phandle = nullptr;
     setOpen(false);
     return 0;

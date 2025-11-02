@@ -3,6 +3,9 @@
 #include <QAtomicInt>
 #include <QThread>
 #include <optional>
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 #include "controllers/controller.h"
 #include "controllers/hid/legacyhidcontrollermapping.h"
@@ -115,6 +118,7 @@ class BulkController : public Controller {
     libusb_device_handle *m_phandle;
 #ifdef Q_OS_ANDROID
     QJniObject m_androidUsbDevice;
+    QJniObject m_androidConnection;
 #endif
 
     // Local copies of things we need from desc

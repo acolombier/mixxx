@@ -75,7 +75,10 @@ QList<Controller*> BulkEnumerator::queryDevices() {
     deviceListObject = deviceListObject.callMethod<jobject>("values", "()Ljava/util/Collection;");
     QJniArray<QJniObject> deviceList = QJniArray<QJniObject>(
             deviceListObject.callMethod<jobjectArray>("toArray"));
-    __android_log_print(ANDROID_LOG_VERBOSE, "mixxx", "found %d USB devices", deviceList.size());
+    __android_log_print(ANDROID_LOG_VERBOSE,
+            "mixxx",
+            "found %d USB devices for BULK enumerator",
+            deviceList.size());
 
     for (const auto& usbDevice : deviceList) {
         const uint16_t idVendor = static_cast<unsigned short>(
@@ -84,7 +87,7 @@ QList<Controller*> BulkEnumerator::queryDevices() {
         const uint16_t idProduct = static_cast<unsigned short>(
                 usbDevice->callMethod<jint>("getProductId"));
         ;
-        if (is_interesting(idProduct, idVendor)) {
+        if (is_interesting(idVendor, idProduct)) {
             BulkController* currentDevice =
                     new BulkController(usbDevice);
             m_devices.push_back(currentDevice);
