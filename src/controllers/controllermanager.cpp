@@ -270,21 +270,15 @@ void ControllerManager::slotSetUpDevices() {
         qDebug() << "ControllerManager: Controller name: " << name << deviceName;
 
         // Check if device is enabled
-        // FIXME settings not working?
-        // if (!m_pConfig->getValue(ConfigKey("[Controller]", deviceName), 0)) {
-        //     qDebug() << "ControllerManager: Controller " << name << "is not enabled";
-        //     continue;
-        // }
+        if (!m_pConfig->getValue(ConfigKey("[Controller]", deviceName), 0)) {
+            continue;
+        }
 
         // Check if device has a configured mapping
-        // FIXME settings not working?
-        // QString mappingFilePath = getConfiguredMappingFileForDevice(deviceName);
-        // if (mappingFilePath.isEmpty()) {
-        //     qDebug() << "ControllerManager: Controller " << name << "has no mapping";
-        //     continue;
-        // }
-        QString mappingFilePath = "assets:/controllers/Traktor Kontrol S4 MK3.hid.xml";
-        qDebug() << "ControllerManager: Controller " << name << "using mapping" << mappingFilePath;
+        QString mappingFilePath = getConfiguredMappingFileForDevice(deviceName);
+        if (mappingFilePath.isEmpty()) {
+            continue;
+        }
 
         qDebug() << "Searching for controller mapping" << mappingFilePath
                  << "in paths:" << mappingPaths.join(",");
