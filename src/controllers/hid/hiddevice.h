@@ -1,7 +1,5 @@
 #pragma once
 
-#include <hidapi.h>
-
 #include <QObject>
 #include <QString>
 #if defined(Q_OS_ANDROID)
@@ -16,6 +14,8 @@
 
 struct ProductInfo;
 struct hid_device_info;
+struct hid_device_;
+typedef struct hid_device_ hid_device;
 
 namespace mixxx {
 

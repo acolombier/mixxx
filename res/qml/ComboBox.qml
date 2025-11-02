@@ -11,6 +11,9 @@ ComboBox {
     property alias popupWidth: popup.width
     property bool clip: false
     property int popupMaxItem: 3
+    property list<var> footerItems: []
+
+    signal activateFooter(int index)
 
     background: Skin.EmbeddedBackground {
     }
