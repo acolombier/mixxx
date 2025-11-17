@@ -616,6 +616,9 @@ QDomDocument LegacyControllerMappingFileHandler::buildRootWithScripts(
     default:
         break;
     }
+    if (!mapping.sharedDataNamespace().isEmpty()) {
+        controller.setAttribute("namespace", mapping.sharedDataNamespace());
+    }
     rootNode.appendChild(controller);
 
     QDomElement scriptFiles = doc.createElement("scriptfiles");
