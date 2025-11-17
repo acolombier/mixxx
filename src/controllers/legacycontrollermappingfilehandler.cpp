@@ -605,6 +605,9 @@ QDomDocument LegacyControllerMappingFileHandler::buildRootWithScripts(
     QDomElement controller = doc.createElement("controller");
     // Strip off the serial number
     controller.setAttribute("id", rootDeviceName(mapping.deviceId()));
+    if (!mapping.sharedDataNamespace().isEmpty()) {
+        controller.setAttribute("namespace", mapping.sharedDataNamespace());
+    }
     rootNode.appendChild(controller);
 
     QDomElement scriptFiles = doc.createElement("scriptfiles");
