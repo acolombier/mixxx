@@ -93,6 +93,7 @@ case "$1" in
             python3-jinja2
         yes | sudo sdkmanager --licenses
         sudo sdkmanager "platforms;android-${ANDROID_API}" "platform-tools" "build-tools;${ANDROID_VERSION}" "ndk;${ANDROID_NDK}"
+        ANDROID_SDK=/usr/lib/android-sdk
         ANDROID_NDK_HOME=/usr/lib/android-sdk/ndk/${ANDROID_NDK}
         JAVA_HOME=$(find /usr/lib/jvm -maxdepth 1 -name 'java-17-openjdk*')
         # TODO warning for key configuration?
@@ -100,6 +101,7 @@ case "$1" in
         QT_ANDROID_KEYSTORE_KEY_PASS=android
         QT_ANDROID_KEYSTORE_PATH=${BUILDENV_BASEPATH}/../debug.keystore
         QT_ANDROID_KEYSTORE_STORE_PASS=android
+        export ANDROID_SDK
         export ANDROID_NDK_HOME
         export JAVA_HOME
         export QT_ANDROID_KEYSTORE_ALIAS
@@ -116,6 +118,7 @@ case "$1" in
         export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
 
         echo_exported_variables() {
+            echo "ANDROID_SDK=${ANDROID_SDK}"
             echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
             echo "JAVA_HOME=${JAVA_HOME}"
             echo "BUILDENV_NAME=${BUILDENV_NAME}"

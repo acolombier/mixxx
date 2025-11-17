@@ -12,13 +12,10 @@ public class UsbPermission {
     private static final String ACTION_USB_PERMISSION =
         "org.mixxx.permissions.USB_PERMISSION";
     private static final String TAG = "MixxxUsbPermission";
-
     private static native void usbDeviceAccessResult(Object device, boolean granted);
-
     public boolean registerServiceBroadcastReceiver(Context context) {
         try {
             IntentFilter intentFilter = new IntentFilter(ACTION_USB_PERMISSION);
-            intentFilter.addAction(ACTION_USB_PERMISSION);
             context.registerReceiver(usbPermissionReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED);
             Log.i(TAG, "Registered broadcast receiver");
             return true;
@@ -27,7 +24,8 @@ public class UsbPermission {
             return false;
         }
     }
-    private BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
+
+    private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -36,14 +34,15 @@ public class UsbPermission {
                 synchronized (this) {
                     UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     if (usbDevice == null) {
+                        Log.e(TAG, "USB device is null");
                         return;
                     }
                     boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
                     usbDeviceAccessResult(usbDevice, granted);
                     if (!granted) {
-                        Log.d(TAG, "Permission was denied");
+                        Log.w(TAG, "Permission was denied");
                     } else {
-                        Log.d(TAG, "Permission was granted");
+                        Log.i(TAG, "Permission was granted");
                     }
                 }
             }
