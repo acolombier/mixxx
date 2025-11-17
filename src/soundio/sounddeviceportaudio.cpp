@@ -32,6 +32,10 @@
 // for PaOboe_InitializeStreamInfo
 #include <pa_oboe.h>
 #endif
+#if defined(Q_OS_ANDROID)
+#include <android/api-level.h>
+#include <android/log.h>
+#endif
 
 namespace {
 
@@ -141,6 +145,24 @@ SoundDevicePortAudio::SoundDevicePortAudio(UserSettingsPointer config,
     m_outputParams.sampleFormat = 0;
     m_outputParams.suggestedLatency = 0.0;
     m_outputParams.hostApiSpecificStreamInfo = nullptr;
+
+#if defined(Q_OS_ANDROID)
+    uint mask = 0b11110000;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (uint32_t i = 0; i < 32; ++i) {
+        if ((mask >> i) & 1) {
+            CPU_SET(i, &cpuset);
+        }
+    }
+
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR,
+                "mixxx",
+                "Error setting CPU affinity: %s",
+                strerror(errno));
+    }
+#endif
 }
 
 SoundDevicePortAudio::~SoundDevicePortAudio() {

@@ -57,7 +57,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL Android)
   if(NOT DEFINED ENV{JAVA_HOME})
     message(FATAL_ERROR "JAVA_HOME is not set. Did you source the setup file?")
   endif()
-  set(CMAKE_ANDROID_NDK "$ENV{ANDROID_NDK_HOME}")
+  if((NOT CMAKE_ANDROID_NDK) AND DEFINED ENV{ANDROID_NDK_HOME})
+    set(CMAKE_ANDROID_NDK "$ENV{ANDROID_NDK_HOME}")
+  endif()
   set(ANDROID ON)
   if(DEFINED ENV{QT_ANDROID_KEYSTORE_PATH})
     set(QT_ANDROID_SIGN_APK ON)
@@ -66,7 +68,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL Android)
   set(QT_ANDROID_APP_PATH "$<TARGET_FILE:${SOURCE_TARGET}>")
   set(QT_ANDROID_APP_PACKAGE_SOURCE_ROOT "${CMAKE_CURRENT_BINARY_DIR}/android")
 
-  set(ANDROID_SDK_ROOT "/usr/lib/android-sdk")
+  if((NOT ANDROID_SDK_ROOT) AND DEFINED ENV{ANDROID_SDK})
+    set(ANDROID_SDK_ROOT "$ENV{ANDROID_SDK}")
+  endif()
   set(ANDROID_ABI arm64-v8a)
   set(ANDROID_NDK_HOST_SYSTEM_NAME linux-x86_64)
   # list(APPEND extra_cmake_args "-DANDROID_PLATFORM=${ANDROID_PLATFORM}")
@@ -90,8 +94,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Android)
     "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/sysroot/usr/lib/aarch64-linux-android/${CMAKE_SYSTEM_VERSION}/;${CMAKE_LIBRARY_PATH}"
   )
 endif()
-
-message(STATUS "Prepare VCPKG? ${ANDROID}")
 
 if(
   ((APPLE AND NOT IOS) OR WIN32 OR ANDROID)
@@ -3612,7 +3614,6 @@ target_link_libraries(mixxx-lib PUBLIC PortAudio::PortAudio)
 
 if(ANDROID)
   target_link_libraries(mixxx-lib PUBLIC OpenSLES android)
-  target_compile_definitions(mixxx-lib PUBLIC PA_USE_OPENSLES)
   target_compile_definitions(mixxx-lib PUBLIC PA_USE_OBOE)
 endif()
 

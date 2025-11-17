@@ -2,6 +2,7 @@
 
 #include <android/api-level.h>
 #include <android/log.h>
+#include <qjnitypes.h>
 
 #include <QtJniTypes>
 #include <cstddef>
@@ -20,30 +21,28 @@ const QJniObject& getIntent() {
     if (s_intent.isValid()) {
         return s_intent;
     }
+    // QNativeInterface::QAndroidApplication::runOnAndroidMainThread([]() {
+    if (!QNativeInterface::QAndroidApplication::isActivityContext()) {
+        __android_log_print(ANDROID_LOG_WARN,
+                "mixxx",
+                "current context doesn't refer to an activity!");
+    }
+
     QJniObject context = QNativeInterface::QAndroidApplication::context();
 
     s_usbManager = QJniObject("org/mixxx/UsbPermission");
-    __android_log_print(ANDROID_LOG_VERBOSE,
-            "mixxx",
-            "about to register the the receiver %d",
-            s_usbManager.isValid());
-    auto success = s_usbManager.callMethod<jboolean>("registerServiceBroadcastReceiver",
-            "(Landroid/content/Context;)Z",
-            context.object<jobject>());
-    if (!success) {
-        __android_log_print(ANDROID_LOG_WARN, "mixxx", "failed to registered the receiver!");
-        return s_intent;
-    }
-
     jint FLAG_IMMUTABLE =
             QJniObject::getStaticField<jint>(
                     "android/app/PendingIntent",
                     "FLAG_IMMUTABLE");
-    QJniObject ACTION_USB_PERMISSION =
+    QtJniTypes::String ACTION_USB_PERMISSION =
             QJniObject::fromString("org.mixxx.permissions.USB_PERMISSION");
-    QJniObject intent = QJniObject("android/content/Intent",
+    QtJniTypes::Intent intent = QJniObject("android/content/Intent",
             "(Ljava/lang/String;)V",
             ACTION_USB_PERMISSION.object<jstring>());
+    if (!intent.isValid()) {
+        __android_log_print(ANDROID_LOG_WARN, "mixxx", "pending intent is invalid!");
+    }
     s_intent =
             QJniObject::callStaticMethod<jobject>("android/app/PendingIntent",
                     "getBroadcast",
@@ -57,6 +56,18 @@ const QJniObject& getIntent() {
     if (!s_intent.isValid()) {
         __android_log_print(ANDROID_LOG_WARN, "mixxx", "pending intent is invalid!");
     }
+
+    __android_log_print(ANDROID_LOG_VERBOSE,
+            "mixxx",
+            "about to register the the receiver %d",
+            s_usbManager.isValid());
+    auto success = s_usbManager.callMethod<jboolean>("registerServiceBroadcastReceiver",
+            "(Landroid/content/Context;)Z",
+            context.object<jobject>());
+    if (!success) {
+        __android_log_print(ANDROID_LOG_WARN, "mixxx", "failed to registered the receiver!");
+    }
+    // });
     return s_intent;
 }
 

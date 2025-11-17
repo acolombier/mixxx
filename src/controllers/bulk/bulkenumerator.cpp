@@ -107,7 +107,7 @@ QList<Controller*> BulkEnumerator::queryDevices() {
         struct libusb_device_descriptor desc;
 
         libusb_get_device_descriptor(device, &desc);
-        if (is_interesting(desc.idProduct, desc.idProduct)) {
+        if (is_interesting(desc.idVendor, desc.idProduct)) {
             struct libusb_device_handle* handle = nullptr;
             err = libusb_open(device, &handle);
             if (err) {
