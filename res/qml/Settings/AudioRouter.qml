@@ -302,6 +302,7 @@ Rectangle {
             root.newConnection = null
         } else {
             root.newConnection = connectionEdge.createObject(root, {"router": root, "source": edge});
+            root.newConnection.source.connecting = true
         }
     }
 
