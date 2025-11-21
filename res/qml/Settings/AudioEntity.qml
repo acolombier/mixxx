@@ -214,9 +214,28 @@ Item {
                             radius: width/2
                             z: 100
 
+                            SequentialAnimation {
+                                loops: Animation.Infinite
+                                running: edge.state == "creating"
+                                alwaysRunToEnd: true
+                                OpacityAnimator {
+                                    target: edge;
+                                    from: 1;
+                                    to: 0.2;
+                                    duration: 500
+                                }
+                                OpacityAnimator {
+                                    target: edge;
+                                    from: 0.2;
+                                    to: 1;
+                                    duration: 500
+                                }
+                            }
+
                             states: [
                                 State {
                                     name: "idle"
+                                    when: !edge.connecting && !edge.connection
                                 },
                                 State {
                                     name: "warning"
@@ -237,7 +256,16 @@ Item {
                                 },
                                 State {
                                     name: "setting"
-                                    when: edge.connection && !edge.connection.existing || edge.connecting
+                                    when: edge.connection && !edge.connection.existing
+
+                                    PropertyChanges {
+                                        edge.width: 15
+                                        edge.color: Theme.accentColor
+                                    }
+                                },
+                                State {
+                                    name: "creating"
+                                    when: edge.connecting
 
                                     PropertyChanges {
                                         edge.width: 15
