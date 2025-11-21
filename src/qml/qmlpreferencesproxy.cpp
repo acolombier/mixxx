@@ -230,6 +230,21 @@ QmlControllerSettingElement* QmlControllerMappingProxy::loadSettings(
     return pSettings;
 }
 
+void QmlControllerMappingProxy::resetSettings(mixxx::qml::QmlControllerDeviceProxy* pController) {
+    if (!pController) {
+        qmlEngine(this)->throwError(QStringLiteral("must pass a valid controller!"));
+        return;
+    }
+    if (!hasSettings()) {
+        return;
+    }
+    // Mappings settings need an underlying independent mapping instance per controller
+    auto mapping = pController->instanceFor(m_mappingDefinition.getPath());
+    if (mapping) {
+        mapping->resetSettings();
+    }
+}
+
 QString QmlControllerMappingProxy::getName() const {
     return m_mappingDefinition.getName();
 }

@@ -194,6 +194,8 @@ class QmlControllerMappingProxy : public QObject {
             const mixxx::qml::QmlConfigProxy* pConfig,
             mixxx::qml::QmlControllerDeviceProxy* pController);
 
+    Q_INVOKABLE void resetSettings(mixxx::qml::QmlControllerDeviceProxy* pController);
+
     QString getName() const;
     QString getAuthor() const;
     QString getDescription() const;

@@ -259,6 +259,10 @@ QWidget* LegacyControllerNumberSetting<SettingType,
 
 void LegacyControllerRealSetting::serialize(QDomDocument* doc, QDomElement* e) const {
     LegacyControllerSettingMixin::serialize(doc, e);
+    LegacyControllerNumberSetting<double,
+            packSettingDoubleValue,
+            extractSettingDoubleValue,
+            QDoubleSpinBox>::serialize(doc, e);
     e->setAttribute("type", "real");
     e->setAttribute("precision", m_precisionValue);
 }
