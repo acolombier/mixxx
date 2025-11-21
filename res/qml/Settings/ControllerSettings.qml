@@ -139,7 +139,7 @@ ColumnLayout {
             SpinBox {
                 id: spinBox
                 required property var modelData
-                from: modelData.min
+                from: decimalToInt(modelData.min)
                 value: {
                     decimalToInt(modelData.value)
                 }
@@ -171,7 +171,7 @@ ColumnLayout {
                 }
 
                 onValueChanged: {
-                    modelData.value = value
+                    modelData.value = Number(value / decimalFactor)
                 }
                 padding: 0
                 spacing: 2
@@ -385,6 +385,7 @@ ColumnLayout {
             }
         }
     }
+
     Repeater {
         model: root.settings
         delegate: chooser
