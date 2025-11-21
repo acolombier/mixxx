@@ -15,6 +15,8 @@ import "Deck" as DeckComponent
 Item {
     id: root
 
+    signal toggleFocus()
+
     required property string group
     property bool editMode: false
     property bool minimized: false
@@ -238,7 +240,7 @@ Item {
         columns: disposition == GridLayout.TopToBottom ? 1 : items.count
 
         Repeater {
-            model: items
+            model: parent.visible ? items : []
             delegate: deckItemDelegate
         }
 
@@ -320,7 +322,7 @@ Item {
         }
     }
     component LayoutItem: Item {
-        id: item
+        id: layoutItem
         property var beginDrag: null
         property var move: null
 
@@ -334,16 +336,22 @@ Item {
         visible: minWidth ? minWidth < root.width : true
 
         property alias innerItem: content
-        default property alias children: content.children
+        default property var contentChildren
 
-        Item {
+        Loader {
             id: content
-            anchors.fill: item
+            anchors.fill: layoutItem
+            active: layoutItem.visible
+            sourceComponent: Component {
+                Item {
+                    children: layoutItem.contentChildren
+                }
+            }
         }
 
         GaussianBlur {
             visible: root.editMode
-            anchors.fill: item
+            anchors.fill: layoutItem
             source: content
             radius: blurRadius
             samples: 16
@@ -354,7 +362,7 @@ Item {
             id: overlayItem
             z: 90
             visible: root.editMode
-            anchors.fill: item
+            anchors.fill: layoutItem
             color: Qt.alpha("black", 0.4)
             Text {
                 id: labelItem
@@ -364,8 +372,8 @@ Item {
 
             LayoutMouseArea {
                 id: mouseArea
-                drag.target: item
-                target: item
+                drag.target: layoutItem
+                target: layoutItem
                 // enabled: overlayItem.visible
                 anchors.fill: overlayItem
             }
@@ -376,10 +384,10 @@ Item {
         }
 
         function complete() {
-            if (item.move) {
-                item.move.ref.move(item.move.target, item.move.source - item.move.count + 1, item.move.count)
+            if (layoutItem.move) {
+                layoutItem.move.ref.move(layoutItem.move.target, layoutItem.move.source - layoutItem.move.count + 1, layoutItem.move.count)
             }
-            item.move = null
+            layoutItem.move = null
         }
 
         Behavior on x {
@@ -390,7 +398,7 @@ Item {
                 damping: 0.2
                 onRunningChanged: {
                     if (running) return;
-                    item.complete()
+                    layoutItem.complete()
                 }
             }
         }
@@ -402,7 +410,7 @@ Item {
                 damping: 0.2
                 onRunningChanged: {
                     if (running) return;
-                    item.complete()
+                    layoutItem.complete()
                 }
             }
         }
@@ -429,6 +437,9 @@ Item {
                     editMode: root.editMode
 
                     rightColumnWidth: 105
+                    TapHandler {
+                        onDoubleTapped: root.toggleFocus()
+                    }
                 }
             }
         }
