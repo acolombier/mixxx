@@ -160,9 +160,11 @@ Rectangle {
 
         function loadSelectedTrackIntoNextAvailableDeck(play) {
             const urls = this.selectionModel.selectedTrackUrls();
+            console.log("TableView.loadSelectedTrackIntoNextAvailableDeck::urls", urls)
             if (urls.length == 0)
                 return ;
 
+            console.log("TableView.loadSelectedTrackIntoNextAvailableDeck::urls[0]", urls[0])
             Mixxx.PlayerManager.loadLocationUrlIntoNextAvailableDeck(urls[0], play);
         }
 
@@ -171,7 +173,7 @@ Rectangle {
             if (urls.length == 0)
                 return ;
 
-            player.loadTrackFromLocationUrl(urls[0], play);
+            Mixxx.PlayerManager.getPlayer(group).loadTrackFromLocationUrl(urls[0], play);
         }
 
         ScrollBar.vertical: ScrollBar {
@@ -184,7 +186,8 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.margins: 5
         clip: true
-        reuseItems: true
+        selectionBehavior: TableView.SelectionDisabled
+        pointerNavigationEnabled: false
         Keys.onUpPressed: this.selectionModel.moveSelectionVertical(-1)
         Keys.onDownPressed: this.selectionModel.moveSelectionVertical(1)
         Keys.onEnterPressed: this.loadSelectedTrackIntoNextAvailableDeck(false)
@@ -197,7 +200,7 @@ Rectangle {
                 return;
             }
             for (let c = 0; c < model.columns.length; c++) {
-                if (model.columns[c].hidden) {
+                if (model.columns[c].hidden || model.columns[c].autoHideWidth > view.width) {
                     continue
                 } else if (model.columns[c].preferredWidth > 0) {
                     usedWidth += model.columns[c].preferredWidth;
@@ -212,10 +215,18 @@ Rectangle {
         property int usedWidth: 0
         property int dynamicColumnCount: 0
 
+        onWidthChanged: {
+            view.updateColumnSize()
+            view.forceLayout()
+        }
+
         columnWidthProvider: function(column) {
             const columnDef = view.model.columns[column]
             if (columnDef.hidden) {
                 return 0;
+            }
+            if (columnDef.autoHideWidth > 0 && columnDef.autoHideWidth > view.width) {
+                return 0
             }
             if (columnDef.preferredWidth >= 0) {
                 return columnDef.preferredWidth;
@@ -233,6 +244,9 @@ Rectangle {
                 }
                 const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
                 this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
+                if (!view.isRowLoaded(newRow)) {
+                    view.positionViewAtRow(newRow, TableView.Visible | TableView.AlignVCenter)
+                }
             }
 
             function moveSelectionVertical(value) {
@@ -245,7 +259,9 @@ Rectangle {
             }
 
             function selectedTrackUrls() {
+                console.log("TableView.selectedTrackUrls::selectedIndexes", this.selectedIndexes)
                 return this.selectedIndexes.map((index) => {
+                        console.log("TableView.selectedTrackUrls::getUrl", index.row, this.model.getUrl(index.row))
                         return this.model.getUrl(index.row);
                 });
             }
@@ -278,18 +294,11 @@ Rectangle {
                 property var capabilities: root.model ? root.model.getCapabilities() : Mixxx.LibraryTrackListModel.Capability.None
                 sourceComponent: delegate
                 focus: true
+                asynchronous: true
+                opacity: loader.status == Loader.Ready
 
-                onLoaded: {
-                // Workaround needed for WaveformOverview column to load the data
-                //     if (track)
-                //         Mixxx.Library.analyze(track)
-                }
+                Behavior on opacity { NumberAnimation { duration: 100; easing.type: Easing.Linear} }
             }
-            // Workaround needed for WaveformOverview column to load the data
-            // TableView.onReused: {
-            //     if (track)
-            //         Mixxx.Library.analyze(track)
-            // }
         }
     }
 }

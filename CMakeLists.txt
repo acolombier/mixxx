@@ -36,6 +36,11 @@ if(POLICY CMP0099)
   cmake_policy(SET CMP0099 NEW)
 endif()
 
+# Add support for cmake_dependent_option
+if(POLICY CMP0127)
+  cmake_policy(SET CMP0127 NEW)
+endif()
+
 # An imported target missing its location property fails during generation.
 if(POLICY CMP0111)
   cmake_policy(SET CMP0111 NEW)
@@ -48,7 +53,52 @@ if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
 
-if(((APPLE AND NOT IOS) OR WIN32) AND NOT IS_DIRECTORY "${MIXXX_VCPKG_ROOT}")
+if(CMAKE_SYSTEM_NAME STREQUAL Android)
+  if(NOT DEFINED ENV{JAVA_HOME})
+    message(FATAL_ERROR "JAVA_HOME is not set. Did you source the setup file?")
+  endif()
+  if((NOT CMAKE_ANDROID_NDK) AND DEFINED ENV{ANDROID_NDK_HOME})
+    set(CMAKE_ANDROID_NDK "$ENV{ANDROID_NDK_HOME}")
+  endif()
+  set(ANDROID ON)
+  if(DEFINED ENV{QT_ANDROID_KEYSTORE_PATH})
+    set(QT_ANDROID_SIGN_APK ON)
+  endif()
+
+  set(QT_ANDROID_APP_PATH "$<TARGET_FILE:${SOURCE_TARGET}>")
+  set(QT_ANDROID_APP_PACKAGE_SOURCE_ROOT "${CMAKE_CURRENT_BINARY_DIR}/android")
+
+  if((NOT ANDROID_SDK_ROOT) AND DEFINED ENV{ANDROID_SDK})
+    set(ANDROID_SDK_ROOT "$ENV{ANDROID_SDK}")
+  endif()
+  set(ANDROID_ABI arm64-v8a)
+  set(ANDROID_NDK_HOST_SYSTEM_NAME linux-x86_64)
+  # list(APPEND extra_cmake_args "-DANDROID_PLATFORM=${ANDROID_PLATFORM}")
+  set(CMAKE_SYSTEM_VERSION 35) # API level
+  set(ANDROID_PLATFORM "android-${CMAKE_SYSTEM_VERSION}")
+  set(ANDROID_API_VERSION "android-${CMAKE_SYSTEM_VERSION}")
+  set(CMAKE_ANDROID_ARCH_ABI "${ANDROID_ABI}") # or x86_64, armeabi-v7a, etc.
+  set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION clang)
+  set(CMAKE_ANDROID_STL_TYPE c++_shared)
+  set(
+    CMAKE_SYSROOT
+    "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/sysroot"
+  )
+  include_directories(
+    BEFORE
+    SYSTEM
+    "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/sysroot/usr/include/"
+  )
+  set(
+    CMAKE_LIBRARY_PATH
+    "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/sysroot/usr/lib/aarch64-linux-android/${CMAKE_SYSTEM_VERSION}/;${CMAKE_LIBRARY_PATH}"
+  )
+endif()
+
+if(
+  ((APPLE AND NOT IOS) OR WIN32 OR ANDROID)
+  AND NOT IS_DIRECTORY "${MIXXX_VCPKG_ROOT}"
+)
   if(NOT DEFINED BUILDENV_BASEPATH)
     if(DEFINED ENV{BUILDENV_BASEPATH})
       set(BUILDENV_BASEPATH "$ENV{BUILDENV_BASEPATH}")
@@ -172,7 +222,7 @@ function(fatal_error_missing_env)
         "Did you download the Mixxx build environment using `source ${CMAKE_SOURCE_DIR}/tools/macos_release_buildenv.sh setup` or `source ${CMAKE_SOURCE_DIR}/tools/macos_buildenv.sh setup` (includes Debug)?"
       )
     endif()
-  elseif(UNIX AND NOT APPLE)
+  elseif(UNIX AND NOT APPLE AND NOT ANDROID)
     # Linux, BSD, Solaris, Minix
     if(EXISTS "/etc/debian_version") # exists also on Ubuntu and Mint
       message(
@@ -325,7 +375,7 @@ option(QT6 "Build with Qt6" ON)
 # undefined behaviour in a stable build.
 # See: https://github.com/mixxxdj/mixxx/issues/14766
 # Once this is fixed we can revert the commit introducing this.
-option(QML "Build with QML" OFF)
+option(QML "Build with QML" ON)
 
 option(QOPENGL "Use QOpenGLWindow based widget instead of QGLWidget" ON)
 
@@ -947,7 +997,7 @@ else()
   else()
     message(STATUS "Could NOT find ccache (missing executable)")
   endif()
-  default_option(CCACHE_SUPPORT "Enable ccache support" "CCACHE_EXECUTABLE")
+  default_option(CCACHE_SUPPORT "Enable ccache support" "CCACHE_EXECUTABLE;NOT ANDROID")
 
   if(NOT DEFINED CMAKE_DISABLE_PRECOMPILE_HEADERS)
     set(CMAKE_DISABLE_PRECOMPILE_HEADERS ${CCACHE_SUPPORT})
@@ -1014,7 +1064,7 @@ if(NOT MSVC)
     set(MOLD_SYMLINK_FOUND TRUE)
   endif()
   default_option(MOLD_SUPPORT "Use 'mold' for linking" "MOLD_FUSE_FOUND OR MOLD_SYMLINK_FOUND")
-  if(MOLD_SUPPORT)
+  if(MOLD_SUPPORT AND NOT ANDROID)
     if(MOLD_FUSE_FOUND)
       message(STATUS "Selecting mold as linker")
       add_link_options("-fuse-ld=mold")
@@ -1133,6 +1183,7 @@ add_library(
   src/controllers/controlpickermenu.cpp
   src/controllers/legacycontrollermappingfilehandler.cpp
   src/controllers/legacycontrollermapping.cpp
+  src/controllers/controllershareddata.cpp
   src/controllers/delegates/controldelegate.cpp
   src/controllers/delegates/midibytedelegate.cpp
   src/controllers/delegates/midichanneldelegate.cpp
@@ -2248,6 +2299,8 @@ if(WIN32)
 elseif(UNIX)
   if(APPLE)
     target_compile_definitions(mixxx-lib PUBLIC __APPLE__)
+  elseif(ANDROID)
+    target_compile_definitions(mixxx-lib PUBLIC __ANDROID__)
   else()
     target_compile_definitions(mixxx-lib PUBLIC __UNIX__)
     if(CMAKE_SYSTEM_NAME STREQUAL Linux)
@@ -2269,7 +2322,92 @@ if(QT6)
   # below that takes care of the correct object order in the resulting binary
   # According to https://doc.qt.io/qt-6/qt-finalize-target.html it is importand for
   # builds with Qt < 3.21
-  qt_add_executable(mixxx WIN32 src/main.cpp MANUAL_FINALIZATION)
+  if(ANDROID)
+    target_compile_definitions(
+      mixxx-lib
+      PUBLIC __STDC_CONSTANT_MACROS __STDC_LIMIT_MACROS __STDC_FORMAT_MACROS
+    )
+    set_property(TARGET mixxx-lib PROPERTY ANDROID_ABIS "arm64-v8a")
+    target_compile_definitions(
+      mixxx-lib
+      PUBLIC ANDROID_PACKAGE_NAME="org.mixxx"
+    )
+    qt_add_executable(mixxx src/main.cpp MANUAL_FINALIZATION)
+    set_property(
+      TARGET mixxx
+      PROPERTY
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android"
+    )
+    set_target_properties(mixxx PROPERTIES QT_ANDROID_ABIS "${ANDROID_ABI}")
+    set_target_properties(mixxx PROPERTIES QT_ANDROID_PACKAGE_NAME "org.mixxx")
+    set_target_properties(
+      mixxx
+      PROPERTIES QT_ANDROID_VERSION_NAME "${MIXXX_VERSION}"
+    )
+    set_target_properties(
+      mixxx
+      PROPERTIES
+        QT_ANDROID_APPLICATION_ARGUMENTS "--qml --log-level debug --developer"
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.ACCESS_NETWORK_STATE
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.INTERNET
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.MODIFY_AUDIO_SETTINGS
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.RECORD_AUDIO
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.WRITE_EXTERNAL_STORAGE
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.MANAGE_EXTERNAL_STORAGE
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.WAKE_LOCK
+    )
+    qt_add_android_permission(mixxx
+    NAME android.permission.USB_PERMISSION
+    )
+    set(
+      CMAKE_LINKER
+      "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/bin/ld"
+    )
+    set(
+      CMAKE_C_COMPILER
+      "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/bin/clang"
+    )
+    set(
+      CMAKE_CXX_COMPILER
+      "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/bin/clang++"
+    )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
+    set_target_properties(
+      mixxx
+      PROPERTIES
+        QT_ANDROID_EXTRA_LIBS
+          ${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST_SYSTEM_NAME}/lib/clang/18/lib/linux/aarch64/libomp.so
+    )
+    add_custom_target(
+      copy-resource-android
+      COMMENT "Copy Android folder to build directory"
+      COMMAND
+        ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/android
+        ${CMAKE_CURRENT_BINARY_DIR}/android
+      COMMAND
+        ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res
+        ${CMAKE_CURRENT_BINARY_DIR}/android-build/assets
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_dependencies(mixxx copy-resource-android)
+    target_link_libraries(mixxx PUBLIC omp)
+  else()
+    qt_add_executable(mixxx WIN32 src/main.cpp MANUAL_FINALIZATION)
+  endif()
 else()
   find_package(Qt5 COMPONENTS Core) # For Qt Core cmake functions
   # This is the first package form the environment, if this fails give hints how to install the environment
@@ -2358,37 +2496,41 @@ if(WIN32)
   include(InstallRequiredSystemLibraries)
 endif()
 
-install(
-  TARGETS mixxx
-  RUNTIME DESTINATION "${MIXXX_INSTALL_BINDIR}"
-  BUNDLE DESTINATION .
-)
+if(NOT ANDROID)
+  install(
+    TARGETS mixxx
+    RUNTIME DESTINATION "${MIXXX_INSTALL_BINDIR}"
+    BUNDLE DESTINATION .
+  )
 
-# Skins
-install(
-  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/skins"
-  DESTINATION "${MIXXX_INSTALL_DATADIR}"
-)
+  # Skins
+  install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/skins"
+    DESTINATION "${MIXXX_INSTALL_DATADIR}"
+  )
 
-# Controller mappings
-install(
-  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/controllers"
-  DESTINATION "${MIXXX_INSTALL_DATADIR}"
-)
+  # Controller mappings
+  install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/controllers"
+    DESTINATION "${MIXXX_INSTALL_DATADIR}"
+  )
 
-# Effect presets
-install(
-  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/effects"
-  DESTINATION "${MIXXX_INSTALL_DATADIR}"
-)
+  # Effect presets
+  install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/effects"
+    DESTINATION "${MIXXX_INSTALL_DATADIR}"
+  )
 
-# Translation files
-install(
-  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/translations"
-  DESTINATION "${MIXXX_INSTALL_DATADIR}"
-  FILES_MATCHING
-  PATTERN "*.qm"
-)
+  # Translation files
+  install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/translations"
+    DESTINATION "${MIXXX_INSTALL_DATADIR}"
+    FILES_MATCHING
+    PATTERN "*.qm"
+  )
+  # else()
+  #   qt_finalize_target(mixxx-lib)
+endif()
 
 # Font files
 #
@@ -2685,10 +2827,12 @@ if(BUILD_TESTING)
     src/test/colormapperjsproxy_test.cpp
     src/test/colorpalette_test.cpp
     src/test/configobject_test.cpp
+    src/test/controller_mapping_file_handler_test.cpp
     src/test/controller_mapping_validation_test.cpp
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
+    src/test/controllershareddata_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -2814,9 +2958,7 @@ if(BUILD_TESTING)
   if(QML)
     target_sources(
       mixxx-test
-      PRIVATE
-        src/test/controller_mapping_file_handler_test.cpp
-        src/test/controllerrenderingengine_test.cpp
+      PRIVATE src/test/controllerrenderingengine_test.cpp
     )
   endif()
 
@@ -3434,6 +3576,10 @@ else()
       mixxx-lib
       PUBLIC -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES2=1
     )
+  elseif(ANDROID)
+    find_library(GLESv2_LIBRARY GLESv2)
+    target_link_libraries(mixxx-lib PRIVATE "${GLESv2_LIBRARY}")
+    target_compile_definitions(mixxx-lib PUBLIC QT_OPENGL_ES_2)
   else()
     find_package(WrapOpenGL REQUIRED)
     if(OPENGL_opengl_LIBRARY)
@@ -3466,6 +3612,11 @@ target_link_libraries(
 find_package(PortAudio REQUIRED)
 target_link_libraries(mixxx-lib PUBLIC PortAudio::PortAudio)
 
+if(ANDROID)
+  target_link_libraries(mixxx-lib PUBLIC OpenSLES android)
+  target_compile_definitions(mixxx-lib PUBLIC PA_USE_OBOE)
+endif()
+
 # PortAudio Ring Buffer
 add_library(
   PortAudioRingBuffer
@@ -3477,7 +3628,7 @@ target_include_directories(mixxx-lib SYSTEM PUBLIC lib/portaudio)
 target_link_libraries(mixxx-lib PRIVATE PortAudioRingBuffer)
 
 # PortMidi
-option(PORTMIDI "Enable the PortMidi backend for MIDI controllers" ON)
+default_option(PORTMIDI "Enable the PortMidi backend for MIDI controllers" "NOT ANDROID")
 if(PORTMIDI)
   target_compile_definitions(mixxx-lib PUBLIC __PORTMIDI__)
   find_package(PortMidi REQUIRED)
@@ -3533,8 +3684,9 @@ else()
   find_package(QT 5.12 NAMES Qt5 COMPONENTS Core REQUIRED)
 endif()
 if(QML)
-  list(APPEND QT_EXTRA_COMPONENTS "Quick")
   list(APPEND QT_EXTRA_COMPONENTS "LabsQmlModels")
+  list(APPEND QT_EXTRA_COMPONENTS "Multimedia")
+  list(APPEND QT_EXTRA_COMPONENTS "Quick")
   list(APPEND QT_EXTRA_COMPONENTS "QuickControls2")
   list(APPEND QT_EXTRA_COMPONENTS "QuickControls2Impl")
   list(APPEND QT_EXTRA_COMPONENTS "QuickLayouts")
@@ -3566,6 +3718,10 @@ if(QT_EXTRA_COMPONENTS)
   foreach(component ${QT_EXTRA_COMPONENTS})
     target_link_libraries(mixxx-lib PUBLIC Qt${QT_VERSION_MAJOR}::${component})
   endforeach()
+endif()
+
+if(QT_KNOWN_POLICY_QTP0002 AND ANDROID)
+  qt6_policy(SET QTP0002 NEW)
 endif()
 
 if(QML)
@@ -3648,7 +3804,7 @@ if(QML)
     OPTIONAL_IMPORTS Mixxx
     QML_FILES
       res/qml/Mixxx/Controls/Knob.qml
-      res/qml/Mixxx/Controls/Slider.qml
+      res/qml/Mixxx/Controls/Fader.qml
       res/qml/Mixxx/Controls/Spinny.qml
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
@@ -3689,6 +3845,7 @@ if(QML)
       src/qml/qmlsettingparameter.cpp
       src/qml/qmltrackproxy.cpp
       src/qml/qmlsoundmanagerproxy.cpp
+      src/qml/qmlpreferencesproxy.cpp
       src/waveform/renderers/allshader/digitsrenderer.cpp
       src/waveform/renderers/allshader/waveformrenderbeat.cpp
       src/waveform/renderers/allshader/waveformrenderer.cpp
@@ -3992,6 +4149,14 @@ else()
         COMPONENT applocal
       )
 
+      # install qml6-module-qtmultimedia
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/QtMultimedia"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml"
+        COMPONENT applocal
+      )
+
       # install qml6-module-qtqml-workerscript
       install(
         DIRECTORY
@@ -4052,6 +4217,22 @@ else()
       install(
         DIRECTORY
           "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/Qt/labs/qmlmodels"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/Qt/labs"
+        COMPONENT applocal
+      )
+
+      # install qml6-module-qtquick-dialogs
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/QtQuick/Dialogs"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/QtQuick"
+        COMPONENT applocal
+      )
+
+      # install qml6-module-qt-labs-folderlistmodel
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/Qt/labs/folderlistmodel"
         DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/Qt/labs"
         COMPONENT applocal
       )
@@ -4139,7 +4320,7 @@ if(APPLE)
     # Used for battery measurements and controlling the screensaver on macOS.
     target_link_libraries(mixxx-lib PRIVATE "-weak_framework IOKit")
   endif()
-elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
   if(QT6)
     find_package(X11)
   else()
@@ -4366,6 +4547,7 @@ if(RUBBERBAND)
   target_link_libraries(mixxx-lib PRIVATE rubberband::rubberband)
   target_compile_definitions(mixxx-lib PUBLIC __RUBBERBAND__)
   if(QML)
+    target_link_libraries(mixxx-qml-lib PRIVATE rubberband::rubberband)
     target_compile_definitions(mixxx-qml-lib PUBLIC __RUBBERBAND__)
   endif()
   target_sources(
@@ -4418,7 +4600,7 @@ cmake_dependent_option(
   BATTERY
   "Battery meter support"
   ON
-  "WIN32 OR UNIX"
+  "WIN32 OR (UNIX AND NOT ANDROID)"
   OFF
 )
 if(BATTERY)
@@ -4862,7 +5044,6 @@ if(HID)
   target_sources(
     mixxx-lib
     PRIVATE
-      src/controllers/controllerhidreporttabsmanager.cpp
       src/controllers/hid/hidcontroller.cpp
       src/controllers/hid/hidiothread.cpp
       src/controllers/hid/hidioglobaloutputreportfifo.cpp
@@ -4874,6 +5055,16 @@ if(HID)
       src/controllers/hid/legacyhidcontrollermapping.cpp
       src/controllers/hid/legacyhidcontrollermappingfilehandler.cpp
   )
+
+  if(ANDROID)
+    target_sources(mixxx-lib PRIVATE src/controllers/android.cpp)
+  else()
+    # Android doesn't support QWidget and is not able to compile this manager due to compiler lacking support for structure binding (error: capturing a structured binding is not yet supported)
+    target_sources(
+      mixxx-lib
+      PRIVATE src/controllers/controllerhidreporttabsmanager.cpp
+    )
+  endif()
   target_compile_definitions(mixxx-lib PUBLIC __HID__)
 endif()
 
@@ -5059,7 +5250,12 @@ if(QT6)
     list(
       APPEND
       CPACK_DEBIAN_PACKAGE_DEPENDS
-      "qml6-module-qt5compat-graphicaleffects"
+      "libqt6sql6-sqlite, fonts-open-sans, fonts-ubuntu, qt6-qpa-plugins, qml6-module-qt5compat-graphicaleffects, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-nativestyle, qml6-module-qtquick-templates, qml6-module-qtquick-window, qml6-module-qtquick-dialogs, qml6-module-qt-labs-qmlmodels, qml6-module-qt-labs-folderlistmodel, qml6-module-qtquick-shapes, qml6-module-qtmultimedia, qml6-module-qtqml-workerscript"
+    )
+  else()
+    set(
+      CPACK_DEBIAN_PACKAGE_DEPENDS
+      "libqt6sql6-sqlite, fonts-open-sans, fonts-ubuntu, qt6-qpa-plugins"
     )
     list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "qml6-module-qtquick-controls")
     list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "qml6-module-qtquick-layouts")

@@ -55,9 +55,9 @@ Item {
 
         SplitView {
             id: sideBarSplitView
-            SplitView.minimumWidth: 100
-            SplitView.preferredWidth: 415
-            SplitView.maximumWidth: 600
+            SplitView.minimumWidth: 150
+            SplitView.preferredWidth: root.width * 0.15
+            SplitView.maximumWidth: 550
 
             orientation: Qt.Vertical
 
@@ -105,6 +105,8 @@ Item {
         }
         LibraryComponent.TrackList {
             SplitView.fillHeight: true
+            SplitView.minimumHeight: 200
+            SplitView.preferredWidth: root.width * 0.75
 
             // FIXME: this is necessary to prevent the header label to render outside of the table when horizontally scrolling: https://github.com/mixxxdj/mixxx/pull/14514#issuecomment-3311914346
             clip: true

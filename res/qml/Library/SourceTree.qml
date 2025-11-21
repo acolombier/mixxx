@@ -9,6 +9,7 @@ Mixxx.LibrarySourceTree {
     component DefaultDelegate: LibraryComponent.Cell {
         id: cell
         readonly property var caps: capabilities
+        property bool customRender: false
         // FIXME: https://bugreports.qt.io/browse/QTBUG-111789
         Binding on Drag.active {
             value: dragArea.drag.active
@@ -22,22 +23,34 @@ Mixxx.LibrarySourceTree {
             anchors.fill: parent
             capabilities: cell.caps
 
-            onPressed: {
-                if (pressedButtons == Qt.LeftButton) {
-                    tableView.selectionModel.selectRow(row);
-                    parent.dragImage.grabToImage((result) => {
-                            parent.Drag.imageSource = result.url;
-                        }, Qt.size(parent.dragImage.width, parent.dragImage.height));
-                }
+            tap.onTapped: (eventPoint, button) => {
+                console.log("LibraryComponent.Track::onTapped")
+                tableView.selectionModel.selectRow(row)
             }
-            onDoubleClicked: {
-                tableView.selectionModel.selectRow(row);
+            tap.onDoubleTapped: {
+                console.log("LibraryComponent.Track::onDoubleTapped")
                 tableView.loadSelectedTrackIntoNextAvailableDeck(false);
+            }
+        }
+
+        Component.onCompleted: updateDragImage()
+
+        function updateDragImage() {
+            cell.dragImage.grabToImage((result) => {
+                    cell.Drag.imageSource = result.url;
+                }, Qt.size(cell.dragImage.width, cell.dragImage.height))
+        }
+
+        Connections {
+            target: parent
+            function onTrackChanged() {
+                cell.updateDragImage()
             }
         }
 
         Text {
             id: value
+            visible: !customRender
             anchors.fill: parent
             anchors.leftMargin: 15
             font.pixelSize: 14
@@ -50,7 +63,8 @@ Mixxx.LibrarySourceTree {
 
     defaultColumns: [
         Mixxx.TrackListColumn {
-            preferredWidth: 110
+            preferredWidth: 100
+            autoHideWidth: 750
 
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Album
 
@@ -68,68 +82,47 @@ Mixxx.LibrarySourceTree {
             }
         },
         // FIXME: WaveformOverview is currently disabled due to performance limitation. Like for the legacy UI, a cache likely needs to be implemented to help
-        // Mixxx.TrackListColumn {
-        //     label: qsTr("Preview")
-        //     fillSpan: 3
-        //     preferredWidth: 300
-        //     columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+        Mixxx.TrackListColumn {
+            label: qsTr("Preview")
+            fillSpan: 3
+            preferredWidth: 200
+            autoHideWidth: 850
+            columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
 
-        //     delegate: LibraryCell {
-        //         // implicitHeight: 30
-        //         anchors.fill: parent
+            delegate: DefaultDelegate {
+                anchors.fill: parent
 
-        //         readonly property var trackProxy: track
+                readonly property var trackProxy: track
+                customRender: true
 
-        //         Drag.active: dragArea.drag.active
-        //         Drag.dragType: Drag.Automatic
-        //         Drag.supportedActions: Qt.CopyAction
-        //         Drag.mimeData: {
-        //             "text/uri-list": file_url,
-        //             "text/plain": file_url
-        //         }
+                onTrackProxyChanged: {
+                    if (trackProxy && !trackProxy.hasWaveform) {
+                        Mixxx.Library.analyze(trackProxy)
+                    }
+                }
 
-        //         LibraryComponent.Track {
-        //             id: dragArea
-        //             anchors.fill: parent
-        //             capabilities: parent.capabilities
+                Mixxx.WaveformOverview {
+                    anchors.fill: parent
+                    channels: Mixxx.WaveformOverview.Channels.LeftChannel
+                    renderer: Mixxx.WaveformOverview.Renderer.Filtered
+                    colorHigh: Theme.white
+                    colorMid: Theme.blue
+                    colorLow: Theme.green
+                    track: trackProxy
+                }
+                Rectangle {
+                    id: border
+                    color: Theme.darkGray2
+                    width: 1
+                    anchors {
+                        top: parent.top
+                        bottom: parent.bottom
+                        right: parent.right
+                    }
+                }
+            }
 
-        //             onPressed: {
-        //                 if (pressedButtons == Qt.LeftButton) {
-        //                     tableView.selectionModel.selectRow(row);
-        //                     parent.dragImage.grabToImage((result) => {
-        //                             parent.Drag.imageSource = result.url;
-        //                     });
-        //                 } else {
-        //                 }
-        //             }
-        //             onDoubleClicked: {
-        //                 tableView.selectionModel.selectRow(row);
-        //                 tableView.loadSelectedTrackIntoNextAvailableDeck(false);
-        //             }
-        //         }
-
-        //         Mixxx.WaveformOverview {
-        //             anchors.fill: parent
-        //             channels: Mixxx.WaveformOverview.Channels.LeftChannel
-        //             renderer: Mixxx.WaveformOverview.Renderer.Filtered
-        //             colorHigh: Theme.white
-        //             colorMid: Theme.blue
-        //             colorLow: Theme.green
-        //             track: trackProxy
-        //         }
-        //         Rectangle {
-        //             id: border
-        //             color: Theme.darkGray2
-        //             width: 1
-        //             anchors {
-        //                 top: parent.top
-        //                 bottom: parent.bottom
-        //                 right: parent.right
-        //             }
-        //         }
-        //     }
-
-        // },
+        },
         Mixxx.TrackListColumn {
             label: qsTr("Title")
             fillSpan: 3
@@ -146,6 +139,7 @@ Mixxx.LibrarySourceTree {
         },
         Mixxx.TrackListColumn {
             label: qsTr("Album")
+            autoHideWidth: 690
             fillSpan: 1
 
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Album
@@ -154,6 +148,7 @@ Mixxx.LibrarySourceTree {
         Mixxx.TrackListColumn {
             label: qsTr("Year")
             preferredWidth: 80
+            autoHideWidth: 750
 
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Year
             delegate: DefaultDelegate { }
@@ -175,6 +170,7 @@ Mixxx.LibrarySourceTree {
         Mixxx.TrackListColumn {
             label: qsTr("File Type")
             preferredWidth: 70
+            autoHideWidth: 900
 
             columnIdx: Mixxx.TrackListColumn.SQLColumns.FileType
             delegate: DefaultDelegate { }
@@ -182,6 +178,7 @@ Mixxx.LibrarySourceTree {
         Mixxx.TrackListColumn {
             label: qsTr("Bitrate")
             preferredWidth: 70
+            autoHideWidth: 1200
 
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Bitrate
             delegate: DefaultDelegate { }

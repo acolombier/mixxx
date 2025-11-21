@@ -5,6 +5,7 @@
 #include <QRegularExpression>
 #include <QThread>
 #include <QtDebug>
+#include <cstddef>
 
 #include "control/controlobject.h"
 #include "sounddevicenetwork.h"
@@ -25,6 +26,15 @@
 #include <pa_linux_alsa.h>
 // for sched_getscheduler
 #include <sched.h>
+#endif
+
+#ifdef PA_USE_OBOE
+// for PaOboe_InitializeStreamInfo
+#include <pa_oboe.h>
+#endif
+#if defined(Q_OS_ANDROID)
+#include <android/api-level.h>
+#include <android/log.h>
 #endif
 
 namespace {
@@ -135,6 +145,24 @@ SoundDevicePortAudio::SoundDevicePortAudio(UserSettingsPointer config,
     m_outputParams.sampleFormat = 0;
     m_outputParams.suggestedLatency = 0.0;
     m_outputParams.hostApiSpecificStreamInfo = nullptr;
+
+#if defined(Q_OS_ANDROID)
+    uint mask = 0b11110000;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (uint32_t i = 0; i < 32; ++i) {
+        if ((mask >> i) & 1) {
+            CPU_SET(i, &cpuset);
+        }
+    }
+
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR,
+                "mixxx",
+                "Error setting CPU affinity: %s",
+                strerror(errno));
+    }
+#endif
 }
 
 SoundDevicePortAudio::~SoundDevicePortAudio() {
@@ -241,7 +269,24 @@ SoundDeviceStatus SoundDevicePortAudio::open(bool isClkRefDevice, int syncBuffer
     m_outputParams.device = m_deviceId.portAudioIndex;
     m_outputParams.sampleFormat = paFloat32;
     m_outputParams.suggestedLatency = bufferMSec / 1000.0;
-    m_outputParams.hostApiSpecificStreamInfo = nullptr;
+#ifdef PA_USE_OBOE
+    PaOboeStreamInfo obeoStreamInfo;
+    if (m_deviceTypeId == PaHostApiTypeId::paOboe) {
+        PaOboe_InitializeStreamInfo(&obeoStreamInfo);
+        obeoStreamInfo.androidOutputUsage = PaOboe_Usage::Media,
+        obeoStreamInfo.androidInputPreset = PaOboe_InputPreset::Generic,
+        obeoStreamInfo.performanceMode = PaOboe_PerformanceMode::LowLatency,
+        obeoStreamInfo.sharingMode = PaOboe_SharingMode::Exclusive,
+        obeoStreamInfo.contentType = PaOboe_ContentType::Music,
+        obeoStreamInfo.packageName = ANDROID_PACKAGE_NAME;
+
+        m_outputParams.hostApiSpecificStreamInfo = (void*)&obeoStreamInfo;
+    } else {
+#endif
+        m_outputParams.hostApiSpecificStreamInfo = nullptr;
+#ifdef PA_USE_OBOE
+    }
+#endif
 
     m_inputParams.device  = m_deviceId.portAudioIndex;
     m_inputParams.sampleFormat  = paFloat32;
