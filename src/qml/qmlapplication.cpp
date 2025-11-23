@@ -15,6 +15,12 @@
 #include "util/versionstore.h"
 #include "waveform/visualsmanager.h"
 #include "waveform/waveformwidgetfactory.h"
+#if defined(Q_OS_ANDROID)
+#include <android/api-level.h>
+#include <android/log.h>
+#include <android/performance_hint.h>
+#endif
+
 Q_IMPORT_QML_PLUGIN(MixxxPlugin)
 Q_IMPORT_QML_PLUGIN(Mixxx_ControlsPlugin)
 
@@ -42,6 +48,10 @@ QmlApplication::QmlApplication(
           m_visualsManager(std::make_unique<VisualsManager>()),
           m_mainFilePath(m_pCoreServices->getSettings()->getResourcePath() + kMainQmlFileName),
           m_pAppEngine(nullptr),
+#if defined(Q_OS_ANDROID)
+          m_perfSession(nullptr),
+          m_frameDuration(nullptr),
+#endif
           m_autoReload() {
     QQuickStyle::setStyle("Basic");
 
@@ -122,6 +132,65 @@ QmlApplication::QmlApplication(
             [this]() {
                 loadQml(m_mainFilePath);
             });
+
+#if defined(Q_OS_ANDROID)
+    APerformanceHintManager* manager = APerformanceHint_getManager();
+    VERIFY_OR_DEBUG_ASSERT(manager) {
+        return;
+    }
+    int32_t thread32 = gettid();
+    m_perfSession = APerformanceHint_createSession(manager, &thread32, 1 /* size */, 1e9 / 60);
+    VERIFY_OR_DEBUG_ASSERT(m_perfSession) {
+        __android_log_print(ANDROID_LOG_WARN, "mixxx", "unable to create a ADPF session!");
+        return;
+    }
+    APerformanceHint_setPreferPowerEfficiency(m_perfSession, false);
+    m_frameDuration = AWorkDuration_create();
+    __android_log_print(ANDROID_LOG_VERBOSE, "mixxx", "ADPF session ready");
+
+    uint mask = 0b11110000;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (uint32_t i = 0; i < 32; ++i) {
+        if ((mask >> i) & 1) {
+            CPU_SET(i, &cpuset);
+        }
+    }
+}
+
+void QmlApplication::slotWindowChanged(QQuickWindow* window) {
+    if (window) {
+        connect(window, &QQuickWindow::afterFrameEnd, this, &QmlApplication::slotFrameSwapped);
+    }
+    m_frameTimer.restart();
+}
+
+void QmlApplication::slotFrameSwapped() {
+    VERIFY_OR_DEBUG_ASSERT(m_perfSession) {
+        return;
+    }
+    auto lastFrameDurationNs = m_frameTimer.elapsed().toIntegerNanos();
+    // auto duration = ;
+    AWorkDuration_setActualTotalDurationNanos(m_frameDuration, lastFrameDurationNs);
+    AWorkDuration_setActualCpuDurationNanos(m_frameDuration, lastFrameDurationNs);
+    // AWorkDuration_setActualGpuDurationNanos(m_frameDuration,lastFrameDurationNs/2);
+
+    APerformanceHint_reportActualWorkDuration2(m_perfSession, m_frameDuration);
+    // __android_log_print(ANDROID_LOG_VERBOSE, "mixxx", "Frame duration %lld",
+    // lastFrameDurationNs); if (lastFrameDurationMs < 15) {
+    //     APerformanceHint_notifyWorkloadReset(m_perfSession, true, true,
+    //     "qml_thread");
+    // } else if (lastFrameDurationMs > 20) {
+    //     APerformanceHint_notifyWorkloadIncrease(m_perfSession, true, true,
+    //     "qml_thread");
+    // }
+    m_frameTimer.restart();
+
+    auto t = std::chrono::steady_clock::now() - std::chrono::steady_clock::time_point{};
+    AWorkDuration_setWorkPeriodStartTimestampNanos(m_frameDuration,
+            std::chrono::duration_cast<std::chrono::nanoseconds>(t).count() +
+                    1);
+#endif
 }
 
 QmlApplication::~QmlApplication() {
@@ -150,6 +219,17 @@ void QmlApplication::loadQml(const QString& path) {
     if (m_pAppEngine->rootObjects().isEmpty()) {
         qCritical() << "Failed to load QML file" << path;
     }
+
+#if defined(Q_OS_ANDROID)
+    for (auto* item : m_pAppEngine->rootObjects()) {
+        auto* pWindow = qobject_cast<QQuickWindow*>(item);
+        if (!pWindow) {
+            continue;
+        }
+        slotWindowChanged(pWindow);
+        break;
+    }
+#endif
 }
 
 } // namespace qml

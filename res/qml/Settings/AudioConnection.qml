@@ -151,8 +151,9 @@ Item {
         // anchors.centerIn: parent
         antialiasing: true
         layer.enabled: true
-        layer.samples: 16
-        layer.textureMirroring: ShaderEffectSource.MirrorHorizontally
+        // FIXME: This is causing GL glitched in Android
+        // layer.samples: 16
+        // layer.textureMirroring: ShaderEffectSource.MirrorHorizontally
         ShapePath {
             id: line
             strokeColor: Theme.midGray
