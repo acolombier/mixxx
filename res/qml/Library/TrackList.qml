@@ -171,7 +171,7 @@ Rectangle {
             if (urls.length == 0)
                 return ;
 
-            player.loadTrackFromLocationUrl(urls[0], play);
+            Mixxx.PlayerManager.getPlayer(group).loadTrackFromLocationUrl(urls[0], play);
         }
 
         ScrollBar.vertical: ScrollBar {
