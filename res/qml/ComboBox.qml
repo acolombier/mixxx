@@ -99,7 +99,8 @@ ComboBox {
 
     popup: Popup {
         id: popupItem
-        y: root.height/2
+        y: root.height-4
+        x: root.width - width
         width: root.width
         height: root.contentItem.height*Math.min(root.popupMaxItems, Math.max(root.count, 1)) + 20
 

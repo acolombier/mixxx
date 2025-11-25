@@ -52,7 +52,7 @@ Column {
         spacing: 2
         indicator.width: 0
         popupWidth: 100
-        popupMaxItem: 8
+        popupMaxItems: 8
         clip: true
 
         textRole: "display"

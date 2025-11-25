@@ -1,9 +1,9 @@
 #include "qmlapplication.h"
 
-#include <qtextdocument.h>
-
 #include <QQmlEngineExtensionPlugin>
 #include <QQuickStyle>
+#include <QQuickWindow>
+#include <QTextDocument>
 
 #include "controllers/controllermanager.h"
 #include "mixer/playermanager.h"
