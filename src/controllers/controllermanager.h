@@ -6,6 +6,8 @@
 #include <memory>
 
 #include "controllers/controllerenumerator.h"
+#include "controllers/legacycontrollermapping.h"
+#include "controllers/legacycontrollermappingfilehandler.h"
 #include "preferences/usersettings.h"
 #include "util/duration.h"
 
@@ -14,6 +16,7 @@ class Controller;
 class ControllerLearningEventFilter;
 class MappingInfoEnumerator;
 class LegacyControllerMapping;
+class LegacyControllerMappingFileHandler;
 class ControllerSharedData;
 class ControllerEnumerator;
 

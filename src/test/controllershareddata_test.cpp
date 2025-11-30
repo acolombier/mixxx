@@ -79,7 +79,7 @@ let data = engine.getSharedData();
 if (data !== "foobar") throw "Something is wrong";
 engine.setSharedData("barfoo");
 )--")
-                         .isError());
+                    .isError());
     auto data = pRuntimeData->get("testNS");
     EXPECT_TRUE(data.canConvert<QString>());
     EXPECT_EQ(data.toString(), "barfoo");
@@ -89,7 +89,7 @@ let data = engine.getSharedData();
 if (data !== "barfoo") throw "Something is wrong";
 engine.setSharedData("bazfuu");
 )--")
-                         .isError());
+                    .isError());
     data = pRuntimeData->get("testNS");
     EXPECT_TRUE(data.canConvert<QString>());
     EXPECT_EQ(data.toString(), "bazfuu");
@@ -102,7 +102,7 @@ engine.makeSharedDataConnection((data) => {
     engine.setSharedData("bazfuu")
 });
 )--")
-                         .isError());
+                    .isError());
     pRuntimeData->set("testNS", QVariant("foobar"));
     application()->processEvents();
 
@@ -118,7 +118,7 @@ engine.makeSharedDataConnection((data) => {
     engine.setSharedData("bazfuu")
 }).trigger();
 )--")
-                         .isError());
+                    .isError());
     application()->processEvents();
 
     auto data = pRuntimeData->get("testNS");
@@ -135,7 +135,7 @@ if (!con.isConnected) throw "Something is wrong";
 con.disconnect()
 if (con.isConnected) throw "Something is wrong";
 )--")
-                         .isError());
+                    .isError());
     pRuntimeData->set("testNS", QVariant("foobar"));
     application()->processEvents();
 
@@ -149,7 +149,7 @@ let data = engine.getSharedData();
 if (data !== "foobar") throw "Something is wrong";
 engine.setSharedData("barfoo");
 )--")
-                         .isError());
+                    .isError());
     auto data = pRuntimeData->get("testNS");
     EXPECT_TRUE(data.canConvert<QString>());
     EXPECT_EQ(data.toString(), "barfoo");
@@ -161,7 +161,7 @@ let data = engine.getSharedData();
 if (data !== "foobar") throw "Something is wrong";
 engine.setSharedData("barfoo");
 )--")
-                         .isError());
+                    .isError());
     data = pRuntimeData->get("otherTestNS");
     EXPECT_TRUE(data.canConvert<QString>());
     EXPECT_EQ(data.toString(), "barfoo");

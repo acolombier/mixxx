@@ -8,7 +8,8 @@ ControllerNamespacedSharedData* ControllerSharedData::namespaced(const QString& 
 
 ControllerNamespacedSharedData::ControllerNamespacedSharedData(
         ControllerSharedData* parent, const QString& ns)
-        : QObject(parent), m_namespace(ns) {
+        : QObject(parent),
+          m_namespace(ns) {
     connect(parent,
             &ControllerSharedData::updated,
             this,

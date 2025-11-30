@@ -54,6 +54,7 @@ class Controller : public QObject {
 
     virtual QList<LegacyControllerMapping::ScriptFileInfo> getMappingScriptFiles() = 0;
     virtual QList<std::shared_ptr<AbstractLegacyControllerSetting>> getMappingSettings() = 0;
+    virtual const QString& getSharedDataNamespace() = 0;
 #ifdef MIXXX_USE_QML
     virtual QList<LegacyControllerMapping::QMLModuleInfo> getMappingModules() = 0;
     virtual QList<LegacyControllerMapping::ScreenInfo> getMappingInfoScreens() = 0;
@@ -113,8 +114,6 @@ class Controller : public QObject {
     // function that is assumed to exist. (Sub-classes may want to reimplement
     // this if they have an alternate way of handling such data.)
     virtual void receive(const QByteArray& data, mixxx::Duration timestamp);
-
-    virtual bool applyMapping(const QString& resourcePath, std::shared_ptr<ControllerSharedData> runtimeData);
     virtual void slotBeforeEngineShutdown();
 
     // Puts the controller in and out of learning mode.
@@ -122,7 +121,8 @@ class Controller : public QObject {
     void stopLearning();
 
   protected:
-    virtual bool applyMapping(const QString& resourcePath);
+    virtual bool applyMapping(const QString& resourcePath,
+            std::shared_ptr<ControllerSharedData> runtimeData);
 
     template<typename SpecificMappingType>
         requires(std::is_final_v<SpecificMappingType> == true)
@@ -180,7 +180,8 @@ class Controller : public QObject {
     virtual bool sendBytes(const QByteArray& data) = 0;
 
   private: // but used by ControllerManager
-    virtual int open(const QString& resourcePath) = 0;
+    virtual int open(const QString& resourcePath,
+            std::shared_ptr<ControllerSharedData> runtimeData) = 0;
     virtual int close() = 0;
     // Requests that the device poll if it is a polling device. Returns true
     // if events were handled.

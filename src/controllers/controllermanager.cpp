@@ -301,7 +301,7 @@ void ControllerManager::slotSetUpDevices() {
 
         qDebug() << "Opening controller:" << name;
 
-        int value = pController->open(m_pConfig->getResourcePath());
+        int value = pController->open(m_pConfig->getResourcePath(), m_pRuntimeData);
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
             continue;
@@ -398,7 +398,7 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
-    int result = pController->open(m_pConfig->getResourcePath());
+    int result = pController->open(m_pConfig->getResourcePath(), m_pRuntimeData);
     pollIfAnyControllersOpen();
 
     // If successfully opened the device, apply the mapping and save the

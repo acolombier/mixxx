@@ -15,7 +15,8 @@ class ControllerSharedData : public QObject {
     Q_OBJECT
   public:
     ControllerSharedData(QObject* parent)
-            : QObject(parent), m_value() {
+            : QObject(parent),
+              m_value() {
     }
 
     QVariant get(const QString& ns) const {

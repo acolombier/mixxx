@@ -80,7 +80,8 @@ void Controller::stopEngine() {
     emit engineStopped();
 }
 
-bool Controller::applyMapping(const QString& resourcePath, std::shared_ptr<ControllerSharedData> runtimeData) {
+bool Controller::applyMapping(const QString& resourcePath,
+        std::shared_ptr<ControllerSharedData> runtimeData) {
     qCInfo(m_logBase) << "Applying controller mapping...";
 
     // Load the script code into the engine
@@ -108,9 +109,8 @@ bool Controller::applyMapping(const QString& resourcePath, std::shared_ptr<Contr
     Q_UNUSED(resourcePath);
 #endif
 
-    const auto& ns = pMapping->sharedDataNamespace();
-    if (!ns.isEmpty() && runtimeData != nullptr) {
-        m_pScriptEngineLegacy->setSharedData(runtimeData->namespaced(ns));
+    if (runtimeData != nullptr) {
+        m_pScriptEngineLegacy->setSharedData(runtimeData->namespaced(getSharedDataNamespace()));
     }
     return m_pScriptEngineLegacy->initialize();
 }

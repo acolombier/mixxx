@@ -146,6 +146,13 @@ QList<std::shared_ptr<AbstractLegacyControllerSetting>> BulkController::getMappi
     return m_pMapping->getSettings();
 }
 
+const QString& BulkController::getSharedDataNamespace() {
+    if (!m_pMapping) {
+        return QStringLiteral("");
+    }
+    return m_pMapping->sharedDataNamespace();
+}
+
 #ifdef MIXXX_USE_QML
 QList<LegacyControllerMapping::QMLModuleInfo> BulkController::getMappingModules() {
     if (!m_pMapping) {
@@ -194,7 +201,8 @@ bool BulkController::matchProductInfo(const ProductInfo& product) {
     return true;
 }
 
-int BulkController::open(const QString& resourcePath) {
+int BulkController::open(const QString& resourcePath,
+        std::shared_ptr<ControllerSharedData> runtimeData) {
     if (isOpen()) {
         qCWarning(m_logBase) << "USB Bulk device" << getName() << "already open";
         return -1;
@@ -323,7 +331,7 @@ int BulkController::open(const QString& resourcePath) {
         // audio directly, like when scratching
         m_pReader->start(QThread::HighPriority);
     }
-    applyMapping(resourcePath);
+    applyMapping(resourcePath, runtimeData);
     setOpen(true);
     return 0;
 }
