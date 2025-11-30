@@ -25,9 +25,6 @@ namespace {
 constexpr double kNoTrackColor = -1;
 constexpr double kShiftCuesOffsetMillis = 10;
 constexpr double kShiftCuesOffsetSmallMillis = 1;
-#ifdef __STEM__
-constexpr int kMaxSupportedStems = 4;
-#endif
 const QString kEffectGroupFormat = QStringLiteral("[EqualizerRack1_%1_Effect1]");
 
 inline double trackColorToDouble(mixxx::RgbColor::optional_t color) {
@@ -64,13 +61,6 @@ BaseTrackPlayerImpl::BaseTrackPlayerImpl(
             primaryDeck);
     m_pChannel = channel.get();
 
-    m_pInputConfigured = make_parented<ControlProxy>(getGroup(), "input_configured", this);
-#ifdef __VINYLCONTROL__
-    m_pVinylControlEnabled = make_parented<ControlProxy>(getGroup(), "vinylcontrol_enabled", this);
-    m_pVinylControlEnabled->connectValueChanged(this, &BaseTrackPlayerImpl::slotVinylControlEnabled);
-    m_pVinylControlStatus = make_parented<ControlProxy>(getGroup(), "vinylcontrol_status", this);
-#endif
-
     EngineBuffer* pEngineBuffer = m_pChannel->getEngineBuffer();
     pMixingEngine->addChannel(std::move(channel));
 
@@ -86,6 +76,11 @@ BaseTrackPlayerImpl::BaseTrackPlayerImpl(
             &EngineBuffer::trackLoadFailed,
             this,
             &BaseTrackPlayerImpl::slotLoadFailed);
+    connect(pEngineBuffer,
+            &EngineBuffer::noVinylControlInputConfigured,
+            this,
+            // signal-to-signal
+            &BaseTrackPlayerImpl::noVinylControlInputConfigured);
 
     m_pEject = std::make_unique<ControlPushButton>(ConfigKey(getGroup(), "eject"));
     connect(m_pEject.get(),
@@ -194,6 +189,13 @@ BaseTrackPlayerImpl::BaseTrackPlayerImpl(
             &ControlObject::valueChanged,
             this,
             &BaseTrackPlayerImpl::slotLoadTrackFromSampler);
+    m_pLoadTrackFromPreviewDeck = std::make_unique<ControlObject>(
+            ConfigKey(getGroup(), "LoadTrackFromPreviewDeck"),
+            false);
+    connect(m_pLoadTrackFromPreviewDeck.get(),
+            &ControlObject::valueChanged,
+            this,
+            &BaseTrackPlayerImpl::slotLoadTrackFromPreviewDeck);
 
     // Waveform controls
     // This acts somewhat like a ControlPotmeter, but the normal _up/_down methods
@@ -289,12 +291,10 @@ BaseTrackPlayerImpl::BaseTrackPlayerImpl(
     }
 
 #ifdef __STEM__
-    m_pStemColors.reserve(kMaxSupportedStems);
+    m_pStemColors.reserve(mixxx::kMaxSupportedStems);
     QString group = getGroup();
-    for (int stemIdx = 1; stemIdx <= kMaxSupportedStems; stemIdx++) {
-        QString stemGroup = QStringLiteral("%1Stem%2]")
-                                    .arg(group.left(group.size() - 1),
-                                            QString::number(stemIdx));
+    for (int stemIdx = 0; stemIdx < mixxx::kMaxSupportedStems; stemIdx++) {
+        QString stemGroup = EngineDeck::getGroupForStem(group, stemIdx);
         m_pStemColors.emplace_back(std::make_unique<ControlObject>(
                 ConfigKey(stemGroup, QStringLiteral("color"))));
         m_pStemColors.back()->set(kNoTrackColor);
@@ -308,7 +308,7 @@ BaseTrackPlayerImpl::~BaseTrackPlayerImpl() {
 }
 
 TrackPointer BaseTrackPlayerImpl::loadFakeTrack(bool bPlay, double filebpm) {
-    TrackPointer pTrack(Track::newTemporary());
+    TrackPointer pTrack = Track::newTemporary();
     pTrack->setAudioProperties(
             mixxx::kEngineChannelOutputCount,
             mixxx::audio::SampleRate(44100),
@@ -420,7 +420,11 @@ void BaseTrackPlayerImpl::slotEjectTrack(double v) {
     if (elapsed < mixxx::Duration::fromMillis(kUnreplaceDelay)) {
         TrackPointer lastEjected = m_pPlayerManager->getSecondLastEjectedTrack();
         if (lastEjected) {
-            slotLoadTrack(lastEjected, false);
+            slotLoadTrack(lastEjected,
+#ifdef __STEM__
+                    mixxx::StemChannelSelection(),
+#endif
+                    false);
         }
         return;
     }
@@ -429,7 +433,11 @@ void BaseTrackPlayerImpl::slotEjectTrack(double v) {
     if (!m_pLoadedTrack) {
         TrackPointer lastEjected = m_pPlayerManager->getLastEjectedTrack();
         if (lastEjected) {
-            slotLoadTrack(lastEjected, false);
+            slotLoadTrack(lastEjected,
+#ifdef __STEM__
+                    mixxx::StemChannelSelection(),
+#endif
+                    false);
         }
         return;
     }
@@ -481,6 +489,14 @@ TrackPointer BaseTrackPlayerImpl::unloadTrack() {
     // playing and the last buffer will be processed.
 
     m_pPlay->set(0.0);
+
+#ifdef __STEM__
+    if (m_pStemColors.size()) {
+        for (const auto& stemColorCo : m_pStemColors) {
+            stemColorCo->forceSet(kNoTrackColor);
+        }
+    }
+#endif
 
     TrackPointer pUnloadedTrack(std::move(m_pLoadedTrack));
     DEBUG_ASSERT(!m_pLoadedTrack);
@@ -543,7 +559,14 @@ void BaseTrackPlayerImpl::disconnectLoadedTrack() {
     disconnect(m_pLoadedTrack.get(), nullptr, m_pKey.get(), nullptr);
 }
 
-void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack, bool bPlay) {
+#ifdef __STEM__
+void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack,
+        mixxx::StemChannelSelection stemMask,
+        bool bPlay) {
+#else
+void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack,
+        bool bPlay) {
+#endif
     //qDebug() << "BaseTrackPlayerImpl::slotLoadTrack" << getGroup() << pNewTrack.get();
     // Before loading the track, ensure we have access. This uses lazy
     // evaluation to make sure track isn't NULL before we dereference it.
@@ -566,7 +589,17 @@ void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack, bool bPlay) {
 
     // Request a new track from EngineBuffer
     EngineBuffer* pEngineBuffer = m_pChannel->getEngineBuffer();
+#ifdef __STEM__
+    pEngineBuffer->loadTrack(pNewTrack,
+            stemMask,
+            bPlay,
+            m_pChannelToCloneFrom);
+
+    // Select a specific stem if requested
+    emit selectedStems(stemMask);
+#else
     pEngineBuffer->loadTrack(pNewTrack, bPlay, m_pChannelToCloneFrom);
+#endif
 }
 
 void BaseTrackPlayerImpl::slotLoadFailed(TrackPointer pTrack, const QString& reason) {
@@ -696,19 +729,17 @@ void BaseTrackPlayerImpl::slotTrackLoaded(TrackPointer pNewTrack,
         }
 
 #ifdef __STEM__
-        if (m_pStemColors.size()) {
-            const auto& stemInfo = m_pLoadedTrack->getStemInfo();
-            DEBUG_ASSERT(stemInfo.size() <= kMaxSupportedStems);
-            int stemIdx = 0;
-            for (const auto& stemColorCo : m_pStemColors) {
-                auto color = kNoTrackColor;
-                if (stemIdx < stemInfo.size()) {
-                    color = trackColorToDouble(mixxx::RgbColor::fromQColor(
-                            stemInfo.at(stemIdx).getColor()));
-                }
-                stemColorCo->forceSet(color);
-                stemIdx++;
+        const auto& stemInfo = pNewTrack->getStemInfo();
+        DEBUG_ASSERT(!m_pChannel->isPrimaryDeck() || stemInfo.empty() ||
+                static_cast<size_t>(stemInfo.size()) == m_pStemColors.size());
+
+        for (size_t stemIdx = 0; stemIdx < m_pStemColors.size(); stemIdx++) {
+            auto color = kNoTrackColor;
+            if (stemIdx < static_cast<size_t>(stemInfo.size())) {
+                color = trackColorToDouble(mixxx::RgbColor::fromQColor(
+                        stemInfo.at(stemIdx).getColor()));
             }
+            m_pStemColors[stemIdx]->forceSet(color);
         }
 #endif
 
@@ -777,12 +808,21 @@ void BaseTrackPlayerImpl::slotCloneChannel(EngineChannel* pChannel) {
 
     m_pChannelToCloneFrom = pChannel;
     bool play = ControlObject::toBool(ConfigKey(m_pChannelToCloneFrom->getGroup(), "play"));
-    slotLoadTrack(pTrack, play);
+    slotLoadTrack(pTrack,
+#ifdef __STEM__
+            pChannel->getEngineBuffer()->getStemMask(),
+#endif
+            play);
 }
 
 void BaseTrackPlayerImpl::slotLoadTrackFromDeck(double d) {
     int deck = static_cast<int>(d);
     loadTrackFromGroup(PlayerManager::groupForDeck(deck - 1));
+}
+
+void BaseTrackPlayerImpl::slotLoadTrackFromPreviewDeck(double d) {
+    int deck = static_cast<int>(d);
+    loadTrackFromGroup(PlayerManager::groupForPreviewDeck(deck - 1));
 }
 
 void BaseTrackPlayerImpl::slotLoadTrackFromSampler(double d) {
@@ -801,7 +841,11 @@ void BaseTrackPlayerImpl::loadTrackFromGroup(const QString& group) {
         return;
     }
 
-    slotLoadTrack(pTrack, false);
+    slotLoadTrack(pTrack,
+#ifdef __STEM__
+            mixxx::StemChannelSelection(),
+#endif
+            false);
 }
 
 bool BaseTrackPlayerImpl::isTrackMenuControlAvailable() {
@@ -845,19 +889,26 @@ void BaseTrackPlayerImpl::slotSetReplayGain(mixxx::ReplayGain replayGain) {
     }
 }
 
-void BaseTrackPlayerImpl::slotAdjustReplayGain(mixxx::ReplayGain replayGain) {
+void BaseTrackPlayerImpl::slotAdjustReplayGain(
+        mixxx::ReplayGain replayGain, const QString& requestingPlayerGroup) {
     const double factor = m_pReplayGain->get() / replayGain.getRatio();
     const double newPregain = m_pPreGain->get() * factor;
 
     // There is a very slight chance that there will be a buffer call in between these sets.
     // Therefore, we first adjust the control that is being lowered before the control
     // that is being raised.  Worst case, the volume goes down briefly before rectifying.
+    // Only reset Gain if this player requested the change, ie. avoid Gain change
+    // in other players this track is loaded to.
     if (factor < 1.0) {
-        m_pPreGain->set(newPregain);
+        if (requestingPlayerGroup == m_group) {
+            m_pPreGain->set(newPregain);
+        }
         setReplayGain(replayGain.getRatio());
     } else {
         setReplayGain(replayGain.getRatio());
-        m_pPreGain->set(newPregain);
+        if (requestingPlayerGroup == m_group) {
+            m_pPreGain->set(newPregain);
+        }
     }
 }
 
@@ -943,23 +994,6 @@ void BaseTrackPlayerImpl::setupEqControls() {
             group, QStringLiteral("button_parameter3"), this);
 }
 
-void BaseTrackPlayerImpl::slotVinylControlEnabled(double v) {
-#ifdef __VINYLCONTROL__
-    bool configured = m_pInputConfigured->toBool();
-    bool vinylcontrol_enabled = v > 0.0;
-
-    // Warn the user if they try to enable vinyl control on a player with no
-    // configured input.
-    if (!configured && vinylcontrol_enabled) {
-        m_pVinylControlEnabled->set(0.0);
-        m_pVinylControlStatus->set(VINYL_STATUS_DISABLED);
-        emit noVinylControlInputConfigured();
-    }
-#else
-    Q_UNUSED(v);
-#endif
-}
-
 void BaseTrackPlayerImpl::slotWaveformZoomValueChangeRequest(double v) {
     if (v <= WaveformWidgetRenderer::s_waveformMaxZoom
             && v >= WaveformWidgetRenderer::s_waveformMinZoom) {
@@ -1019,7 +1053,7 @@ void BaseTrackPlayerImpl::slotUpdateReplayGainFromPregain(double pressed) {
     if (gain == 1.0) {
         return;
     }
-    m_pLoadedTrack->adjustReplayGainFromPregain(gain);
+    m_pLoadedTrack->adjustReplayGainFromPregain(gain, m_group);
 }
 
 void BaseTrackPlayerImpl::setReplayGain(double value) {

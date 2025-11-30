@@ -10,9 +10,11 @@
 #include "controllers/defs_controllers.h"
 #include "controllers/scripting/legacy/controllerscriptenginelegacy.h"
 #include "moc_controllermanager.cpp"
+#include "preferences/usersettings.h"
 #include "util/cmdlineargs.h"
 #include "util/compatibility/qmutex.h"
 #include "util/duration.h"
+#include "util/thread_affinity.h"
 #include "util/time.h"
 
 #ifdef __PORTMIDI__
@@ -36,7 +38,8 @@
 // Poll every 1ms (where possible) for good controller response
 #ifdef __LINUX__
 // Many Linux distros ship with the system tick set to 250Hz so 1ms timer
-// reportedly causes CPU hosage. See Bug #990992 rryan 6/2012
+// reportedly causes CPU hosage. See https://github.com/mixxxdj/mixxx/issues/6383
+// rryan 6/2012
 const mixxx::Duration ControllerManager::kPollInterval = mixxx::Duration::fromMillis(5);
 #else
 const mixxx::Duration ControllerManager::kPollInterval = mixxx::Duration::fromMillis(1);
@@ -108,7 +111,7 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
     }
 
     m_pollTimer.setInterval(kPollInterval.toIntegerMillis());
-    connect(&m_pollTimer, &QTimer::timeout, this, &ControllerManager::pollDevices);
+    connect(&m_pollTimer, &QTimer::timeout, this, &ControllerManager::slotPollDevices);
 
     m_pThread = new QThread;
     m_pThread->setObjectName("Controller");
@@ -156,13 +159,13 @@ void ControllerManager::slotInitialize() {
     // Instantiate all enumerators. Enumerators can take a long time to
     // construct since they interact with host MIDI APIs.
 #ifdef __PORTMIDI__
-    m_enumerators.append(new PortMidiEnumerator());
+    m_enumerators.append(new PortMidiEnumerator(m_pConfig));
 #endif
 #ifdef __HSS1394__
-    m_enumerators.append(new Hss1394Enumerator(m_pConfig));
+    m_enumerators.append(new Hss1394Enumerator());
 #endif
 #ifdef __BULK__
-    m_enumerators.append(new BulkEnumerator(m_pConfig));
+    m_enumerators.append(new BulkEnumerator());
 #endif
 #ifdef __HID__
     m_enumerators.append(new HidEnumerator());
@@ -288,7 +291,7 @@ void ControllerManager::slotSetUpDevices() {
         pMapping->loadSettings(m_pConfig, pController->getName());
 
         // This runs on the main thread but LegacyControllerMapping is not thread safe, so clone it.
-        pController->setMapping(pMapping->clone());
+        pController->setMapping(std::move(pMapping));
 
         // If we are in safe mode, skip opening controllers.
         if (CmdlineArgs::Instance().getSafeMode()) {
@@ -298,7 +301,7 @@ void ControllerManager::slotSetUpDevices() {
 
         qDebug() << "Opening controller:" << name;
 
-        int value = pController->open();
+        int value = pController->open(m_pConfig->getResourcePath());
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
             continue;
@@ -345,7 +348,7 @@ void ControllerManager::stopPolling() {
     qDebug() << "Controller polling stopped.";
 }
 
-void ControllerManager::pollDevices() {
+void ControllerManager::slotPollDevices() {
     // Note: this function is called from a high priority thread which
     // may stall the GUI or may reduce the available CPU time for other
     // High Priority threads like caching reader or broadcasting more
@@ -361,7 +364,7 @@ void ControllerManager::pollDevices() {
     // we are cooperative a skip the next cycle to free at least some
     // CPU time
     //
-    // Some random test data form a i5-3317U CPU @ 1.70GHz Running
+    // Some random test data from a i5-3317U CPU @ 1.70GHz Running
     // Ubuntu Trusty:
     // * Idle poll: ~5 µs.
     // * 5 messages burst (full midi bandwidth): ~872 µs.
@@ -388,13 +391,14 @@ void ControllerManager::pollDevices() {
 }
 
 void ControllerManager::openController(Controller* pController) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     if (!pController) {
         return;
     }
     if (pController->isOpen()) {
         pController->close();
     }
-    int result = pController->open();
+    int result = pController->open(m_pConfig->getResourcePath());
     pollIfAnyControllersOpen();
 
     // If successfully opened the device, apply the mapping and save the
@@ -415,6 +419,7 @@ void ControllerManager::openController(Controller* pController) {
 }
 
 void ControllerManager::closeController(Controller* pController) {
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(this);
     if (!pController) {
         return;
     }
@@ -425,6 +430,8 @@ void ControllerManager::closeController(Controller* pController) {
             ConfigKey("[Controller]", sanitizeDeviceName(pController->getName())), 0);
 }
 
+// This needs to be called in a Qt::BlockingQueuedConnection so that the
+// signaling thread can't alter the LegacyControllerMapping during applying
 void ControllerManager::slotApplyMapping(Controller* pController,
         std::shared_ptr<LegacyControllerMapping> pMapping,
         bool bEnabled) {
@@ -433,10 +440,11 @@ void ControllerManager::slotApplyMapping(Controller* pController,
         return;
     }
 
+    closeController(pController);
     ConfigKey key(kSettingsGroup, sanitizeDeviceName(pController->getName()));
     if (!pMapping) {
-        closeController(pController);
         // Unset the controller mapping for this controller
+        pController->setMapping(nullptr);
         m_pConfig->remove(key);
         emit mappingApplied(false);
         return;
@@ -446,21 +454,26 @@ void ControllerManager::slotApplyMapping(Controller* pController,
         qWarning() << "Mapping is dirty, changes might be lost on restart!";
     }
 
-
     // Save the file path/name in the config so it can be auto-loaded at
     // startup next time
     m_pConfig->set(key, pMapping->filePath());
 
-    // This runs on the main thread but LegacyControllerMapping is not thread safe, so clone it.
-    pController->setMapping(pMapping->clone());
+    pController->setMapping(std::move(pMapping));
 
     if (bEnabled) {
-        openController(pController);
         emit mappingApplied(pController->isMappable());
     } else {
-        closeController(pController);
         emit mappingApplied(false);
+        return;
     }
+
+    // Note: openController() may call ControllerRenderingEngine::setup()
+    // Which has a blocking invokeMethod() call for QOffscreenSurface::create()
+    // That why we need to return from this blocking call first.
+    QMetaObject::invokeMethod(
+            this,
+            [this, pController]() { openController(pController); },
+            Qt::QueuedConnection);
 }
 
 // static

@@ -115,6 +115,29 @@ SoundSource::OpenResult SoundSourceSingleSTEM::tryOpen(
 
     DEBUG_ASSERT(pDecoder);
 
+    if (pDecoder->id == AV_CODEC_ID_AAC ||
+            pDecoder->id == AV_CODEC_ID_AAC_LATM) {
+        // We only allow AAC decoders that pass our seeking tests
+        if (std::strcmp(pDecoder->name, "aac") != 0 && std::strcmp(pDecoder->name, "aac_at") != 0) {
+            const AVCodec* pAacDecoder = avcodec_find_decoder_by_name("aac");
+            if (pAacDecoder) {
+                pDecoder = pAacDecoder;
+            } else {
+                kLogger.warning()
+                        << "Internal aac decoder not found in your FFmpeg "
+                           "build."
+                        << "To enable AAC support, please install an FFmpeg "
+                           "version with the internal aac decoder enabled."
+                           "Note 1: The libfdk_aac decoder is no working properly "
+                           "with Mixxx, FFmpeg's internal AAC decoder does."
+                        << "Note 2: AAC decoding may be subject to patent "
+                           "restrictions, depending on your country.";
+            }
+        }
+    }
+
+    kLogger.debug() << "using FFmpeg decoder:" << pDecoder->long_name;
+
     // Select the main mix stream for decoding
     AVStream* pavStream = selectedAudioStream;
     DEBUG_ASSERT(pavStream != nullptr);
@@ -321,8 +344,15 @@ SoundSource::OpenResult SoundSourceSTEM::tryOpen(
         return OpenResult::Failed;
     }
 
-    AVStream* firstAudioStream = nullptr;
+    bool foundPremixedStream = false;
+    AVStream* firstStem = nullptr;
     int stemCount = 0;
+    uint selectedStemMask = params.stemMask();
+    VERIFY_OR_DEBUG_ASSERT(selectedStemMask <= 2 << mixxx::kMaxSupportedStems) {
+        kLogger.warning().noquote()
+                << "Invalid selected stem mask" << selectedStemMask;
+        return OpenResult::Failed;
+    }
     OpenParams stemParam = params;
     stemParam.setChannelCount(mixxx::audio::ChannelCount::stereo());
     for (unsigned int streamIdx = 0; streamIdx < pavInputFormatContext->nb_streams; streamIdx++) {
@@ -343,26 +373,49 @@ SoundSource::OpenResult SoundSourceSTEM::tryOpen(
             return OpenResult::Failed;
         }
 
-        if (!firstAudioStream) {
-            firstAudioStream = pavInputFormatContext->streams[streamIdx];
-            // The main mix is only used to detect the stream parameters
+        if (!foundPremixedStream) {
+            // We can currently allow this, as we NEVER LOAD the pre-mastered
+            // track, as we do not have analyzer data for it.
+            // This is because we only support one set of metadata for the whole
+            // STEM file, where we determine the track parameters from an
+            // on-the-fly mix of all 4 stems. Especially the replaygain differs
+            // between the on-the-fly mix and the pre-mastered track, because we
+            // do not apply DSP (limiter, equalizer, compressor) to the
+            // on-the-fly mix. If this ever gets changed, we should set
+            // `initSampleRateOnce` and `initBitrateOnce` to match the stem
+            // sample rate and bit rate, such that
+            // SoundSourceFFmpeg::resampleDecodedAVFrame will take care to
+            // resample the main stream, in order to use the same time scale and
+            // keep a working grid/cue definition
+            foundPremixedStream = true;
             continue;
+        }
+
+        stemCount++;
+
+        if (!firstStem) {
+            // We always keep track of the stem to verify that stem stream properties are matching
+            firstStem = pavInputFormatContext->streams[streamIdx];
         } else {
             if (pavInputFormatContext->streams[streamIdx]->codecpar->codec_id !=
-                    firstAudioStream->codecpar->codec_id) {
+                    firstStem->codecpar->codec_id) {
                 kLogger.warning().noquote()
-                        << "stream at position" << streamIdx << "is using a different codec";
+                        << "Stem at position" << streamIdx << "is using a different codec";
                 return OpenResult::Failed;
             }
 
             if (pavInputFormatContext->streams[streamIdx]
                             ->codecpar->sample_rate !=
-                    firstAudioStream->codecpar->sample_rate) {
+                    firstStem->codecpar->sample_rate) {
                 kLogger.warning().noquote()
-                        << "stream at position" << streamIdx << "is using a different sample rate";
+                        << "Stem at position" << streamIdx << "is using a different sample rate";
                 return OpenResult::Failed;
             }
-            stemCount++;
+        }
+
+        // StemIdx is equal to StreamIdx -1 (the main mix)
+        if (selectedStemMask && !(selectedStemMask & 1 << (streamIdx - 1))) {
+            continue;
         }
 
         m_pStereoStreams.emplace_back(std::make_unique<SoundSourceSingleSTEM>(getUrl(), streamIdx));
@@ -380,7 +433,16 @@ SoundSource::OpenResult SoundSourceSTEM::tryOpen(
         return OpenResult::Failed;
     }
 
-    if (params.getSignalInfo().getChannelCount() == mixxx::audio::ChannelCount::stereo()) {
+    VERIFY_OR_DEBUG_ASSERT(!m_pStereoStreams.empty()) {
+        kLogger.warning().noquote()
+                << "no stem track were selected";
+        close();
+        return OpenResult::Failed;
+    }
+
+    if (params.getSignalInfo().getChannelCount() ==
+                    mixxx::audio::ChannelCount::stereo() ||
+            selectedStemMask) {
         // Requesting a stereo stream (used for samples and preview decks)
         m_requestedChannelCount = mixxx::audio::ChannelCount::stereo();
         initChannelCountOnce(mixxx::audio::ChannelCount::stereo());
@@ -388,8 +450,8 @@ SoundSource::OpenResult SoundSourceSTEM::tryOpen(
         // No special channel format request
         m_requestedChannelCount = mixxx::audio::ChannelCount::stem();
         initChannelCountOnce(
-                mixxx::audio::ChannelCount::stereo() *
-                m_pStereoStreams.size());
+                static_cast<int>(mixxx::audio::ChannelCount::stereo() *
+                        m_pStereoStreams.size()));
     }
 
     initSampleRateOnce(m_pStereoStreams.front()->getSignalInfo().getSampleRate());
@@ -431,16 +493,22 @@ ReadableSampleFrames SoundSourceSTEM::readSampleFramesClamped(
             SampleBuffer::ReadableSlice(
                     globalSampleFrames.writableData(),
                     globalSampleFrames.writableLength()));
-    int stemCount = m_pStereoStreams.size();
+    std::size_t stemCount = m_pStereoStreams.size();
     CSAMPLE* pBuffer = globalSampleFrames.writableData();
 
-    if (m_requestedChannelCount == mixxx::audio::ChannelCount::stereo()) {
+    if (m_requestedChannelCount == mixxx::audio::ChannelCount::stereo() && stemCount != 1) {
         SampleUtil::clear(pBuffer, globalSampleFrames.writableLength());
     } else {
-        DEBUG_ASSERT(stemSampleLength * stemCount == globalSampleFrames.writableLength());
+        DEBUG_ASSERT(stemSampleLength * static_cast<SINT>(stemCount) ==
+                globalSampleFrames.writableLength());
     }
 
-    for (int streamIdx = 0; streamIdx < stemCount; streamIdx++) {
+    if (stemCount == 1) {
+        m_pStereoStreams[0]->readSampleFrames(globalSampleFrames);
+        return read;
+    }
+
+    for (std::size_t streamIdx = 0; streamIdx < stemCount; streamIdx++) {
         WritableSampleFrames currentStemFrame = WritableSampleFrames(
                 globalSampleFrames.frameIndexRange(),
                 SampleBuffer::WritableSlice(

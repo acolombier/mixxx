@@ -50,6 +50,9 @@ class CmdlineArgs final {
     bool isQml() const {
         return m_qml;
     }
+    bool isAwareOfRisk() const {
+        return m_awareOfRisk;
+    }
 #endif
     bool getSafeMode() const { return m_safeMode; }
     bool useColors() const {
@@ -65,6 +68,9 @@ class CmdlineArgs final {
     bool getSettingsPathSet() const { return m_settingsPathSet; }
     mixxx::LogLevel getLogLevel() const { return m_logLevel; }
     mixxx::LogLevel getLogFlushLevel() const { return m_logFlushLevel; }
+    qint64 getLogMaxFileSize() const {
+        return m_logMaxFileSize;
+    }
     bool getTimelineEnabled() const { return !m_timelinePath.isEmpty(); }
     const QString& getLocale() const { return m_locale; }
     const QString& getSettingsPath() const { return m_settingsPath; }
@@ -73,6 +79,10 @@ class CmdlineArgs final {
     }
     const QString& getResourcePath() const { return m_resourcePath; }
     const QString& getTimelinePath() const { return m_timelinePath; }
+
+    const QString& getStyle() const {
+        return m_styleName;
+    }
 
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
@@ -99,6 +109,7 @@ class CmdlineArgs final {
     bool m_developer; // Developer Mode
 #ifdef MIXXX_USE_QML
     bool m_qml;
+    bool m_awareOfRisk;
 #endif
     bool m_safeMode;
     bool m_useLegacyVuMeter;
@@ -110,8 +121,10 @@ class CmdlineArgs final {
     bool m_parseForUserFeedbackRequired;
     mixxx::LogLevel m_logLevel; // Level of stderr logging message verbosity
     mixxx::LogLevel m_logFlushLevel; // Level of mixx.log file flushing
+    qint64 m_logMaxFileSize;
     QString m_locale;
     QString m_settingsPath;
     QString m_resourcePath;
     QString m_timelinePath;
+    QString m_styleName;
 };

@@ -1,6 +1,7 @@
 #include "library/browse/browsetablemodel.h"
 
 #include <QMessageBox>
+#include <QMimeData>
 #include <QStringList>
 #include <QUrl>
 
@@ -218,7 +219,9 @@ TrackPointer BrowseTableModel::getTrack(const QModelIndex& index) const {
 }
 
 TrackPointer BrowseTableModel::getTrackByRef(const TrackRef& trackRef) const {
-    if (m_pRecordingManager->getRecordingLocation() == trackRef.getLocation()) {
+    if (m_pRecordingManager &&
+            m_pRecordingManager->getRecordingLocation() ==
+                    trackRef.getLocation()) {
         QMessageBox::critical(nullptr,
                 tr("Mixxx Library"),
                 tr("Could not load the following file because it is in use by "
@@ -384,7 +387,8 @@ TrackModel::Capabilities BrowseTableModel::getCapabilities() const {
             Capability::LoadToDeck |
             Capability::LoadToPreviewDeck |
             Capability::LoadToSampler |
-            Capability::RemoveFromDisk;
+            Capability::RemoveFromDisk |
+            Capability::Sorting;
 }
 
 QString BrowseTableModel::modelKey(bool noSearch) const {

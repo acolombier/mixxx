@@ -43,7 +43,7 @@ void WLibrarySidebar::contextMenuEvent(QContextMenuEvent *event) {
     //}
 }
 
-// Drag enter event, happens when a dragged item enters the track sources view
+/// Drag enter event, happens when a dragged item enters the track sources view
 void WLibrarySidebar::dragEnterEvent(QDragEnterEvent * event) {
     qDebug() << "WLibrarySidebar::dragEnterEvent" << event->mimeData()->formats();
     if (event->mimeData()->hasUrls()) {
@@ -62,7 +62,7 @@ void WLibrarySidebar::dragEnterEvent(QDragEnterEvent * event) {
     //QTreeView::dragEnterEvent(event);
 }
 
-// Drag move event, happens when a dragged item hovers over the track sources view...
+/// Drag move event, happens when a dragged item hovers over the track sources view...
 void WLibrarySidebar::dragMoveEvent(QDragMoveEvent * event) {
     //qDebug() << "dragMoveEvent" << event->mimeData()->formats();
     // Start a timer to auto-expand sections the user hovers on.
@@ -102,10 +102,12 @@ void WLibrarySidebar::dragMoveEvent(QDragMoveEvent * event) {
                     if (sidebarModel->dragMoveAccept(destIndex, url)) {
                         // We only need one URL to be valid for us
                         // to accept the whole drag...
-                        // consider we have a long list of valid files, checking all will
-                        // take a lot of time that stales Mixxx and this makes the drop feature useless
-                        // Eg. you may have tried to drag two MP3's and an EXE, the drop is accepted here,
-                        // but the EXE is sorted out later after dropping
+                        // Consider that we might have a long list of files,
+                        // checking all will take a lot of time that stalls
+                        // Mixxx and this makes the drop feature useless.
+                        // E.g. you may have tried to drag two MP3's and an EXE,
+                        // the drop is accepted here, but the EXE is filtered
+                        // out later after dropping
                         accepted = true;
                         break;
                     }
@@ -174,6 +176,16 @@ void WLibrarySidebar::dropEvent(QDropEvent * event) {
     } else {
         event->ignore();
     }
+}
+
+void WLibrarySidebar::renameSelectedItem() {
+    // Rename crate or playlist (internal, external, history)
+    QModelIndex selIndex = selectedIndex();
+    if (!selIndex.isValid()) {
+        return;
+    }
+    emit renameItem(selIndex);
+    return;
 }
 
 void WLibrarySidebar::toggleSelectedItem() {
@@ -305,16 +317,7 @@ void WLibrarySidebar::keyPressEvent(QKeyEvent* event) {
         emit setLibraryFocus(FocusWidget::TracksTable);
         return;
     case kRenameSidebarItemShortcutKey: { // F2
-        // Rename crate or playlist (internal, external, history)
-        QModelIndex selIndex = selectedIndex();
-        if (!selIndex.isValid()) {
-            return;
-        }
-        if (isExpanded(selIndex)) {
-            // Root views / knots can not be renamed
-            return;
-        }
-        emit renameItem(selIndex);
+        renameSelectedItem();
         return;
     }
     case kHideRemoveShortcutKey: { // Del (macOS: Cmd+Backspace)
@@ -348,8 +351,8 @@ void WLibrarySidebar::focusInEvent(QFocusEvent* event) {
     QTreeView::focusInEvent(event);
 }
 
-void WLibrarySidebar::selectIndex(const QModelIndex& index) {
-    //qDebug() << "WLibrarySidebar::selectIndex" << index;
+void WLibrarySidebar::selectIndex(const QModelIndex& index, bool scrollToIndex) {
+    // qDebug() << "WLibrarySidebar::selectIndex" << index << scrollToIndex;
     if (!index.isValid()) {
         return;
     }
@@ -362,8 +365,18 @@ void WLibrarySidebar::selectIndex(const QModelIndex& index) {
         expand(index.parent());
     }
     setSelectionModel(pModel);
+    if (!scrollToIndex) {
+        // With auto-scroll enabled, setCurrentIndex() would scroll there.
+        // Disable (and re-enable if we don't want to scroll, e.g. when selecting
+        // AutoDJ from the menubar or during startup
+        setAutoScroll(false);
+    }
     setCurrentIndex(index);
-    scrollTo(index);
+    if (scrollToIndex) {
+        scrollTo(index);
+    } else {
+        setAutoScroll(true);
+    }
 }
 
 /// Selects a child index from a feature and ensures visibility
@@ -420,6 +433,31 @@ void WLibrarySidebar::focusSelectedIndex() {
 bool WLibrarySidebar::event(QEvent* pEvent) {
     if (pEvent->type() == QEvent::ToolTip) {
         updateTooltip();
+    } else if (pEvent->type() == QEvent::LayoutRequest ||
+            pEvent->type() == QEvent::Resize) {
+        // Force-resize the header to expand the item's clickable area.
+        //
+        // Reason:
+        // Currently, the sidebar header expands to the width of the widest item.
+        // If the sidebar is wider than that, there's some space right next to
+        // items that does not respond to clicks. This is somewhat frustration as
+        // it is perceived inconsistent with the state when e.g. Playlist are
+        // expanded and the entire 'Tracks' row responds to clicks.
+        //
+        // Desired appearance & behavior:
+        // * full-width items (for click success)
+        // * full item text (no elide)
+        // * show horizontal scrollbars as needed
+        //
+        // Unfortunately, there's no combination of
+        //   header()->setStretchLastSection(bool);
+        //   header()->setSectionResizeMode(QHeaderView::ResizeMode);
+        // to achieve that.
+        //
+        // Though we can listen to LayoutRequest and adjust the headers minimum
+        // section size to viewport width (-1 for section separator?).
+        // This event occurs after Show, Resize or model data change.
+        header()->setMinimumSectionSize(viewport()->width() - 1);
     }
     return QTreeView::event(pEvent);
 }
