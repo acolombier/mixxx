@@ -144,6 +144,15 @@ class FakeController : public Controller {
         }
         return {};
     }
+
+    const QString& getSharedDataNamespace() override {
+        if (m_pMidiMapping) {
+            return m_pMidiMapping->sharedDataNamespace();
+        } else if (m_pHidMapping) {
+            return m_pHidMapping->sharedDataNamespace();
+        }
+        return QStringLiteral("");
+    }
 #endif
 
     bool isMappable() const override;
@@ -190,7 +199,8 @@ class FakeController : public Controller {
     }
 
   private:
-    int open(const QString&) override {
+    int open(const QString&,
+            std::shared_ptr<ControllerSharedData>) override {
         return 0;
     }
 
