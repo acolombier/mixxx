@@ -302,6 +302,7 @@ Rectangle {
             root.newConnection = null
         } else {
             root.newConnection = connectionEdge.createObject(root, {"router": root, "source": edge});
+            root.newConnection.source.connecting = true
         }
     }
 
@@ -468,6 +469,8 @@ Rectangle {
                     onSelectedChanged: {
                         root.hasChanges = true
                     }
+
+                    maxWidth: mainCanvas.width < 560 ? 200 : 400
 
                     Mixxx.SettingParameter {
                         label: "Multi-Soundcard Synchronization"

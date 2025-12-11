@@ -198,6 +198,12 @@ int main(int argc, char * argv[]) {
     QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 #endif
 
+#if defined(Q_OS_ANDROID)
+    // Currently, accessibility properties are set, leading to a warning spam in
+    // the android logcat. Disabling as this is yet implemented anyway.
+    qputenv("QT_ANDROID_DISABLE_ACCESSIBILITY", QByteArrayLiteral("1"));
+#endif
+
     // workaround for https://bugreports.qt.io/browse/QTBUG-84363
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0) && QT_VERSION < QT_VERSION_CHECK(5, 15, 1)
     qputenv("QV4_FORCE_INTERPRETER", QByteArrayLiteral("1"));
@@ -299,6 +305,8 @@ int main(int argc, char * argv[]) {
 
     // When the last window is closed, terminate the Qt event loop.
     QObject::connect(&app, &MixxxApplication::lastWindowClosed, &app, &MixxxApplication::quit);
+
+    // QLoggingCategory::setFilterRules("*.debug=true");
 
     int exitCode = runMixxx(&app, args);
 

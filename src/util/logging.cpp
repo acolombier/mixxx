@@ -273,7 +273,7 @@ inline void writeToLog(
         writeToStdErr(type, context, message, threadName, flush);
     }
     if (flags & WriteFlag::File) {
-        writeToFile(type, message, threadName, flush);
+        writeToFile(type, message, threadName, true);
     }
 }
 

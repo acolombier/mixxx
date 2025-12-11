@@ -1184,6 +1184,7 @@ add_library(
   src/controllers/controlpickermenu.cpp
   src/controllers/legacycontrollermappingfilehandler.cpp
   src/controllers/legacycontrollermapping.cpp
+  src/controllers/controllershareddata.cpp
   src/controllers/delegates/controldelegate.cpp
   src/controllers/delegates/midibytedelegate.cpp
   src/controllers/delegates/midichanneldelegate.cpp
@@ -2831,6 +2832,7 @@ if(BUILD_TESTING)
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
+    src/test/controllershareddata_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -3677,8 +3679,9 @@ else()
   find_package(QT 5.12 NAMES Qt5 COMPONENTS Core REQUIRED)
 endif()
 if(QML)
-  list(APPEND QT_EXTRA_COMPONENTS "Quick")
   list(APPEND QT_EXTRA_COMPONENTS "LabsQmlModels")
+  list(APPEND QT_EXTRA_COMPONENTS "Multimedia")
+  list(APPEND QT_EXTRA_COMPONENTS "Quick")
   list(APPEND QT_EXTRA_COMPONENTS "QuickControls2")
   list(APPEND QT_EXTRA_COMPONENTS "QuickControls2Impl")
   list(APPEND QT_EXTRA_COMPONENTS "QuickLayouts")
@@ -3796,7 +3799,7 @@ if(QML)
     OPTIONAL_IMPORTS Mixxx
     QML_FILES
       res/qml/Mixxx/Controls/Knob.qml
-      res/qml/Mixxx/Controls/Slider.qml
+      res/qml/Mixxx/Controls/Fader.qml
       res/qml/Mixxx/Controls/Spinny.qml
       res/qml/Mixxx/Controls/WaveformOverviewHotcueMarker.qml
       res/qml/Mixxx/Controls/WaveformOverviewMarker.qml
@@ -3837,6 +3840,7 @@ if(QML)
       src/qml/qmlsettingparameter.cpp
       src/qml/qmltrackproxy.cpp
       src/qml/qmlsoundmanagerproxy.cpp
+      src/qml/qmlpreferencesproxy.cpp
       src/waveform/renderers/allshader/digitsrenderer.cpp
       src/waveform/renderers/allshader/waveformrenderbeat.cpp
       src/waveform/renderers/allshader/waveformrenderer.cpp
@@ -4149,6 +4153,14 @@ else()
         COMPONENT applocal
       )
 
+      # install qml6-module-qtmultimedia
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/QtMultimedia"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml"
+        COMPONENT applocal
+      )
+
       # install qml6-module-qtqml-workerscript
       install(
         DIRECTORY
@@ -4209,6 +4221,22 @@ else()
       install(
         DIRECTORY
           "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/Qt/labs/qmlmodels"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/Qt/labs"
+        COMPONENT applocal
+      )
+
+      # install qml6-module-qtquick-dialogs
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/QtQuick/Dialogs"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/QtQuick"
+        COMPONENT applocal
+      )
+
+      # install qml6-module-qt-labs-folderlistmodel
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/Qt/labs/folderlistmodel"
         DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/Qt/labs"
         COMPONENT applocal
       )
@@ -4523,6 +4551,7 @@ if(RUBBERBAND)
   target_link_libraries(mixxx-lib PRIVATE rubberband::rubberband)
   target_compile_definitions(mixxx-lib PUBLIC __RUBBERBAND__)
   if(QML)
+    target_link_libraries(mixxx-qml-lib PRIVATE rubberband::rubberband)
     target_compile_definitions(mixxx-qml-lib PUBLIC __RUBBERBAND__)
   endif()
   target_sources(
@@ -5225,7 +5254,12 @@ if(QT6)
     list(
       APPEND
       CPACK_DEBIAN_PACKAGE_DEPENDS
-      "qml6-module-qt5compat-graphicaleffects"
+      "libqt6sql6-sqlite, fonts-open-sans, fonts-ubuntu, qt6-qpa-plugins, qml6-module-qt5compat-graphicaleffects, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-nativestyle, qml6-module-qtquick-templates, qml6-module-qtquick-window, qml6-module-qtquick-dialogs, qml6-module-qt-labs-qmlmodels, qml6-module-qt-labs-folderlistmodel, qml6-module-qtquick-shapes, qml6-module-qtmultimedia, qml6-module-qtqml-workerscript"
+    )
+  else()
+    set(
+      CPACK_DEBIAN_PACKAGE_DEPENDS
+      "libqt6sql6-sqlite, fonts-open-sans, fonts-ubuntu, qt6-qpa-plugins"
     )
     list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "qml6-module-qtquick-controls")
     list(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "qml6-module-qtquick-layouts")
