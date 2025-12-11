@@ -90,7 +90,7 @@ QmlApplication::QmlApplication(
     if (result != SoundDeviceStatus::Ok) {
         const int reInt = static_cast<int>(result);
         qCritical() << "Error setting up sound devices:" << reInt;
-        exit(reInt);
+        // exit(reInt);
     }
 
     // FIXME: DlgPreferences has some initialization logic that must be executed

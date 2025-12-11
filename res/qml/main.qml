@@ -46,7 +46,14 @@ ApplicationWindow {
 
     Column {
         id: content
-        anchors.fill: parent
+
+        anchors {
+            left: parent.left; right: parent.right; top: parent.top; bottom: parent.bottom
+            topMargin: parent.SafeArea.margins.top
+            leftMargin: parent.SafeArea.margins.left
+            rightMargin: parent.SafeArea.margins.right
+            bottomMargin: parent.SafeArea.margins.bottom
+        }
 
         move: Transition {
             NumberAnimation {
