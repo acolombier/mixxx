@@ -95,6 +95,7 @@ const LoopEncoderShiftMoveFactor = engine.getSetting("loopEncoderShiftMoveFactor
 
 const TempoFaderSoftTakeoverColorLow = LedColors[engine.getSetting("tempoFaderSoftTakeoverColorLow")] || LedColors.white;
 const TempoFaderSoftTakeoverColorHigh = LedColors[engine.getSetting("tempoFaderSoftTakeoverColorHigh")] || LedColors.green;
+const TempoFaderRelativeMove = LedColors[engine.getSetting("tempoFaderRelativeMove")] || LedColors.blue;
 
 // Tempo fader center snap range
 // Transform user value (mm) into upper/lower values
@@ -204,7 +205,7 @@ const AlternativeMoveMode = engine.getSetting("alternativeMoveMode") || false;
 
 // Relative tempo slider mode -- the tempo slider does not care about its absolute position,
 // only changes in position.  Use Shift to adjust slider without changing tempo (for recentering, etc).
-const RelativeTempoMode = engine.getSetting("relativeTempoMode") || false;
+const DefaultRelativeTempoMode = engine.getSetting("defaultRelativeTempoMode") || false;
 // Only adjust tempo if shift is held.
 const ShiftTempoMode = engine.getSetting("shiftTempoMode") || false;
 
@@ -598,7 +599,7 @@ class Deck extends ComponentContainer {
         this.moveMode = moveModes.beat;
         this.secondDeckModes = null;
         this.selectedHotcue = null;
-        this.relativeTempoMode = RelativeTempoMode;
+        this.relativeTempoMode = DefaultRelativeTempoMode;
 
         updateRuntimeData({
             selectedHotcue: {
@@ -2051,6 +2052,8 @@ class S4Mk3Deck extends Deck {
                 this.appliedValue = null;
                 if (!this.deck.relativeTempoMode) {
                     this.input(this.lastHardwareValue);
+                } else {
+                    this.send(TempoFaderRelativeMove + Button.prototype.brightnessOn);
                 }
             },
             input: function(value) {
@@ -2095,6 +2098,7 @@ class S4Mk3Deck extends Deck {
             },
             output: function(value) {
                 if (this.deck.relativeTempoMode || this.appliedValue === null) {
+                    this.send(TempoFaderRelativeMove + Button.prototype.brightnessOn);
                     return;
                 }
 
