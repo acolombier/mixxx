@@ -79,7 +79,8 @@ int main(int argc, char **argv) {
         output.insert("first_beat", result->firstBeat().value());
         output.insert("bpm", result->getLastMarkerBpm().value());
 
-        std::cout << QJsonDocument(output).toJson().data();
+        auto json = QJsonDocument(output).toJson();
+        std::cout << json.data();
 
         return 0;
     }

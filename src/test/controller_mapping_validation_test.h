@@ -70,9 +70,11 @@ class FakeController : public Controller {
         if (this->m_bMidiMapping == true) {
             return new FakeMidiControllerJSProxy();
         }
+#if defined(__HID__)
         if (this->m_bHidMapping == true) {
             return new FakeHidControllerJSProxy();
         }
+#endif
         // Bulk mapping
         return new FakeBulkControllerJSProxy();
     }
@@ -83,8 +85,10 @@ class FakeController : public Controller {
     DataRepresentationProtocol getDataRepresentationProtocol() const override {
         if (m_bMidiMapping) {
             return DataRepresentationProtocol::MIDI;
+#if defined(__HID__)
         } else if (m_bHidMapping) {
             return DataRepresentationProtocol::HID;
+#endif
         } else {
             return DataRepresentationProtocol::USB_BULK_TRANSFER;
         }
@@ -94,11 +98,14 @@ class FakeController : public Controller {
         auto pMidiMapping = std::dynamic_pointer_cast<LegacyMidiControllerMapping>(pMapping);
         if (pMidiMapping) {
             m_bMidiMapping = true;
+#if defined(__HID__)
             m_bHidMapping = false;
+#endif
             m_pMidiMapping = pMidiMapping;
             m_pHidMapping = nullptr;
             return;
         }
+#if defined(__HID__)
 
         auto pHidMapping = std::dynamic_pointer_cast<LegacyHidControllerMapping>(pMapping);
         if (pHidMapping) {
@@ -107,6 +114,7 @@ class FakeController : public Controller {
             m_pMidiMapping = nullptr;
             m_pHidMapping = pHidMapping;
         }
+#endif
     }
 
     QList<LegacyControllerMapping::ScriptFileInfo> getMappingScriptFiles() override {
@@ -200,7 +208,9 @@ class FakeController : public Controller {
     }
 
     bool m_bMidiMapping;
+#if defined(__HID__)
     bool m_bHidMapping;
+#endif
     std::shared_ptr<LegacyMidiControllerMapping> m_pMidiMapping;
     std::shared_ptr<LegacyHidControllerMapping> m_pHidMapping;
 };

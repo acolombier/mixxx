@@ -55,7 +55,9 @@ UPDATE_DATASET = not os.getenv("DISABLE_DATASET_UPDATE")
 BPM_ACCURATE_THRESHOLD = 0.02
 GRID_ACCURATE_THRESHOLD = 0.98
 
-con = sqlite3.connect(DB_PATH)
+con = None
+if os.path.exists(DB_PATH):
+    con = sqlite3.connect(DB_PATH)
 
 
 @dataclasses.dataclass
@@ -240,7 +242,7 @@ def fetch(record):
                 with open(filename, "wb") as f:
                     f.write(response.read())
 
-    if (
+    if con and (
         not record.get("bpm")
         or not record.get("first_beat")
         or not record.get("samplerate")
@@ -519,8 +521,6 @@ if __name__ == "__main__":
             json.dump(
                 dict(results=results, stats=stats),
                 f,
-                sort_keys=True,
-                indent=4,
                 default=serialize,
             )
 
