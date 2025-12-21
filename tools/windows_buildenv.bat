@@ -41,8 +41,8 @@ IF /I "%PLATFORM%"=="x64" (
     ) ELSE (
         SET BUILDENV_BRANCH=2.5
         SET VCPKG_TARGET_TRIPLET=x64-windows
-        SET BUILDENV_NAME=mixxx-deps-2.5-x64-windows-c15790e
-        SET BUILDENV_SHA256=138e4685ec73c6a6a509f71f8573be581403b091e4ecea2314df2cc79f9720b9
+        SET BUILDENV_NAME=mixxx-deps-2.5-x64-windows-5bca877
+        SET BUILDENV_SHA256=edb3858630b641ca41ce8fbc4c990153b1ed1ad8ea7169ba688d7898ae614981
     )
 ) ELSE (
     ECHO ^ERROR: Unsupported PLATFORM: %PLATFORM%
