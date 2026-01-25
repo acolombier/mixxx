@@ -3491,7 +3491,11 @@ if(KEYFINDER)
 endif()
 
 # SignalSmith
-option(SIGNALSMITH "Enable the SignalSmith engine for pitch-bending" ON)
+option(
+  SIGNALSMITH
+  "Enable the SignalSmith Stretch engine for pitch-bending (experimental)"
+  OFF
+)
 if(SIGNALSMITH)
   set(
     SIGNALSMITH_INSTALL_DIR
