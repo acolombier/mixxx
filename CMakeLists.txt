@@ -1,5 +1,4 @@
-# Qt 6.10 requires minimum CMake 3.22: https://doc.qt.io/qt-6.10/cmake-supported-cmake-versions.html
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.24)
 # lint_cmake: -readability/wonkycase
 
 message(STATUS "CMAKE_VERSION: ${CMAKE_VERSION}")
