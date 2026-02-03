@@ -3,7 +3,7 @@ import re
 import sys
 
 from datetime import datetime
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 MIXXX_DOWNLOAD_BASE = "https://downloads.mixxx.org/dependencies/"
@@ -85,13 +85,13 @@ def update(defs, channel, data):
 
 def get_raw_releases(platform, version):
     url = f"{MIXXX_DOWNLOAD_BASE}{version}/{platform}/"
-    with urlopen(url) as f:
+    with urlopen(Request(url, headers={"user-agent": "mozilla/5.0"})) as f:
         return f.read().decode()
 
 
 def get_sha256sum(platform, version, filename):
     with urlopen(
-        f"{MIXXX_DOWNLOAD_BASE}{version}/{platform}/{filename}.sha256sum"
+        Request(f"{MIXXX_DOWNLOAD_BASE}{version}/{platform}/{filename}.sha256sum", headers={"user-agent": "mozilla/5.0"})
     ) as f:
         return f.read().decode().split(" ")
 
