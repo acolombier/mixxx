@@ -204,7 +204,7 @@ bool LegacyControllerMappingValidationTest::testLoadMapping(const MappingInfo& m
 
     FakeController controller;
     controller.setMapping(pMapping);
-    bool result = controller.applyMapping(getTestDir().filePath(QStringLiteral("../../res")));
+    bool result = controller.applyMapping(getTestDir().filePath(QStringLiteral("../../res")), std::shared_ptr<ControllerSharedData>(nullptr));
     controller.stopEngine();
     return result;
 }
