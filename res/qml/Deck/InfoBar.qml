@@ -98,18 +98,18 @@ Rectangle {
             roleValue: "year"
 
             Cell {
-                visible: root.width > 500 && root.currentTrack?.year
                 item.text: root.currentTrack?.year
+                visible: root.width > 500 && root.currentTrack?.year
             }
         }
         DelegateChoice {
             roleValue: "remaining"
 
             Cell {
-                visible: root.width > 450
                 readonly property real remaining: durationControl.value * (1 - playPositionControl.value)
 
-                item.text: `-${parseInt(remaining / 60).toString().padStart(2, '0')}:${parseInt(remaining % 60).toString().padStart(2, '0')}.${(remaining % 1).toFixed(1)}`
+                item.text: `-${parseInt(remaining / 60).toString().padStart(2, '0')}:${(remaining % 60).toFixed(1).toString().padStart(4, '0')}`
+                visible: root.width > 450
 
                 Mixxx.ControlProxy {
                     id: durationControl

@@ -14,6 +14,10 @@
 #include "util/time.h"
 #include "util/trace.h"
 
+namespace {
+const QString kEmptyNamespace = QStringLiteral("");
+}
+
 BulkReader::BulkReader(libusb_device_handle *handle, unsigned char in_epaddr)
         : QThread(),
           m_phandle(handle),
@@ -149,7 +153,7 @@ QList<std::shared_ptr<AbstractLegacyControllerSetting>> BulkController::getMappi
 
 const QString& BulkController::getSharedDataNamespace() {
     if (!m_pMapping) {
-        return QStringLiteral("");
+        return kEmptyNamespace;
     }
     return m_pMapping->sharedDataNamespace();
 }

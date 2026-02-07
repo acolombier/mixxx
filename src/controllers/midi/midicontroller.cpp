@@ -16,6 +16,10 @@
 #include "util/make_const_iterator.h"
 #include "util/math.h"
 
+namespace {
+const QString kEmptyNamespace = QStringLiteral("");
+}
+
 const QString kMakeInputHandlerError = QStringLiteral(
         "Invalid timer callback provided to midi.makeInputHandler. "
         "Please pass a function and make sure that your code contains no syntax errors.");
@@ -76,7 +80,7 @@ QList<std::shared_ptr<AbstractLegacyControllerSetting>> MidiController::getMappi
 
 const QString& MidiController::getSharedDataNamespace() {
     if (!m_pMapping) {
-        return QStringLiteral("");
+        return kEmptyNamespace;
     }
     return m_pMapping->sharedDataNamespace();
 }

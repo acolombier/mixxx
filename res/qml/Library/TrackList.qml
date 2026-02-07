@@ -218,9 +218,9 @@ Rectangle {
             return span * (view.width - view.usedWidth) / view.dynamicColumnCount;
         }
         keyNavigationEnabled: false
-        reuseItems: true
         model: root.model
         pointerNavigationEnabled: false
+        reuseItems: true
         selectionBehavior: TableView.SelectionDisabled
 
         ScrollBar.vertical: ScrollBar {

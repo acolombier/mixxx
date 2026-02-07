@@ -36,25 +36,25 @@ IF /I "%PLATFORM%"=="arm64" (
     IF DEFINED BUILDENV_RELEASE (
         SET BUILDENV_BRANCH=2.6-rel
         SET VCPKG_TARGET_TRIPLET=arm64-windows-release
-        SET BUILDENV_NAME=mixxx-deps-2.6-arm64-windows-rel-541a925
-        SET BUILDENV_SHA256=ae9ac857fd8119b18da0116fe3c4239d938f3efba6b3baad46c8f3f62042942c
+        SET BUILDENV_NAME=mixxx-deps-2.6-arm64-windows-rel-31c456d
+        SET BUILDENV_SHA256=9978312d2856e784cf315865a9733fb67fa67adfa3992ebee78103cdba6f2c9e
     ) ELSE (
         SET BUILDENV_BRANCH=2.6
         SET VCPKG_TARGET_TRIPLET=arm64-windows
-        SET BUILDENV_NAME=mixxx-deps-2.6-arm64-windows-6a4e01e
-        SET BUILDENV_SHA256=7ab9bf4fc18ac72a6bf4cf2b440eb0972591f9c1e0b031ecd3177633c235c3b6
+        SET BUILDENV_NAME=mixxx-deps-2.6-arm64-windows-aecdb15b
+        SET BUILDENV_SHA256=dc670b9ebbf4ec581fe36a111ca342bfeaee93a4e9b1b3ee30040cf04c89ccd3
     )
 ) ELSE IF /I "%PLATFORM%"=="x64" (
     IF DEFINED BUILDENV_RELEASE (
         SET BUILDENV_BRANCH=2.6-rel
         SET VCPKG_TARGET_TRIPLET=x64-windows-release
-        SET BUILDENV_NAME=mixxx-deps-2.6-x64-windows-rel-541a925
-        SET BUILDENV_SHA256=2bf68831539271050ad19a74d0ed881c9d15f1c8ac0b3cb3b84cf58e7ab6dbd3
+        SET BUILDENV_NAME=mixxx-deps-2.6-x64-windows-rel-31c456d
+        SET BUILDENV_SHA256=8ed73369b1f19a8828822a4efe5092fff11c32ba956da871b6632726498ccc92
     ) ELSE (
         SET BUILDENV_BRANCH=2.6
         SET VCPKG_TARGET_TRIPLET=x64-windows
-        SET BUILDENV_NAME=mixxx-deps-2.6-x64-windows-6a4e01e
-        SET BUILDENV_SHA256=034ba4f49660947819864f3ff3ee1a5cc494187876a62366346783cdf28ddf36
+        SET BUILDENV_NAME=mixxx-deps-2.6-x64-windows-aecdb15b
+        SET BUILDENV_SHA256=9f893fda1de2a0cd748b62b3072bea8a414ac242cf0722f7d9e460b39c9f8af2
     )
 ) ELSE (
     ECHO ^ERROR: Unsupported PLATFORM: %PLATFORM%

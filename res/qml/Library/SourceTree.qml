@@ -26,48 +26,48 @@ Mixxx.LibrarySourceTree {
             }
         },
         // FIXME: WaveformOverview is currently disabled due to performance limitation. Like for the legacy UI, a cache likely needs to be implemented to help
-        Mixxx.TrackListColumn {
-            autoHideWidth: 850
-            columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
-            fillSpan: 3
-            label: qsTr("Preview")
-            preferredWidth: 200
+        // Mixxx.TrackListColumn {
+        //     autoHideWidth: 850
+        //     columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+        //     fillSpan: 3
+        //     label: qsTr("Preview")
+        //     preferredWidth: 200
 
-            delegate: DefaultDelegate {
-                readonly property var trackProxy: track
+        //     delegate: DefaultDelegate {
+        //         readonly property var trackProxy: track
 
-                anchors.fill: parent
-                customRender: true
+        //         anchors.fill: parent
+        //         customRender: true
 
-                onTrackProxyChanged: {
-                    if (trackProxy && !trackProxy.hasWaveform) {
-                        Mixxx.Library.analyze(trackProxy);
-                    }
-                }
+        //         onTrackProxyChanged: {
+        //             if (trackProxy && !trackProxy.hasWaveform) {
+        //                 Mixxx.Library.analyze(trackProxy);
+        //             }
+        //         }
 
-                Mixxx.WaveformOverview {
-                    anchors.fill: parent
-                    channels: Mixxx.WaveformOverview.Channels.LeftChannel
-                    colorHigh: Theme.white
-                    colorLow: Theme.green
-                    colorMid: Theme.blue
-                    renderer: Mixxx.WaveformOverview.Renderer.Filtered
-                    track: trackProxy
-                }
-                Rectangle {
-                    id: border
+        //         Mixxx.WaveformOverview {
+        //             anchors.fill: parent
+        //             channels: Mixxx.WaveformOverview.Channels.LeftChannel
+        //             colorHigh: Theme.white
+        //             colorLow: Theme.green
+        //             colorMid: Theme.blue
+        //             renderer: Mixxx.WaveformOverview.Renderer.Filtered
+        //             track: trackProxy
+        //         }
+        //         Rectangle {
+        //             id: border
 
-                    color: Theme.darkGray2
-                    width: 1
+        //             color: Theme.darkGray2
+        //             width: 1
 
-                    anchors {
-                        bottom: parent.bottom
-                        right: parent.right
-                        top: parent.top
-                    }
-                }
-            }
-        },
+        //             anchors {
+        //                 bottom: parent.bottom
+        //                 right: parent.right
+        //                 top: parent.top
+        //             }
+        //         }
+        //     }
+        // },
         Mixxx.TrackListColumn {
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
             fillSpan: 3

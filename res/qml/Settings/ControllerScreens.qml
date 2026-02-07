@@ -17,11 +17,14 @@ Row {
 
         Rectangle {
             color: 'black'
-            height: {
-                height = modelData.size.height;
+
+            Binding on height {
+                delayed: true
+                value: modelData.size.height
             }
-            width: {
-                width = modelData.size.width;
+            Binding on width {
+                delayed: true
+                value: modelData.size.width
             }
 
             Text {

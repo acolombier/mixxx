@@ -22,6 +22,10 @@ constexpr size_t kMaxHidErrorMessageSize = 512;
 } // namespace
 #endif
 
+namespace {
+const QString kEmptyNamespace = QStringLiteral("");
+}
+
 HidController::HidController(
         mixxx::hid::DeviceInfo&& deviceInfo)
         : Controller(deviceInfo.formatName()),
@@ -73,7 +77,7 @@ QList<std::shared_ptr<AbstractLegacyControllerSetting>> HidController::getMappin
 
 const QString& HidController::getSharedDataNamespace() {
     if (!m_pMapping) {
-        return QStringLiteral("");
+        return kEmptyNamespace;
     }
     return m_pMapping->sharedDataNamespace();
 }

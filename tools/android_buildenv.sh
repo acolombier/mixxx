@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Ignored in case of a source call, but needed for bash specific sourcing detection
 
-set -eo pipefail
+set -o pipefail
 
 # shellcheck disable=SC2091
 if [ -z "${GITHUB_ENV}" ] && ! $(return 0 2>/dev/null); then
@@ -36,8 +36,8 @@ if [ "$HOST_ARCH" == "x86_64" ]; then
     else
         VCPKG_TARGET_TRIPLET="arm64-android"
         BUILDENV_BRANCH="2.7"
-        BUILDENV_NAME="mixxx-deps-2.7-arm64-android-36b8ec0"
-        BUILDENV_SHA256="2e8de8c264ece2bcbe989c3da0f4e1e90b78331e0f625127d8e95b4303d88a2e"
+        BUILDENV_NAME="mixxx-deps-2.7-arm64-android-816b20ec"
+        BUILDENV_SHA256="1253330af5b82e817b1bbb2cabe8f17dd37d9d33b2e9aeb8eae997d71b6d6e5c"
     fi
 else
     echo "ERROR: Unsupported architecture detected: $HOST_ARCH"

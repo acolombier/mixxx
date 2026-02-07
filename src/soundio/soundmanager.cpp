@@ -27,8 +27,12 @@
 #include "soundio/soundmanagerios.h"
 #elif defined(Q_OS_ANDROID)
 #include <QtCore/private/qandroidextras_p.h>
+#include <android/api-level.h>
+#include <android/log.h>
 #include <jni.h>
 #include <pa_oboe.h>
+#include <pthread.h>
+#include <sys/syscall.h>
 
 #include <QJniObject>
 #endif
@@ -404,8 +408,25 @@ void SoundManager::queryDevicesPortaudio() {
             qDebug() << "audioManager outputFramePerBuffer:" << outputFramePerBuffer;
             PaOboe_SetNativeBufferSize(outputFramePerBuffer);
         }).waitForFinished();
-        PaOboe_SetNumberOfBuffers(1);
+        PaOboe_SetNumberOfBuffers(4);
 
+        int mask = 0b10000;
+        int err, syscallres;
+        pid_t pid = gettid();
+        syscallres = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
+        if (syscallres) {
+            err = errno;
+            __android_log_print(ANDROID_LOG_WARN,
+                    "mixxx",
+                    "Error in the syscall setaffinity: mask=%d=0x%x "
+                    "err=%d=0x%x",
+                    mask,
+                    mask,
+                    err,
+                    err);
+        } else {
+            __android_log_print(ANDROID_LOG_WARN, "mixxx", "setaffinity is successful");
+        }
 #endif
         err = Pa_Initialize();
         m_paInitialized = true;
