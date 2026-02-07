@@ -24,6 +24,13 @@ ApplicationWindow {
     visible: true
     width: 1792
 
+    onHeightChanged: {
+        console.warn(`Size: ${width}x${height}`);
+    }
+    onWidthChanged: {
+        console.warn(`Size: ${width}x${height}`);
+    }
+
     Mixxx.ControlProxy {
         id: numDecksControl
 

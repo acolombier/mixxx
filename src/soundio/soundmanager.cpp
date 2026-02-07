@@ -350,6 +350,7 @@ void SoundManager::queryDevicesPortaudio() {
                     QString name = device->callObjectMethod("getProductName",
                                                  "()Ljava/lang/CharSequence;")
                                            .toString();
+                    int32_t id = device->callMethod<jint>("getId");
                     auto channelCounts = device->callMethod<QJniArray<jint>>("getChannelCounts");
                     int channelCount = *std::max_element(
                             channelCounts.begin(), channelCounts.end());
@@ -361,10 +362,16 @@ void SoundManager::queryDevicesPortaudio() {
                     if (!sampleRates.isEmpty()) {
                         int sampleRate = *sampleRates.cbegin();
                         qDebug() << "audioManager - SampleRates:" << sampleRate;
-                        PaOboe_RegisterDevice(name.toStdString().c_str(),
+                        auto result = PaOboe_RegisterDevice(name.toStdString().c_str(),
+                                id,
                                 direction,
                                 channelCount,
                                 sampleRate);
+                        if (result != paNoError) {
+                            qWarning()
+                                    << "Error registering device to PortAudio:"
+                                    << Pa_GetErrorText(result);
+                        }
                     }
                 }
             };

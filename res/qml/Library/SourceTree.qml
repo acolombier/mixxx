@@ -26,68 +26,48 @@ Mixxx.LibrarySourceTree {
             }
         },
         // FIXME: WaveformOverview is currently disabled due to performance limitation. Like for the legacy UI, a cache likely needs to be implemented to help
-        // Mixxx.TrackListColumn {
-        //     label: qsTr("Preview")
-        //     fillSpan: 3
-        //     preferredWidth: 300
-        //     columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+        Mixxx.TrackListColumn {
+            autoHideWidth: 850
+            columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
+            fillSpan: 3
+            label: qsTr("Preview")
+            preferredWidth: 200
 
-        //     delegate: LibraryCell {
-        //         // implicitHeight: 30
-        //         anchors.fill: parent
+            delegate: DefaultDelegate {
+                readonly property var trackProxy: track
 
-        //         readonly property var trackProxy: track
+                anchors.fill: parent
+                customRender: true
 
-        //         Drag.active: dragArea.drag.active
-        //         Drag.dragType: Drag.Automatic
-        //         Drag.supportedActions: Qt.CopyAction
-        //         Drag.mimeData: {
-        //             "text/uri-list": file_url,
-        //             "text/plain": file_url
-        //         }
+                onTrackProxyChanged: {
+                    if (trackProxy && !trackProxy.hasWaveform) {
+                        Mixxx.Library.analyze(trackProxy);
+                    }
+                }
 
-        //         LibraryComponent.Track {
-        //             id: dragArea
-        //             anchors.fill: parent
-        //             capabilities: parent.capabilities
+                Mixxx.WaveformOverview {
+                    anchors.fill: parent
+                    channels: Mixxx.WaveformOverview.Channels.LeftChannel
+                    colorHigh: Theme.white
+                    colorLow: Theme.green
+                    colorMid: Theme.blue
+                    renderer: Mixxx.WaveformOverview.Renderer.Filtered
+                    track: trackProxy
+                }
+                Rectangle {
+                    id: border
 
-        //             onPressed: {
-        //                 if (pressedButtons == Qt.LeftButton) {
-        //                     tableView.selectionModel.selectRow(row);
-        //                     parent.dragImage.grabToImage((result) => {
-        //                             parent.Drag.imageSource = result.url;
-        //                     });
-        //                 } else {
-        //                 }
-        //             }
-        //             onDoubleClicked: {
-        //                 tableView.selectionModel.selectRow(row);
-        //                 tableView.loadSelectedTrackIntoNextAvailableDeck(false);
-        //             }
-        //         }
+                    color: Theme.darkGray2
+                    width: 1
 
-        //         Mixxx.WaveformOverview {
-        //             anchors.fill: parent
-        //             channels: Mixxx.WaveformOverview.Channels.LeftChannel
-        //             renderer: Mixxx.WaveformOverview.Renderer.Filtered
-        //             colorHigh: Theme.white
-        //             colorMid: Theme.blue
-        //             colorLow: Theme.green
-        //             track: trackProxy
-        //         }
-        //         Rectangle {
-        //             id: border
-        //             color: Theme.darkGray2
-        //             width: 1
-        //             anchors {
-        //                 top: parent.top
-        //                 bottom: parent.bottom
-        //                 right: parent.right
-        //             }
-        //         }
-        //     }
-
-        // },
+                    anchors {
+                        bottom: parent.bottom
+                        right: parent.right
+                        top: parent.top
+                    }
+                }
+            }
+        },
         Mixxx.TrackListColumn {
             columnIdx: Mixxx.TrackListColumn.SQLColumns.Title
             fillSpan: 3
@@ -167,6 +147,13 @@ Mixxx.LibrarySourceTree {
         id: cell
 
         readonly property var caps: capabilities
+        property bool customRender: false
+
+        function updateDragImage() {
+            cell.dragImage.grabToImage(result => {
+                cell.Drag.imageSource = result.url;
+            }, Qt.size(cell.dragImage.width, cell.dragImage.height));
+        }
 
         // FIXME: https://bugreports.qt.io/browse/QTBUG-111789
         Binding on Drag.active {
@@ -176,29 +163,29 @@ Mixxx.LibrarySourceTree {
             value: dragArea.drag.active
         }
 
+        Component.onCompleted: updateDragImage()
+
         LibraryComponent.Track {
             id: dragArea
 
             anchors.fill: parent
             capabilities: cell.caps
 
-            drag.onGrabChanged: (transition, eventPoint) => {
-                if (transition != PointerDevice.GrabPassive && transition != PointerDevice.GrabExclusive) {
-                    return;
-                }
-                parent.dragImage.grabToImage(result => {
-                    parent.Drag.imageSource = result.url;
-                }, Qt.size(parent.dragImage.width, parent.dragImage.height));
-            }
             tap.onDoubleTapped: {
-                tableView.selectionModel.selectRow(row);
+                console.log("LibraryComponent.Track::onDoubleTapped");
                 tableView.loadSelectedTrackIntoNextAvailableDeck(false);
             }
             tap.onTapped: (eventPoint, button) => {
-                if (button == Qt.LeftButton) {
-                    tableView.selectionModel.selectRow(row);
-                }
+                console.log("LibraryComponent.Track::onTapped");
+                tableView.selectionModel.selectRow(row);
             }
+        }
+        Connections {
+            function onTrackChanged() {
+                cell.updateDragImage();
+            }
+
+            target: parent
         }
         Text {
             id: value
@@ -210,6 +197,7 @@ Mixxx.LibrarySourceTree {
             font.pixelSize: 14
             text: display ?? ""
             verticalAlignment: Text.AlignVCenter
+            visible: !customRender
         }
     }
 }

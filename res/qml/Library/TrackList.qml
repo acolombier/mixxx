@@ -218,9 +218,10 @@ Rectangle {
             return span * (view.width - view.usedWidth) / view.dynamicColumnCount;
         }
         keyNavigationEnabled: false
+        reuseItems: true
         model: root.model
         pointerNavigationEnabled: false
-        reuseItems: true
+        selectionBehavior: TableView.SelectionDisabled
 
         ScrollBar.vertical: ScrollBar {
             policy: ScrollBar.AlwaysOn
@@ -252,20 +253,18 @@ Rectangle {
                 property var track: item.track
 
                 anchors.fill: parent
+                asynchronous: true
                 focus: true
+                opacity: loader.status == Loader.Ready
                 sourceComponent: delegate
 
-                onLoaded:
-                // Workaround needed for WaveformOverview column to load the data
-                //     if (track)
-                //         Mixxx.Library.analyze(track)
-                {}
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 100
+                        easing.type: Easing.Linear
+                    }
+                }
             }
-            // Workaround needed for WaveformOverview column to load the data
-            // TableView.onReused: {
-            //     if (track)
-            //         Mixxx.Library.analyze(track)
-            // }
         }
         selectionModel: ItemSelectionModel {
             function moveSelectionVertical(value) {
@@ -284,6 +283,9 @@ Rectangle {
                 }
                 const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
                 this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
+                if (!view.isRowLoaded(newRow)) {
+                    view.positionViewAtRow(newRow, TableView.Visible | TableView.AlignVCenter);
+                }
             }
             function selectedTrackUrls() {
                 return this.selectedIndexes.map(index => {

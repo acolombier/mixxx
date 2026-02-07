@@ -101,7 +101,8 @@ ComboBox {
         height: root.contentItem.height * Math.min(root.popupMaxItem, Math.max(root.count, 1)) + 20
         padding: 0
         width: root.width
-        y: root.height / 2
+        x: root.width - width
+        y: root.height - 4
 
         background: Item {
         }

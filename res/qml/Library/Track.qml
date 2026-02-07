@@ -34,110 +34,98 @@ Item {
             }
         }
     }
-    Menu {
-        id: contextMenu
+    // Menu {
+    //     id: contextMenu
 
-        title: qsTr("File")
+    //     title: qsTr("File")
 
-        Menu {
-            enabled: {
-                hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToPreviewDeck);
-            }
-            title: qsTr("Load to")
+    //     Menu {
+    //         enabled: {
+    //             hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToPreviewDeck);
+    //         }
+    //         title: qsTr("Load to")
 
-            Menu {
-                id: loadToDeckMenu
+    //         Menu {
+    //             id: loadToDeckMenu
 
-                enabled: hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck)
-                title: qsTr("Deck")
+    //             enabled: hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToDeck)
+    //             title: qsTr("Deck")
 
-                Instantiator {
-                    model: 4
+    //             Instantiator {
+    //                 model: 4
 
-                    delegate: MenuItem {
-                        text: qsTr("Deck %1").arg(modelData + 1)
+    //                 delegate: MenuItem {
+    //                     text: qsTr("Deck %1").arg(modelData + 1)
 
-                        onTriggered: Mixxx.PlayerManager.getPlayer(`[Channel${modelData + 1}]`).loadTrack(track)
-                    }
+    //                     onTriggered: Mixxx.PlayerManager.getPlayer(`[Channel${modelData + 1}]`).loadTrack(track)
+    //                 }
 
-                    onObjectAdded: (index, object) => loadToDeckMenu.insertItem(index, object)
-                    onObjectRemoved: (index, object) => loadToDeckMenu.removeItem(object)
-                }
-            }
-            Menu {
-                enabled: hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler)
-                title: qsTr("Sampler")
-            }
+    //                 onObjectAdded: (index, object) => loadToDeckMenu.insertItem(index, object)
+    //                 onObjectRemoved: (index, object) => loadToDeckMenu.removeItem(object)
+    //             }
+    //         }
+    //         Menu {
+    //             enabled: hasCapabilities(Mixxx.LibraryTrackListModel.Capability.LoadToSampler)
+    //             title: qsTr("Sampler")
+    //         }
+    //     }
+    //     Menu {
+    //         id: addToPlaylistMenu
 
-            // Instantiator {
-            //     id: recentFilesInstantiator
-            //     model: settings.recentFiles
-            //     delegate: MenuItem {
-            //         text: settings.displayableFilePath(modelData)
-            //         onTriggered: loadFile(modelData)
-            //     }
+    //         enabled: {
+    //             hasCapabilities(Mixxx.LibraryTrackListModel.Capability.AddToTrackSet);
+    //         }
+    //         title: qsTr("Add to playlists")
 
-            //     onObjectAdded: (index, object) => recentFilesMenu.insertItem(index, object)
-            //     onObjectRemoved: (index, object) => recentFilesMenu.removeItem(object)
-            // }
-        }
-        Menu {
-            id: addToPlaylistMenu
+    //         MenuSeparator {
+    //         }
+    //         MenuItem {
+    //             enabled: false // TODO implement
+    //             text: qsTr("Create New Playlist")
+    //         }
+    //     }
+    //     Menu {
+    //         id: addToCrateMenu
 
-            enabled: {
-                hasCapabilities(Mixxx.LibraryTrackListModel.Capability.AddToTrackSet);
-            }
-            title: qsTr("Add to playlists")
+    //         enabled: {
+    //             hasCapabilities(Mixxx.LibraryTrackListModel.Capability.AddToTrackSet);
+    //         }
+    //         title: qsTr("Crates")
 
-            MenuSeparator {
-            }
-            MenuItem {
-                enabled: false // TODO implement
-                text: qsTr("Create New Playlist")
-            }
-        }
-        Menu {
-            id: addToCrateMenu
+    //         MenuSeparator {
+    //         }
+    //         MenuItem {
+    //             enabled: false // TODO implement
+    //             text: qsTr("Create New Crate")
+    //         }
+    //     }
+    //     Menu {
+    //         id: analyzeMenu
 
-            enabled: {
-                hasCapabilities(Mixxx.LibraryTrackListModel.Capability.AddToTrackSet);
-            }
-            title: qsTr("Crates")
+    //         enabled: {
+    //             hasCapabilities(Mixxx.LibraryTrackListModel.Capability.EditMetadata) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.Analyze);
+    //         }
+    //         title: qsTr("Analyze")
 
-            MenuSeparator {
-            }
-            MenuItem {
-                enabled: false // TODO implement
-                text: qsTr("Create New Crate")
-            }
-        }
-        Menu {
-            id: analyzeMenu
+    //         MenuItem {
+    //             text: qsTr("Analyze")
 
-            enabled: {
-                hasCapabilities(Mixxx.LibraryTrackListModel.Capability.EditMetadata) || hasCapabilities(Mixxx.LibraryTrackListModel.Capability.Analyze);
-            }
-            title: qsTr("Analyze")
-
-            MenuItem {
-                text: qsTr("Analyze")
-
-                onTriggered: {
-                    library.analyze(track);
-                }
-            }
-            MenuItem {
-                enabled: false // TODO implement
-                text: qsTr("Reanalyze")
-            }
-            MenuItem {
-                enabled: false // TODO implement
-                text: qsTr("Reanalyze (constant BPM)")
-            }
-            MenuItem {
-                enabled: false // TODO implement
-                text: qsTr("Reanalyze (variable BPM)")
-            }
-        }
-    }
+    //             onTriggered: {
+    //                 library.analyze(track);
+    //             }
+    //         }
+    //         MenuItem {
+    //             enabled: false // TODO implement
+    //             text: qsTr("Reanalyze")
+    //         }
+    //         MenuItem {
+    //             enabled: false // TODO implement
+    //             text: qsTr("Reanalyze (constant BPM)")
+    //         }
+    //         MenuItem {
+    //             enabled: false // TODO implement
+    //             text: qsTr("Reanalyze (variable BPM)")
+    //         }
+    //     }
+    // }
 }
