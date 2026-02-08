@@ -5271,9 +5271,6 @@ if(HID)
     )
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __HID__)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __HID__)
-  endif()
 endif()
 
 # USB Bulk controller support
@@ -5301,9 +5298,6 @@ if(BULK)
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __BULK__)
   target_link_libraries(mixxx-lib PRIVATE LibUSB::LibUSB)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __BULK__)
-  endif()
 endif()
 
 # Vinyl Control
