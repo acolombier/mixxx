@@ -77,7 +77,7 @@ TEST_F(TagLibTest, WriteID3v2TagViaLink) {
     ASSERT_TRUE(tempDir.isValid());
 
     // Generate a file name for the temporary file
-    const QString tmpFileName = tempDir.filePath("no_id3v1_mp3");
+    const QString tmpFileName = QFileInfo(tempDir.filePath("no_id3v1_mp3")).canonicalFilePath();
 
     // Create the temporary file by copying an existing file
     mixxxtest::copyFile(

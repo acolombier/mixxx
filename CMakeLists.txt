@@ -3733,6 +3733,7 @@ if(QML)
     list(APPEND QT_EXTRA_COMPONENTS "QmlWorkerScript")
   endif()
 endif()
+message(STATUS "DEBUG ${CMAKE_MODULE_PATH}")
 find_package(
   Qt${QT_VERSION_MAJOR}
   COMPONENTS ${QT_COMPONENTS} ${QT_EXTRA_COMPONENTS}
