@@ -73,7 +73,7 @@ jobs:
           RUN_ID: ${{ inputs.run_id }}
         shell: bash
         run: |
-          gh --repo mixxxdj/mixxx run download $RUN_ID --pattern 'Flatpak *' -D bundles
+          gh --repo mixxxdj/mixxx run download $RUN_ID --pattern '*.flatpak' -D bundles
           find bundles/ -name *.flatpak -exec mv {} bundles/ \;
           find bundles/ -mindepth 1 -type d -delete
           if [ ! `find bundles/ -name '*x86_64.flatpak' | wc -l` -eq 1 ]; then

@@ -1,0 +1,40 @@
+name: Flatpak
+on:
+  push:
+    branches:
+      - 2.5.6_release_fix
+
+jobs:
+  # reset-flatpak:
+  #   name: Reset Flatpak
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: "Set up SSH Agent"
+  #       shell: bash
+  #       env:
+  #         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  #         SSH_PRIVATE_KEY: ${{ secrets.DOWNLOADS_HOSTGATOR_DOT_MIXXX_DOT_ORG_KEY }}
+  #         SSH_HOST: downloads-hostgator.mixxx.org
+  #       run: |
+  #         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+  #         ssh-add - <<< "${SSH_PRIVATE_KEY}"
+  #         mkdir -p "${HOME}/.ssh"
+  #         ssh-keyscan "${SSH_HOST}" >> "${HOME}/.ssh/known_hosts"
+  #         echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "${GITHUB_ENV}"
+
+  #     - name: "Push the updated repo"
+  #       env:
+  #         SSH_HOST: downloads-hostgator.mixxx.org
+  #         SSH_USER: mixxx
+  #       shell: bash
+  #       run: |
+  #         ssh "${SSH_USER}@${SSH_HOST}" rm -rfv public_html/downloads/flatpak
+  publish-flatpak:
+    uses: ./.github/workflows/flatpak.yml
+    with:
+      update_repo: true
+      ref: refs/tags/2.5.6
+      run_id: "23529382851"
+    secrets:
+      DOWNLOADS_HOSTGATOR_DOT_MIXXX_DOT_ORG_KEY: ${{ secrets.DOWNLOADS_HOSTGATOR_DOT_MIXXX_DOT_ORG_KEY }}
+      RRYAN_AT_MIXXX_DOT_ORG_GPG_PRIVATE_KEY: ${{ secrets.RRYAN_AT_MIXXX_DOT_ORG_GPG_PRIVATE_KEY }}
