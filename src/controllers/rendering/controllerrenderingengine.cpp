@@ -193,6 +193,7 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
     format.setDepthBufferSize(16);
     format.setStencilBufferSize(8);
 
+    kLogger.warning() << "BEFORE WE CREATE THE QOpenGLContext!!!!!!!!!!!!!!";
     m_context = std::make_unique<QOpenGLContext>();
     m_context->setFormat(format);
     VERIFY_OR_DEBUG_ASSERT(m_context->create()) {
@@ -203,15 +204,21 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
             &QOpenGLContext::aboutToBeDestroyed,
             this,
             &ControllerRenderingEngine::finish);
+    kLogger.warning() << "AFTER WE CREATE THE QOpenGLContext!!!!!!!!!!!!!!";
 
+    kLogger.warning() << "BEFORE WE CREATE THE QOffscreenSurface!!!!!!!!!!!!!!";
     m_offscreenSurface = std::make_unique<QOffscreenSurface>();
     m_offscreenSurface->setFormat(m_context->format());
+    kLogger.warning() << "AFTER WE CREATE THE QOffscreenSurface!!!!!!!!!!!!!!";
 
+    kLogger.warning() << "BEFORE WE SETUP THE QOffscreenSurface!!!!!!!!!!!!!!";
     // offscreen surface needs to be created from application main thread.
     VERIFY_OR_DEBUG_ASSERT(QMetaObject::invokeMethod(
                                    qApp,
                                    [this] {
+    kLogger.warning() << "SETTING UP THE QOffscreenSurface!!!!!!!!!!!!!!";
                                        m_offscreenSurface->create();
+    kLogger.warning() << "SET UP THE QOffscreenSurface!!!!!!!!!!!!!!";
                                    },
                                    // This invocation will block the current thread!
                                    Qt::BlockingQueuedConnection) &&
@@ -221,14 +228,21 @@ void ControllerRenderingEngine::setup(std::shared_ptr<QQmlEngine> qmlEngine) {
         m_offscreenSurface.reset();
         return;
     }
+    kLogger.warning() << "AFTER WE SETUP THE QOffscreenSurface!!!!!!!!!!!!!!";
 
+    kLogger.warning() << "BEFORE WE CREATE THE QQuickRenderControl!!!!!!!!!!!!!!";
     m_renderControl = std::make_unique<QQuickRenderControl>(this);
     m_renderControl->setSamples(format.samples());
+    kLogger.warning() << "AFTER WE CREATE THE QQuickRenderControl!!!!!!!!!!!!!!";
+    kLogger.warning() << "BEFORE WE CREATE THE QQuickWindow!!!!!!!!!!!!!!";
     m_quickWindow = std::make_unique<QQuickWindow>(m_renderControl.get());
+    kLogger.warning() << "AFTER WE CREATE THE QQuickWindow!!!!!!!!!!!!!!";
 
+    kLogger.warning() << "BEFORE WE BIND THE QQmlEngine!!!!!!!!!!!!!!";
     if (!qmlEngine->incubationController()) {
         qmlEngine->setIncubationController(m_quickWindow->incubationController());
     }
+    kLogger.warning() << "AFTER WE BIND THE QQmlEngine!!!!!!!!!!!!!!";
 
     m_quickWindow->setGeometry(0, 0, m_screenInfo.size.width(), m_screenInfo.size.height());
 }

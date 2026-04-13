@@ -85,6 +85,7 @@ void QmlWaveformDisplay::geometryChange(const QRectF& newGeometry, const QRectF&
 
 QSGNode* QmlWaveformDisplay::updatePaintNode(QSGNode* node, UpdatePaintNodeData*) {
     if (m_dirtyFlag.testFlag(DirtyFlag::Window)) {
+        qDebug() << "DELETING WAVEFORM";
         delete node;
         node = nullptr;
         m_dirtyFlag.setFlag(DirtyFlag::Window, false);

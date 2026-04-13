@@ -1,4 +1,5 @@
 #include "waveform/renderers/waveformrendermarkbase.h"
+#include <qthread.h>
 
 #include "moc_waveformrendermarkbase.cpp"
 #include "track/track.h"
@@ -40,7 +41,9 @@ void WaveformRenderMarkBase::onResize() {
 
 void WaveformRenderMarkBase::onMarkChanged(double v) {
     Q_UNUSED(v);
-
+    qDebug() << "DELAYING onMarkChanged";
+    QThread::msleep(500);
+    qDebug() << "RUNNING onMarkChanged";
     updateMarks();
 }
 
