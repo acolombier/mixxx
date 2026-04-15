@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qwaitcondition.h>
 #include <QObject>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -20,6 +21,71 @@ class QQuickRenderControl;
 class QQuickWindow;
 class QThread;
 
+class QuickRenderer : public QObject
+{
+    Q_OBJECT
+
+public:
+    QuickRenderer(LegacyControllerMapping::ScreenInfo screenInfo);
+
+    // void requestInit();
+    void init();
+    void requestRender();
+    void requestResize();
+    void requestCleanup();
+    void requestStop();
+    bool isValid() const { return m_isValid; }
+    const LegacyControllerMapping::ScreenInfo& screen() const { return m_screenInfo; }
+
+    QWaitCondition *cond() { return &m_cond; }
+    QMutex *mutex() { return &m_mutex; }
+
+    void setContext(QOpenGLContext *ctx) { m_context = ctx; }
+    void setSurface(QOffscreenSurface *s) { m_surface = s; }
+    void setWindow(QWindow *w) { m_window = w; }
+    void setQuickWindow(QQuickWindow *w) { m_quickWindow = w; }
+    void setRenderControl(QQuickRenderControl *r) { m_renderControl = r; }
+
+    void aboutToQuit();
+
+  signals:
+    void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo,
+            QImage frame,
+            const QDateTime& timestamp);
+
+private:
+    bool event(QEvent *e) override;
+    void cleanup();
+    void cleanupRhi();
+    void ensureTexture();
+    void render(QMutexLocker<QMutex> *lock);
+
+    QWaitCondition m_cond;
+    QMutex m_mutex;
+    QOpenGLContext *m_context;
+    QOffscreenSurface *m_surface;
+    QWindow *m_window;
+    QQuickWindow *m_quickWindow;
+    QQuickRenderControl *m_renderControl;
+    QImage m_frame;
+    uint m_textureId;
+    uint m_fboId;
+
+    LegacyControllerMapping::ScreenInfo m_screenInfo;
+    GLenum m_GLDataFormat;
+    GLenum m_GLDataType;
+
+    bool m_isValid;
+};
+
+class ControllerRenderingEngine;
+class ControllerRenderingEngineDeleter {
+public:
+    explicit ControllerRenderingEngineDeleter(){}
+    void operator()(ControllerRenderingEngine* pEngine) const;
+};
+
+
 /// @brief This class is used to host the rendering of a screen controller,
 /// using and existing QML Engine running under a ControllerScriptEngineBase.
 class ControllerRenderingEngine : public QObject {
@@ -34,11 +100,11 @@ class ControllerRenderingEngine : public QObject {
     bool event(QEvent* event) override;
 
     QSize screenSize() const {
-        return m_screenInfo.size;
+        return m_quickRenderer->screen().size;
     }
 
     bool isValid() const {
-        return m_isValid;
+        return m_quickRenderer->isValid();
     }
 
     bool isRunning() const;
@@ -49,58 +115,52 @@ class ControllerRenderingEngine : public QObject {
     }
 
     const LegacyControllerMapping::ScreenInfo& info() const {
-        return m_screenInfo;
+        return m_quickRenderer->screen();
+    }
+    QuickRenderer* renderer() const {
+        return m_quickRenderer.get();
     }
 
   public slots:
     // Request sending frame data to the device. The task will be run in the
     // rendering event loop. This method should only be called once received the
     // `frameRendered` signal.
-    virtual void requestSendingFrameData(Controller* controller, const QByteArray& frame);
+    /// @brief Request the screen thread to send a frame to the device.
+    /// @param controller the controller to send the frame to.
+    /// @param frame the frame data, ready to be sent.
+    void sendFrameData(Controller* controller, const QByteArray& frame);
     // Request setting up the rendering context for QML engine and wait till it
     // is completed. The task will be run in the rendering event loop to ensure
     // thread affinity of engine components. `isValid` can be used to ensure
     // that the setup was successful.
-    void requestEngineSetup(std::shared_ptr<QQmlEngine> qmlEngine);
+    void setup(QQmlEngine* qmlEngine);
     void start();
     virtual bool stop();
 
   private slots:
     void finish();
     void renderFrame();
-    void setup(std::shared_ptr<QQmlEngine> qmlEngine);
-    void send(Controller* controller, const QByteArray& frame);
 
   signals:
-    void frameRendered(const LegacyControllerMapping::ScreenInfo& screeninfo,
-            QImage frame,
-            const QDateTime& timestamp);
     void stopping();
-    /// @brief Request the screen thread to send a frame to the device.
-    /// @param controller the controller to send the frame to.
-    /// @param frame the frame data, ready to be sent.
-    void sendFrameDataRequested(Controller* controller, const QByteArray& frame);
+    /// Emit signal when the incubator has been set (if required)
+    void finalizeSetup();
 
   private:
-    virtual void prepare();
-
     std::chrono::time_point<std::chrono::steady_clock> m_nextFrameStart;
 
-    LegacyControllerMapping::ScreenInfo m_screenInfo;
-
-    std::unique_ptr<QThread> m_pThread;
+    std::unique_ptr<QThread> m_pQuickRendererThread;
 
     std::unique_ptr<QOpenGLContext> m_context;
     std::unique_ptr<QOffscreenSurface> m_offscreenSurface;
     std::unique_ptr<QQuickRenderControl> m_renderControl;
+    std::unique_ptr<QuickRenderer> m_quickRenderer;
     std::unique_ptr<QQuickWindow> m_quickWindow;
+    QQmlEngine *m_engine;
+    
+    QMutex m_mutex;
+    QWaitCondition m_startedCond;
 
-    std::unique_ptr<QOpenGLFramebufferObject> m_fbo;
-
-    GLenum m_GLDataFormat;
-    GLenum m_GLDataType;
-
-    bool m_isValid;
     // Engine control is owned by ControllerScriptEngineBase. The assumption is
     // made that ControllerScriptEngineBase always outlive
     // ControllerRenderingEngine as it is in charge of stopping and joining the

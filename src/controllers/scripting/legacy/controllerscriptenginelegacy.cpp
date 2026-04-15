@@ -283,8 +283,15 @@ bool ControllerScriptEngineLegacy::initialize() {
                                     << screen.identifier;
                 return false;
             }
-            availableScreens.insert(screen.identifier,
-                    std::make_shared<ControllerRenderingEngine>(screen, &m_engineThreadControl));
+
+            QMetaObject::invokeMethod(
+                                   qApp,
+                                   [&availableScreens, screen, this] {
+                                       availableScreens.insert(screen.identifier,
+                                               std::shared_ptr<ControllerRenderingEngine>(new ControllerRenderingEngine(screen, &m_engineThreadControl), ControllerRenderingEngineDeleter()));
+                                   },
+                                   // This invocation will block the current thread!
+                                   Qt::BlockingQueuedConnection);
 
             if (!availableScreens.value(screen.identifier)->isValid()) {
                 qCWarning(m_logger) << "Unable to start the screen render for" << screen.identifier;
@@ -304,8 +311,7 @@ bool ControllerScriptEngineLegacy::initialize() {
                     ->setObjectName(
                             QString("CtrlScreen_%1").arg(screen.identifier));
             availableScreens.value(screen.identifier)
-                    ->requestEngineSetup(
-                            std::dynamic_pointer_cast<QQmlEngine>(m_pJSEngine));
+                    ->setup(dynamic_cast<QQmlEngine*>(m_pJSEngine.get()));
 
             if (!availableScreens.value(screen.identifier)->isValid()) {
                 qCWarning(m_logger) << QString(
@@ -486,8 +492,8 @@ bool ControllerScriptEngineLegacy::bindSceneToScreen(
         return false;
     }
 
-    connect(pScreen.get(),
-            &ControllerRenderingEngine::frameRendered,
+    connect(pScreen->renderer(),
+            &QuickRenderer::frameRendered,
             this,
             &ControllerScriptEngineLegacy::handleScreenFrame);
     m_renderingScreens.insert(screenIdentifier, pScreen);
@@ -548,7 +554,7 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
     QByteArray input(reinterpret_cast<const char*>(frame.constBits()), frame.sizeInBytes());
 
     if (!pScreen->getTransform().isCallable() && screenInfo.rawData) {
-        m_renderingScreens[screenInfo.identifier]->requestSendingFrameData(m_pController, input);
+        m_renderingScreens[screenInfo.identifier]->sendFrameData(m_pController, input);
         return;
     }
 
@@ -608,7 +614,7 @@ void ControllerScriptEngineLegacy::handleScreenFrame(
         m_pController->sendBytes(returnedValue.view<QByteArray>());
     }
 
-    m_renderingScreens[screenInfo.identifier]->requestSendingFrameData(
+    m_renderingScreens[screenInfo.identifier]->sendFrameData(
             m_pController, transformedFrame);
 }
 #endif

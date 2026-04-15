@@ -44,6 +44,7 @@ QmlWaveformDisplay::QmlWaveformDisplay(QQuickItem* parent)
 }
 
 QmlWaveformDisplay::~QmlWaveformDisplay() {
+    disconnect();
     // The stack contains references to Renderer that are owned and cleared by a BaseNode
     m_rendererStack.clear();
 }
