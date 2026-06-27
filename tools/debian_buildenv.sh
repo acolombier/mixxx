@@ -33,6 +33,13 @@ case "$1" in
                 )
         esac
 
+        if [ ! "${DISTRIB_CODENAME}" = "resolute" ];
+        then
+            PACKAGES_EXTRA+=(
+                qml6-module-qtquick-nativestyle
+            )
+        fi
+
         sudo apt-get update
 
         # If jackd2 is installed as per dpkg database, install libjack-jackd2-dev.
@@ -117,7 +124,6 @@ case "$1" in
             qml6-module-qtqml-workerscript \
             qml6-module-qtquick-controls \
             qml6-module-qtquick-layouts \
-            qml6-module-qtquick-nativestyle \
             qml6-module-qtquick-shapes \
             qml6-module-qtquick-templates \
             qml6-module-qtquick-window \
