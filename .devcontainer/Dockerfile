@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM ubuntu:24.04
+FROM --platform=$BUILDPLATFORM ubuntu:26.04
 ARG TARGETARCH
 
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get update && \
@@ -19,6 +19,8 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get update && \
     pulseaudio-utils \
     # Required for pre-commit
     python3-pip \
+    libxml2-dev \
+    libxslt1-dev \
     # Default Qt QPA
     qt6-wayland \
     # Allow privileges escalation in container (e.g to install custom deps)
