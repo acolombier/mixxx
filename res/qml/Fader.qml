@@ -1,4 +1,5 @@
 import Mixxx.Controls 1.0 as MixxxControls
+import QtQuick.Effects
 import QtQuick 2.12
 import "Theme"
 
@@ -23,24 +24,27 @@ MixxxControls.Fader {
     handle: Item {
         id: handleItem
 
-        height: handleImage.implicitHeight
-        width: handleImage.implicitWidth
+        height: handleImage.paintedHeight
+        width: handleImage.paintedWidth
         x: root.horizontal ? (root.visualPosition * (root.width - width)) : ((root.width - width) / 2)
         y: root.vertical ? (root.visualPosition * (root.height - height)) : ((root.height - height) / 2)
 
-        Rectangle {
-            y: 5
-            width: parent.width + 5
+        MultiEffect {
+            shadowEnabled: true
+            shadowColor: '#80000000'
+            shadowBlur: 1
             height: parent.height + 5
-            color: "#40000000"
-            radius: 3
+            shadowVerticalOffset: 5
+            source: handleImage
+            width: parent.width
         }
-        Image {
-            id: handleImage
+    }
 
-            anchors.fill: parent
-            fillMode: Image.PreserveAspectFit
-            source: Theme.imgSliderHandle
-        }
+    Image {
+        id: handleImage
+
+        fillMode: Image.PreserveAspectFit
+        source: Theme.imgSliderHandle
+        visible: false
     }
 }
