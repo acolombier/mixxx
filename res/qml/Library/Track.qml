@@ -32,10 +32,8 @@ Item {
             }
         }
         onDoubleTapped: (eventPoint, button) => {
-            if (button === Qt.LeftButton) {
-                view.selectionModel.selectRow(row);
-                view.loadSelectedTrackIntoNextAvailableDeck(false);
-            }
+            view.selectionModel.selectRow(row);
+            view.loadSelectedTrackIntoNextAvailableDeck(false);
         }
         onLongPressed: (eventPoint, button) => {
             view.selectionModel.selectRow(row);

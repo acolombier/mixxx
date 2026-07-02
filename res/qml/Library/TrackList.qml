@@ -100,6 +100,8 @@ Rectangle {
         anchors.top: parent.top
         syncView: view
         movableColumns: true
+        flickableDirection: Flickable.VerticalFlick
+        clip: true
 
         delegate: Item {
             id: column
@@ -246,6 +248,7 @@ Rectangle {
         anchors.margins: 5
         anchors.right: parent.right
         anchors.top: horizontalHeader.bottom
+        flickableDirection: Flickable.VerticalFlick
         clip: true
         rowHeightProvider: () => 30
         columnWidthProvider: function (column) {

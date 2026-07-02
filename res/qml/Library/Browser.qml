@@ -23,10 +23,10 @@ Rectangle {
     }
 
     Rectangle {
-        anchors.bottomMargin: 40
+        anchors.bottomMargin: 1
         anchors.fill: parent
         anchors.leftMargin: 7
-        anchors.rightMargin: 15
+        anchors.rightMargin: 1
         anchors.topMargin: 7
         color: Theme.sunkenBackgroundColor
 
