@@ -52,6 +52,13 @@ Item {
     Rectangle {
         id: content
 
+
+        layer.effect: MultiEffect {
+            shadowEnabled: !root.focused
+            shadowColor: "#000000"
+            shadowBlur: 0.1
+        }
+
         anchors.fill: parent
         anchors.margins: 8
         color: '#181818'
@@ -726,15 +733,6 @@ Item {
             }
         }
     }
-    MultiEffect {
-        anchors.fill: root
-        anchors.margins: 8
-        source: content
-        shadowEnabled: !root.focused
-        shadowColor: "#000000"
-        shadowBlur: 0.1
-    }
-
     component Settings: ControllerSettings {
         settings: root.settings
     }

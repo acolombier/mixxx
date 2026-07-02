@@ -85,6 +85,12 @@ Item {
                             width: 1
                         }
 
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true
+                            shadowColor: "#0E2A54"
+                            shadowBlur: 1
+                        }
+
                         Text {
                             anchors.fill: parent
                             color: Theme.white
@@ -164,6 +170,12 @@ Item {
                         width: 1
                     }
 
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: "#0E2A54"
+                        shadowBlur: 1
+                    }
+
                     Text {
                         id: textLabel
 
@@ -185,10 +197,16 @@ Item {
             x: contentSpin.mirrored ? 0 : parent.width - width
         }
 
-        onValueChanged: {
-            root.selected = contentSpin.textFromValue(value) ?? "";
+        function updatePopup(){
             popup.tooltip = root.tooltips[contentSpin.value] ?? "";
             popup.x = contentSpin.width / 2 - popup.width / 2;
+        }
+
+        Component.onCompleted: updatePopup()
+
+        onValueChanged: {
+            root.selected = contentSpin.textFromValue(value) ?? "";
+            updatePopup()
         }
 
         MouseArea {
