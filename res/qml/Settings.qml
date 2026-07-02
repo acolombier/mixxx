@@ -27,6 +27,7 @@ Popup {
 
     horizontalPadding: 20
     verticalPadding: 20
+    focus: true
 
     background: Rectangle {
         anchors.fill: parent
@@ -283,7 +284,9 @@ Popup {
                             text: modelData
 
                             onPressed: {
-                                categoriesLoader.itemAt(categoryList.currentIndex).item.selectedIndex = index;
+                                if (root.activeCategory?.selectedIndex || root.activeCategory?.selectedIndex === 0) {
+                                    root.activeCategory.selectedIndex = index;
+                                }
                             }
                         }
                     }
