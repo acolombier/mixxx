@@ -50,7 +50,7 @@ Rectangle {
 
                 checkable: true
                 checked: (!view.columnShouldAutoHide(data) || data?.display == Mixxx.TrackListColumn.Display.Show) && data?.display != Mixxx.TrackListColumn.Display.Hide
-                text: qsTr(data?.label)
+                text: data?.label ? qsTr(data?.label) : ""
 
                 onTriggered: {
                     // console.log(`columnShouldAutoHide: ${view.columnShouldAutoHide(data)}, want: ${checked}`)
