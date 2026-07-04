@@ -17,6 +17,7 @@
 #include "library/trackset/crate/cratefeature.h"
 #include "library/trackset/crate/cratesummary.h"
 #include "library/trackset/playlistfeature.h"
+#include "library/trackset/setlogfeature.h"
 #include "library/treeitemmodel.h"
 #include "moc_qmllibrarysource.cpp"
 #include "qml_owned_ptr.h"
@@ -182,6 +183,18 @@ QmlLibraryExplorerSource::QmlLibraryExplorerSource(
                   QmlConfigProxy::get(),
                   // TODO acquire recording manager from singleton implemented
                   nullptr)) {
+    connect(m_pLibraryFeature.get(),
+            &LibraryFeature::showTrackModel,
+            this,
+            &QmlLibrarySource::slotShowTrackModel);
+}
+
+QmlLibraryHistorySource::QmlLibraryHistorySource(
+        QObject* parent, const QList<QmlLibraryTrackListColumn*>& columns)
+        : QmlLibrarySource(parent, columns),
+          m_pLibraryFeature(std::make_unique<SetlogFeature>(
+                  QmlLibraryProxy::get(),
+                  QmlConfigProxy::get())) {
     connect(m_pLibraryFeature.get(),
             &LibraryFeature::showTrackModel,
             this,

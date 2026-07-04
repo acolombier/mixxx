@@ -17,6 +17,7 @@
 #include "library/sidebarmodel.h"
 #include "library/trackset/crate/cratefeature.h"
 #include "library/trackset/playlistfeature.h"
+#include "library/trackset/setlogfeature.h"
 #include "library/treeitem.h"
 #include "qml_owned_ptr.h"
 #include "qmlcrateproxy.h"
@@ -210,6 +211,21 @@ class QmlLibraryExplorerSource : public QmlLibrarySource {
 
   private:
     std::unique_ptr<BrowseFeature> m_pLibraryFeature;
+};
+
+class QmlLibraryHistorySource : public QmlLibrarySource {
+    Q_OBJECT
+    QML_NAMED_ELEMENT(LibraryHistorySource)
+  public:
+    explicit QmlLibraryHistorySource(QObject* parent = nullptr,
+            const QList<QmlLibraryTrackListColumn*>& columns = {});
+
+    SetlogFeature* internal() override {
+        return m_pLibraryFeature.get();
+    }
+
+  private:
+    std::unique_ptr<SetlogFeature> m_pLibraryFeature;
 };
 
 } // namespace qml
