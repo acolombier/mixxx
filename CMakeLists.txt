@@ -1220,6 +1220,7 @@ add_library(
   src/controllers/controlpickermenu.cpp
   src/controllers/legacycontrollermappingfilehandler.cpp
   src/controllers/legacycontrollermapping.cpp
+  src/controllers/controllershareddata.cpp
   src/controllers/delegates/controldelegate.cpp
   src/controllers/delegates/midibytedelegate.cpp
   src/controllers/delegates/midichanneldelegate.cpp
@@ -2886,6 +2887,7 @@ if(BUILD_TESTING)
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
+    src/test/controllershareddata_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -3586,6 +3588,55 @@ if(KEYFINDER)
 
   target_sources(mixxx-lib PRIVATE src/analyzer/plugins/analyzerkeyfinder.cpp)
   target_compile_definitions(mixxx-lib PUBLIC __KEYFINDER__)
+endif()
+
+# SignalSmith
+option(
+  SIGNALSMITH
+  "Enable the SignalSmith Stretch engine for pitch-bending (experimental)"
+  OFF
+)
+if(SIGNALSMITH)
+  set(
+    SIGNALSMITH_INSTALL_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/lib/signalsmith-install"
+  )
+  ExternalProject_Add(
+    signalsmith-stretch
+    GIT_REPOSITORY
+      "https://github.com/Signalsmith-Audio/signalsmith-stretch.git"
+    GIT_TAG "57b93f4e9206a089a45387eaa39bdc9f310d3308"
+    PREFIX "signalsmith-stretch"
+    INSTALL_DIR "${SIGNALSMITH_INSTALL_DIR}"
+    LIST_SEPARATOR "|"
+    CMAKE_ARGS
+      -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DCMAKE_PREFIX_PATH=${PIPE_DELIMITED_CMAKE_PREFIX_PATH}
+      -$<IF:$<BOOL:${CMAKE_TOOLCHAIN_FILE}>,D,U>CMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+      -$<IF:$<BOOL:${CMAKE_OSX_DEPLOYMENT_TARGET}>,D,U>CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      -$<IF:$<BOOL:${CMAKE_OSX_ARCHITECTURES}>,D,U>CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+      -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+      -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build .
+    INSTALL_COMMAND true
+    EXCLUDE_FROM_ALL TRUE
+  )
+
+  add_dependencies(mixxx-lib signalsmith-stretch)
+  target_include_directories(
+    mixxx-lib
+    SYSTEM
+    PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch-build/_deps/signalsmith-linear-src/include/"
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch/"
+  )
+  target_sources(
+    mixxx-lib
+    PRIVATE src/engine/bufferscalers/enginebufferscalesignalsmith.cpp
+  )
+  target_compile_definitions(mixxx-lib PUBLIC __SIGNALSMITH__)
 endif()
 
 # FLAC
@@ -4786,10 +4837,106 @@ find_package(SoundTouch 2.1.2 REQUIRED)
 target_link_libraries(mixxx-lib PRIVATE SoundTouch::SoundTouch)
 
 # TagLib
-find_package(TagLib 1.11 REQUIRED)
-target_link_libraries(mixxx-lib PUBLIC TagLib::TagLib)
-if(QML)
-  target_link_libraries(mixxx-qml-lib PUBLIC TagLib::TagLib)
+if(STEM)
+  # We don't know yet which version will include the stem support yet, so for not we set it to high irrelevant value
+  set(TAGLIB_VERSION 9.9)
+else()
+  set(TAGLIB_VERSION 1.11)
+endif()
+find_package(TagLib ${TAGLIB_VERSION} EXACT)
+if(NOT TagLib_FOUND)
+  set(TAGLIB_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib/taglib-install")
+  set(
+    TAGLIB_LIBRARY
+    "lib/${CMAKE_STATIC_LIBRARY_PREFIX}tag${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  )
+
+  # CMake does not pass lists of paths properly to external projects.
+  # This is worked around by changing the list separator.
+  string(
+    REPLACE
+    ";"
+    "|"
+    PIPE_DELIMITED_CMAKE_PREFIX_PATH
+    "${CMAKE_PREFIX_PATH}"
+  )
+
+  include(ProcessorCount)
+  processorcount(n)
+  # Currently, we fetch the patched version of 2.1.1 including the submitted feature in https://github.com/taglib/taglib/pull/1299
+  ExternalProject_Add(
+    taglib
+    GIT_REPOSITORY "https://github.com/taglib/taglib"
+    GIT_TAG 11e3eb05bd8694976d065f37d62ee1a6811daef3
+    DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/downloads"
+    DOWNLOAD_NAME "taglib-${TAGLIB_VERSION}.tar.gz"
+    PREFIX "taglib-${TAGLIB_VERSION}"
+    INSTALL_DIR ${TAGLIB_INSTALL_DIR}
+    LIST_SEPARATOR "|"
+    GIT_SUBMODULES "3rdparty/utfcpp"
+    GIT_SUBMODULES_RECURSE ON
+    CMAKE_ARGS
+      -DBUILD_SHARED_LIBS=OFF -DENABLE_STATIC_RUNTIME=ON
+      -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DCMAKE_PREFIX_PATH=${PIPE_DELIMITED_CMAKE_PREFIX_PATH}
+      -DCMAKE_INSTALL_LIBDIR:PATH=lib
+      -DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH}
+      -$<IF:$<BOOL:${CMAKE_TOOLCHAIN_FILE}>,D,U>CMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+      -$<IF:$<BOOL:${CMAKE_OSX_DEPLOYMENT_TARGET}>,D,U>CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      -$<IF:$<BOOL:${CMAKE_OSX_ARCHITECTURES}>,D,U>CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+      -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+      -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+      -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
+      -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+      -DCMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO}
+      -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME} -DBUILD_TESTING=OFF
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . -j${n}
+    BUILD_BYPRODUCTS <INSTALL_DIR>/${TAGLIB_LIBRARY}
+    EXCLUDE_FROM_ALL TRUE
+  )
+
+  # The include folder needs to already exist, otherwise INTERFACE_INCLUDE_DIRECTORIES will not be propagated
+  file(MAKE_DIRECTORY "${TAGLIB_INSTALL_DIR}/include/taglib")
+
+  # Assemble a library based on the external project.
+  add_library(mixxx-taglib STATIC IMPORTED)
+  set_target_properties(
+    mixxx-taglib
+    PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${TAGLIB_INSTALL_DIR}/include/taglib"
+      IMPORTED_LOCATION "${TAGLIB_INSTALL_DIR}/${TAGLIB_LIBRARY}"
+  )
+  add_dependencies(mixxx-taglib taglib)
+  # Add the local include directory explicitly before linking the library
+  # to make sure not the system provided headers are used
+  target_include_directories(
+    mixxx-lib
+    BEFORE
+    PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+  )
+  target_include_directories(
+    mixxx
+    BEFORE
+    PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+  )
+  if(BUILD_TESTING)
+    target_include_directories(
+      mixxx-test
+      BEFORE
+      PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+    )
+  endif()
+  target_link_libraries(mixxx-lib PUBLIC mixxx-taglib)
+  if(QML)
+    target_link_libraries(mixxx-qml-lib PUBLIC mixxx-taglib)
+  endif()
+else()
+  target_link_libraries(mixxx-lib PUBLIC TagLib::TagLib)
+  if(QML)
+    target_link_libraries(mixxx-qml-lib PUBLIC TagLib::TagLib)
+  endif()
 endif()
 
 # Threads
@@ -5281,9 +5428,6 @@ if(HID)
     )
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __HID__)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __HID__)
-  endif()
 endif()
 
 # USB Bulk controller support
@@ -5311,9 +5455,6 @@ if(BULK)
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __BULK__)
   target_link_libraries(mixxx-lib PRIVATE LibUSB::LibUSB)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __BULK__)
-  endif()
 endif()
 
 # Vinyl Control
@@ -5381,6 +5522,13 @@ if(QML)
   target_compile_definitions(mixxx-qml-lib PRIVATE rendergraph=rendergraph_sg)
   target_compile_definitions(mixxx-qml-lib PRIVATE __SCENEGRAPH__)
   target_compile_definitions(mixxx-qml-lib PRIVATE allshader=allshader_sg)
+  target_include_directories(
+    mixxx-qml-lib
+    SYSTEM
+    PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch-build/_deps/signalsmith-linear-src/include/"
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch/"
+  )
 endif()
 
 # WavPack audio file support
