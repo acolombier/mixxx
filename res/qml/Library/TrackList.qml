@@ -224,8 +224,8 @@ Rectangle {
         }
 
         function columnShouldAutoHide(column){
-            // console.log(`columnShouldAutoHide: ${column.display} ${column.autoHideWidth > 0 && column.autoHideWidth > view.width}`)
-            return column?.display == Mixxx.TrackListColumn.Display.Auto && column?.autoHideWidth > 0 && column?.autoHideWidth > view.width
+            // console.log(`columnShouldAutoHide: ${column.label} ${column.display} ${column.autoHideWidth > 0 && column.autoHideWidth > root.width}`)
+            return column?.display == Mixxx.TrackListColumn.Display.Auto && column?.autoHideWidth > 0 && column?.autoHideWidth > root.width
         }
 
         function loadSelectedTrack(group, play) {
@@ -257,7 +257,7 @@ Rectangle {
             if (explicitWidth == -1){
                 explicitWidth = columnDef.preferredWidth
             }
-            // console.warn(`Column size for ${columnDef.label}: ${explicitWidth}`)
+            // console.warn(`Column size for ${columnDef.label}: ${explicitWidth} ${view.columnShouldAutoHide(columnDef)} ${root.width}`)
             if (columnDef.display == Mixxx.TrackListColumn.Display.Hide || view.columnShouldAutoHide(columnDef)) {
                 return 0;
             }
@@ -330,13 +330,9 @@ Rectangle {
                     colorLow: Theme.green
                     colorMid: Theme.blue
                     renderer: Mixxx.WaveformOverview.Renderer.Filtered
-                    track: null // Lazy loaded
+                    trackUrl: file_url
                     implicitHeight: 30
                     implicitWidth: 30
-
-                    Component.onCompleted: {
-                        waveformOverview.track = TableView.view.model?.getTrackByRow(row)
-                    }
                 }
             }
             DelegateChoice {

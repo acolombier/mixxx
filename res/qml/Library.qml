@@ -13,11 +13,13 @@ import "Library" as LibraryComponent
 Item {
     id: root
 
-    property var sidebar: librarySources.sidebar()
+    property var activeSidebar: libraryLeftSources.sidebar()
 
     LibraryComponent.SourceTree {
-        id: librarySources
-
+        id: libraryLeftSources
+    }
+    LibraryComponent.SourceTree {
+        id: libraryRightSources
     }
     SplitView {
         id: librarySplitView
@@ -100,10 +102,11 @@ Item {
             }
 
             LibraryComponent.Browser {
+                id: sidebarTree
                 SplitView.fillHeight: true
                 SplitView.minimumHeight: 200
                 SplitView.preferredHeight: 500
-                model: root.sidebar
+                model: root.activeSidebar
             }
             Skin.PreviewDeck {
                 SplitView.maximumHeight: 200
@@ -117,14 +120,87 @@ Item {
             SplitView.minimumHeight: 200
             SplitView.preferredWidth: root.width * 0.75
 
-            LibraryComponent.TrackList {
+            SplitView {
+                id: trackListSplitView
+
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: tracklistMenu.left
                 anchors.bottom: parent.bottom
 
-                focus: true
-                model: librarySources
+                orientation: root.width < 800 ? Qt.Vertical: Qt.Horizontal
+
+                handle: Rectangle {
+                    id: handleDelegate
+
+                    property color handleColor: SplitHandle.pressed || SplitHandle.hovered ? Theme.panelSplitterHandleActive : Theme.panelSplitterHandle
+                    property int handleSize: SplitHandle.pressed || SplitHandle.hovered ? 6 : 5
+
+                    clip: true
+                    color: Theme.panelSplitterBackground
+                    implicitHeight: 8
+                    implicitWidth: 8
+
+                    containmentMask: Item {
+                        height: root.width < 800 ? 8 : librarySplitView.height
+                        width: root.width < 800 ? sideBarSplitView.width : 8
+                        x: (handleDelegate.width - width) / 2
+                    }
+
+                    GridLayout {
+                        anchors.centerIn: parent
+                        columns: root.width < 800 ? 3 : 1
+
+                        Repeater {
+                            model: 3
+
+                            Rectangle {
+                                color: handleColor
+                                height: handleSize
+                                radius: handleSize
+                                width: handleSize
+                            }
+                        }
+                    }
+                }
+                LibraryComponent.TrackList {
+                    opacity: root.activeSidebar == model.sidebar() ? 1 : 0.6
+                    SplitView.preferredHeight: trackListSplitView.height * 0.5
+                    SplitView.preferredWidth: trackListSplitView.width * 0.5
+
+                    focus: true
+                    model: libraryLeftSources
+
+                    TapHandler {
+                        onTapped: {
+                            root.activeSidebar = parent.model.sidebar()
+                        }
+                    }
+                }
+
+                Loader {
+                    visible: splitViewButton.checked
+                    SplitView.preferredHeight: trackListSplitView.height * 0.5
+                    SplitView.preferredWidth: trackListSplitView.width * 0.5
+                    active: splitViewButton.checked
+                    opacity: status == Loader.Ready ? 1 : 0
+                    asynchronous: true
+
+                    sourceComponent: Component {
+                        LibraryComponent.TrackList {
+                            opacity: root.activeSidebar == model.sidebar() ? 1 : 0.6
+
+                            focus: true
+                            model: libraryRightSources
+
+                            TapHandler {
+                                onTapped: {
+                                    root.activeSidebar = parent.model.sidebar()
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Column {
                 id: tracklistMenu
@@ -144,6 +220,16 @@ Item {
                     icon.source: "images/splitview.svg"
                     icon.width: 16
                     implicitWidth: implicitHeight
+
+                    onCheckedChanged: {
+                        if (checked) {
+                            let rightSidebar = libraryRightSources.sidebar()
+                            rightSidebar.activate(rightSidebar.index(sidebarTree.currentSelectedIndex?.top ?? 0, 0));
+                            root.activeSidebar = rightSidebar
+                        } else {
+                            root.activeSidebar = libraryLeftSources.sidebar()
+                        }
+                    }
                 }
 
                 Item {
@@ -229,6 +315,14 @@ Item {
                     searchDebounce.query = query.join(' ')
                 }
 
+                TapHandler {
+                    onTapped: event => {
+                        searchPane.selectInput()
+                        searchPane.activated = true
+                        event.accepted = true
+                    }
+                }
+
                 Timer {
                     id: searchDebounce
 
@@ -242,7 +336,7 @@ Item {
                     repeat: false
                     onTriggered: {
                         console.log(`searching: ${query}`)
-                        librarySources.sidebar().tracklist.search(query)
+                        root.activeSidebar.tracklist.search(query)
                     }
                 }
 
@@ -391,7 +485,6 @@ Item {
                                     }
 
                                     onTextChanged: {
-                                        console.log(`search: ${text}`)
                                         searchPane.updateSearchQuery()
                                     }
                                 }
@@ -478,13 +571,6 @@ Item {
                                 //     font.weight: Font.Thin
                                 // }
                             }
-                        }
-                    }
-
-                    TapHandler {
-                        onTapped: () => {
-                            searchPane.activated = true
-                            searchField.forceActiveFocus()
                         }
                     }
                 }

@@ -207,4 +207,12 @@ Mixxx.LibrarySourceTree {
             }
         ]
     }
+    Mixxx.LibraryHistorySource {
+        id: historySource
+        label: qsTr("History")
+        itemName: qsTr("History")
+        icon: "../images/library_crates.png"
+
+        columns: root.defaultColumns
+    }
 }
