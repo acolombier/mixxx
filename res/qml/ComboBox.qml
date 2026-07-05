@@ -60,8 +60,15 @@ ComboBox {
         background: Rectangle {
             border.color: itemDlgt.highlighted ? Theme.deckLineColor : "transparent"
             border.width: 1
-            color: "transparent"
+            // color: "transparent"
+            color: "blue"
             radius: 5
+            MouseArea {
+                scrollGestureEnabled: true
+                // onActiveChanged: {
+                //     console.warn("CAUGHT!")
+                // }
+            }
         }
         contentItem: Text {
             color: Theme.deckTextColor
@@ -90,8 +97,14 @@ ComboBox {
         background: Item {
         }
         contentItem: Item {
-            Item {
+            Drag.active: true
+            MouseArea{
+                anchors.fill: parent
+                drag.target: parent
+            }
+            Rectangle {
                 id: content
+                color: 'green'
 
                 anchors.fill: parent
                 layer.enabled: true
