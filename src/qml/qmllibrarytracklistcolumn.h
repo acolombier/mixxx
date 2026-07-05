@@ -94,12 +94,12 @@ class QmlLibraryTrackListColumn : public QObject {
     }
 
   private:
-    QString m_label;
-    Role m_role;
+    QString m_label{};
+    Role m_role{};
     ColumnType m_columnType{ColumnType::Default};
     int m_fillSpan{0};
     int m_columnIdx{-1};
-    Display m_display;
+    Display m_display{Display::Auto};
     double m_preferredWidth{-1};
     double m_autoHideWidth{-1};
 
