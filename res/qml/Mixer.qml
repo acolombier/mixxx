@@ -4,7 +4,7 @@ import QtQuick 2.12
 import QtQuick.Layouts
 import "Theme"
 
-Rectangle {
+Item {
     id: root
 
     required property var groups
@@ -12,7 +12,6 @@ Rectangle {
 
     implicitHeight: content.height + crossfader.height
     implicitWidth: 190
-    color: Theme.backgroundColor
 
     Skin.SectionBackground {
         anchors.fill: parent
