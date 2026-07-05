@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Mixxx 1.0 as Mixxx
 import "." as LibraryComponent
 import "../Theme"
 
@@ -98,7 +99,7 @@ Rectangle {
     DragHandler {
         id: dragHandler
         // enabled: false
-        enabled: Qt.platform.os !== "android"
+        enabled: Qt.platform.os !== "android" && !Mixxx.Core.hasPopup
         onActiveChanged: {
             root.Drag.imageSource = cover_art
             root.Drag.active = true

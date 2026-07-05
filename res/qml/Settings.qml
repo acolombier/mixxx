@@ -11,6 +11,13 @@ import "Settings" as Settings
 Popup {
     id: root
 
+    onOpened: {
+        Mixxx.Core.addOpenedPopup(this)
+    }
+    onClosed: {
+        Mixxx.Core.removeOpenedPopup(this)
+    }
+
     property var activeCategory: null
     property alias activeCategoryIndex: categoryList.currentIndex
     readonly property var manager: managerItem
@@ -209,7 +216,7 @@ Popup {
 
             states: [
                 State {
-                    when: root.width < root.smallScreenWidth
+                    when: root.width <= root.smallScreenWidth
 
                     AnchorChanges {
                         anchors.left: parent.left
@@ -234,7 +241,7 @@ Popup {
                     activeColor: Theme.white
                     checkable: true
                     text: "M"
-                    visible: root.width < root.smallScreenWidth
+                    visible: root.width <= root.smallScreenWidth
                 }
                 Text {
                     Layout.fillWidth: true
@@ -248,7 +255,7 @@ Popup {
                 Skin.Button {
                     activeColor: Theme.white
                     text: "X"
-                    visible: root.width < root.smallScreenWidth
+                    visible: root.width <= root.smallScreenWidth
 
                     onPressed: {
                         root.close();
