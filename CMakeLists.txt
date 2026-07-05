@@ -3980,6 +3980,7 @@ if(QML)
       src/qml/qmlrecordingproxy.cpp
       src/qml/qmlplaylistproxy.cpp
       src/qml/qmlcrateproxy.cpp
+      src/qml/qmlcoreservices.cpp
       src/qml/qmlsidebarmodelproxy.cpp
       src/qml/qmllibrarytracklistcolumn.cpp
       src/qml/qmltrackproxy.cpp
