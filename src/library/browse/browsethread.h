@@ -24,6 +24,8 @@ class BrowseTableModel;
 class BrowseThread;
 class QStandardItem;
 
+using BrowseTableItems = QList<QList<QStandardItem*>>;
+
 typedef QSharedPointer<BrowseThread> BrowseThreadPointer;
 
 using BrowseRows = QList<QList<QStandardItem*>>;
@@ -37,7 +39,7 @@ class BrowseThread : public QThread {
     static BrowseThreadPointer getInstanceRef();
 
   signals:
-    void rowsAppended(const BrowseRows&, BrowseTableModel*);
+    void rowsAppended(const BrowseTableItems&, BrowseTableModel*);
     void clearModel(BrowseTableModel*);
 
   private:

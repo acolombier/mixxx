@@ -431,8 +431,7 @@ QString parseCrate(
 
 QString parseDatabase(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* databaseItem) {
     QString databaseName = databaseItem->getLabel();
-    const auto userData = databaseItem->getData().toList();
-    QString databaseFilePath = userData.value(0).toString();
+    QString databaseFilePath = databaseItem->getData().toList().at(0).toString();
     QDir databaseDir = QFileInfo(databaseFilePath).dir();
 
     QDir databaseRootDir = QDir(databaseDir);

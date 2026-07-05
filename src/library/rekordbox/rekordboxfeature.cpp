@@ -441,8 +441,7 @@ void buildPlaylistTree(
 
 QString parseDeviceDB(mixxx::DbConnectionPoolPtr dbConnectionPool, TreeItem* deviceItem) {
     QString device = deviceItem->getLabel();
-    const auto userData = deviceItem->getData().toList();
-    QString devicePath = userData.value(0).toString();
+    QString devicePath = deviceItem->getData().toList().at(0).toString();
 
     qDebug() << "parseDeviceDB device: " << device << " devicePath: " << devicePath;
 
