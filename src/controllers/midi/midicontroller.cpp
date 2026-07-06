@@ -18,8 +18,8 @@
 #include "util/math.h"
 
 namespace {
-const QString kEmptyNamespace = QStringLiteral("");
-}
+const QString kEmptyNamespace = QLatin1String("");
+} // namespace
 
 const QString kMakeInputHandlerError = QStringLiteral(
         "Invalid timer callback provided to midi.makeInputHandler. "
