@@ -64,7 +64,7 @@ void WStemLabel::slotTrackLoaded(TrackPointer pTrack) {
     updateLabel();
 
     connect(pTrack.get(), &Track::stemInfoChanged, this, [this, pTrack]() {
-        m_stem = pTrack->getStemInfo()[m_stemNo - 1];
+        m_stem = pTrack->getStemInfo().at(m_stemNo - 1);
         updateLabel();
     });
 }
