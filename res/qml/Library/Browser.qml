@@ -169,7 +169,7 @@ Rectangle {
                                     text: label
                                 }
                                 Item {
-                                    visible: (rowHoverHandler.hovered || popup.opened) && isTreeNode && canCreate
+                                    visible: (rowMouseArea.containsMouse || popup.opened) && isTreeNode && canCreate
                                     id: newItem
 
                                     height: parent.height
