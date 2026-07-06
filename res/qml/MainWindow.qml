@@ -100,6 +100,7 @@ Item {
                 }
                 Skin.Button {
                     id: maximizeLibraryButton
+                    objectName: "library"
 
                     activeColor: Theme.white
                     checkable: true
@@ -625,6 +626,7 @@ Item {
 
                     sourceComponent: Component {
                         Skin.Library {
+                            objectName: "libraryContent"
                             anchors.fill: parent
                         }
                     }

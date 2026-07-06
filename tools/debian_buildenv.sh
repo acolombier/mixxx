@@ -116,6 +116,8 @@ case "$1" in
             libopusfile-dev \
             libportmidi-dev \
             libprotobuf-dev \
+            python3-behave \
+            python3-xmltodict \
             libqt6opengl6-dev \
             libqt6sql6-sqlite \
             libqt6svg6-dev \

@@ -7,6 +7,7 @@ import "Theme"
 
 ApplicationWindow {
     id: root
+    objectName: "mainWindow"
 
     readonly property bool isMobile: Qt.platform.os === "android" || Qt.platform.os === "ios"
     readonly property int designWidth: 1792
@@ -44,6 +45,7 @@ ApplicationWindow {
     }
     Rectangle {
         id: splash
+        objectName: "splashScreen"
         visible: opacity > 0
         color: Theme.backgroundColor
         anchors.fill: parent

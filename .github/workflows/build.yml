@@ -428,15 +428,44 @@ jobs:
           ${{ matrix.compiler_cache }} --show-stats
           ${{ matrix.compiler_cache }} --cleanup
 
+      - name: "[Ubuntu] Install UI test dependencies"
+        if: runner.os == 'Linux' && matrix.crosscompile != true
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb ffmpeg
+
       - name: "Test"
         if: matrix.crosscompile != true
-        run: ctest --timeout 45 ${{ matrix.ctest_args }}
+        # Exclude behave tests from the main suite (run separately with longer timeout)
+        run: ctest --timeout 45 --exclude-regex 'mixxx-behave-' ${{ matrix.ctest_args }}
         working-directory: build
         env:
           GTEST_COLOR: 1
           # Windows tests fail randomly if run in parallel
           CTEST_PARALLEL_LEVEL: 1
           CTEST_OUTPUT_ON_FAILURE: 1
+
+      - name: "[Ubuntu] Run QML UI tests"
+        if: runner.os == 'Linux' && matrix.crosscompile != true
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 5
+          on_retry_command: rm -rf src/test/behave/artifacts
+          command: |
+            cd build
+            MIXXX_TEST_HEADLESS=1 ctest -R 'mixxx-behave-' --timeout 250
+
+      - name: "Upload UI test artifacts"
+        if: always() && runner.os == 'Linux' && matrix.crosscompile != true
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: "UI Tests for ${{ matrix.name }}"
+          path: |
+            src/test/behave/artifacts/*.png
+            src/test/behave/artifacts/*.mkv
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: "[Windows] Sign executables"
         env:
