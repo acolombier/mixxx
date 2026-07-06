@@ -41,7 +41,7 @@ class CrateFeature : public BaseTrackSetFeature {
 
     TreeItemModel* sidebarModel() const override;
 
-    TrackCollection* const trackCollection() const {
+    TrackCollection* trackCollection() const {
         return m_pTrackCollection;
         ;
     }

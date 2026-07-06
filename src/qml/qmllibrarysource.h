@@ -152,7 +152,7 @@ class QmlLibraryPlaylistSource : public QmlLibrarySource {
     Q_INVOKABLE mixxx::qml::QmlLibraryPlaylistSource::PlaylistCreateResult
     create(const QString& name) const;
     Q_INVOKABLE mixxx::qml::QmlPlaylistProxy* get(const QString& name);
-    Q_INVOKABLE QList<mixxx::qml::QmlPlaylistProxy*> list();
+    Q_INVOKABLE const QList<mixxx::qml::QmlPlaylistProxy*>& list();
 
   private:
     std::unique_ptr<PlaylistFeature> m_pLibraryFeature;
@@ -191,7 +191,7 @@ class QmlLibraryCrateSource : public QmlLibrarySource {
     }
     Q_INVOKABLE mixxx::qml::QmlLibraryCrateSource::CrateCreateResult create(
             const QString& name) const;
-    Q_INVOKABLE QList<mixxx::qml::QmlCrateProxy*> list(
+    Q_INVOKABLE const QList<mixxx::qml::QmlCrateProxy*>& list(
             const QList<mixxx::qml::QmlTrackProxy*>& tracks);
 
   private:
