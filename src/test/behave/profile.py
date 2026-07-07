@@ -8,6 +8,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -56,6 +57,20 @@ def _parse_schema(schema_path):
             continue
         statements.append(sql_el.text.strip())
     return statements
+
+
+def _read_schema_version(schema_path):
+    """Return (latest_version, min_compatible_version) from the schema XML."""
+    tree = ET.parse(schema_path)
+    root = tree.getroot()
+    latest_version = 0
+    min_compatible = 0
+    for revision in root.findall("revision"):
+        ver = int(revision.get("version", "0"))
+        if ver > latest_version:
+            latest_version = ver
+            min_compatible = int(revision.get("min_compatible", "0"))
+    return latest_version, min_compatible
 
 
 def _database_has_tables(db_path):
@@ -114,6 +129,20 @@ def create_empty_profile(settings_dir=None):
     conn = sqlite3.connect(db_path)
     for sql in _parse_schema(SCHEMA_FILE):
         conn.executescript(sql)
+    # Set schema version so SchemaManager doesn't re-apply migrations
+    latest_ver, min_compat = _read_schema_version(SCHEMA_FILE)
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (name, value) VALUES (?, ?)",
+        ("mixxx.schema.version", str(latest_ver)),
+    )
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (name, value) VALUES (?, ?)",
+        ("mixxx.schema.last_used_version", str(latest_ver)),
+    )
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (name, value) VALUES (?, ?)",
+        ("mixxx.schema.min_compatible_version", str(min_compat)),
+    )
     conn.commit()
     conn.close()
     cfg = os.path.join(settings_dir, SETTINGS_FILE)
@@ -164,14 +193,24 @@ class MixxxProcess:
             "--serve",
             "--developer",
             "--logLevel",
-            "info",
+            "warn",
         ]
         self.process = subprocess.Popen(
             args,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            text=True,
         )
+
+        def _pipe_logger():
+            assert self.process is not None
+            assert self.process.stdout is not None
+            for line in self.process.stdout:
+                sys.stdout.write(line)
+
+        self._log_thread = threading.Thread(target=_pipe_logger, daemon=True)
+        self._log_thread.start()
 
         deadline = time.time() + timeout
         while time.time() < deadline:

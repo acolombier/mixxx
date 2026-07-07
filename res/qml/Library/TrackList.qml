@@ -12,6 +12,8 @@ import "../Theme"
 Rectangle {
     id: root
 
+    objectName: "trackList"
+
     required property var model
     property var sidebar: model.sidebar()
 
@@ -42,8 +44,39 @@ Rectangle {
     Menu {
         id: columnSelectionMenu
 
+        contentItem: ListView {
+            objectName: "columnPickerMenu"
+            implicitHeight: contentHeight
+            model: columnSelectionMenu.contentModel
+            interactive: Window.window
+                        ? contentHeight + columnSelectionMenu.topPadding + columnSelectionMenu.bottomPadding > columnSelectionMenu.height
+                        : false
+            clip: true
+            currentIndex: columnSelectionMenu.currentIndex
+
+            ScrollIndicator.vertical: ScrollIndicator {}
+
+            function setObjectNameFor(index){
+                itemAtIndex(index).objectName = `${index}`
+                console.warn(`Item: ${index} => ${itemAtIndex(index)}`)
+                return `${index}`
+            }
+        }
+
         Instantiator {
             model: root.sidebar.tracklist.columns
+
+            property int readyCount: 0
+
+            onReadyCountChanged: {
+                if (readyCount !== count) return
+                for (let action = columnSelectionMenu.actionAt(0); action; action = columnSelectionMenu.actionAt(0)) {
+                    columnSelectionMenu.removeAction(action)
+                }
+                for (let i = 0; i < readyCount; i++){
+                    columnSelectionMenu.insertAction(i, objectAt(i))
+                }
+            }
 
             delegate: Action {
                 property var data: view.getColumn(index)
@@ -70,8 +103,12 @@ Rectangle {
                 }
             }
 
-            onObjectAdded: (index, object) => columnSelectionMenu.insertAction(index, object)
-            onObjectRemoved: (index, object) => columnSelectionMenu.removeAction(object)
+            onObjectAdded: (index, object) => {
+                readyCount += 1
+            }
+            onObjectRemoved: (index, object) => {
+                readyCount -= 1
+            }
         }
 
         Connections {
@@ -86,6 +123,8 @@ Rectangle {
     HorizontalHeaderView {
         id: horizontalHeader
 
+        objectName: "columnHeader"
+
         property int sortingColumn: -1
         property var sortingOrder: Qt.Descending
 
@@ -99,6 +138,8 @@ Rectangle {
 
         delegate: Item {
             id: column
+
+            objectName: display
 
             required property string display
             required property int index
@@ -118,6 +159,7 @@ Rectangle {
                     view.model.sort(horizontalHeader.sortingColumn, horizontalHeader.sortingOrder);
                 }
                 onLongPressed: (eventPoint, button) => {
+                    console.warn(`Context menu opening ${columnSelectionMenu.parent} ${columnSelectionMenu.parent?.objectName}`)
                     columnSelectionMenu.popup();
                 }
             }
@@ -203,6 +245,8 @@ Rectangle {
     }
     TableView {
         id: view
+
+        objectName: "trackTableView"
 
         onColumnMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
             if (root.movedColumn[newVisualIndex] !== undefined && logicalIndex === newVisualIndex){

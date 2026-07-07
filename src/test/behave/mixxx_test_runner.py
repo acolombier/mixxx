@@ -25,9 +25,9 @@ def main():
     parser = argparse.ArgumentParser(description="Mixxx UI test runner")
     parser.add_argument(
         "--headless",
-        type=int,
-        default=int(os.environ.get("MIXXX_TEST_HEADLESS", "0")),
-        choices=[0, 1],
+        type=bool,
+        action="store",
+        default=bool(os.environ.get("MIXXX_TEST_HEADLESS")),
         help="Run in headless mode with Xvfb + ffmpeg recording",
     )
     parser.add_argument(
@@ -37,7 +37,7 @@ def main():
     )
     parser.add_argument(
         "behave_args",
-        nargs="*",
+        nargs=argparse.REMAINDER,
         help="Arguments forwarded to behave (e.g. feature file paths)",
     )
 

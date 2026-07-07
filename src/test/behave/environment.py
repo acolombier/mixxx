@@ -9,6 +9,25 @@ def _artifacts_dir():
     return d
 
 
+def _reset_workspace(context):
+    """Reset the UI to default state (unmaximize library, close popups, etc.)."""
+    rpc = getattr(context, "mixxx_rpc", None)
+    if rpc is None:
+        return
+    try:
+        mw = rpc.getBoundingBox("mainWindow")
+        lb = rpc.getBoundingBox("mainWindow/libraryContent")
+        mw_h = mw[3] if isinstance(mw, (list, tuple)) else mw["height"]
+        lb_h = lb[3] if isinstance(lb, (list, tuple)) else lb["height"]
+        if mw_h > 0 and lb_h > 0:
+            ratio = float(lb_h) / float(mw_h)
+            if ratio > 0.75:
+                rpc.mouseClick("mainWindow/library")
+                time.sleep(0.5)
+    except Exception:
+        pass
+
+
 def before_all(context):
     context._session = {
         "profile_dirs": [],
@@ -21,6 +40,8 @@ def before_all(context):
 
 def before_scenario(context, scenario):
     session = context._session
+    if "spix/unsupported" in scenario.effective_tags:
+        scenario.skip("Marked with @skip tag in Scenario")
     if session.get("mixxx") is not None:
         context.mixxx = session["mixxx"]
         context.mixxx_rpc = session["rpc"]
@@ -36,6 +57,8 @@ def after_scenario(context, scenario):
             context.mixxx_rpc.takeScreenshot("mainWindow", path)
         except Exception:
             pass
+
+    _reset_workspace(context)
 
 
 def after_all(context):

@@ -10,6 +10,10 @@
 #include "test/mixxxdbtest.h"
 #include "test/soundsourceproviderregistration.h"
 
+namespace {
+const QString kEmptyNamespace = QStringLiteral("");
+}
+
 class FakeMidiControllerJSProxy : public ControllerJSProxy {
     Q_OBJECT
   public:
@@ -63,6 +67,10 @@ class FakeController : public Controller {
     QString mappingExtension() override {
         // Doesn't affect anything at the moment.
         return ".test.xml";
+    }
+
+    const QString& getSharedDataNamespace() override {
+        return kEmptyNamespace;
     }
 
     ControllerJSProxy* jsProxy() override {

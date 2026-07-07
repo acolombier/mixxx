@@ -48,6 +48,25 @@ Item {
     Menu {
         id: contextMenu
 
+        contentItem: ListView {
+            objectName: "trackContextMenu"
+            implicitHeight: contentHeight
+            model: contextMenu.contentModel
+            interactive: Window.window
+                        ? contentHeight + contextMenu.topPadding + contextMenu.bottomPadding > contextMenu.height
+                        : false
+            clip: true
+            currentIndex: contextMenu.currentIndex
+
+            ScrollIndicator.vertical: ScrollIndicator {}
+
+            function setObjectNameFor(index){
+                itemAtIndex(index).objectName = `${index}`
+                console.warn(`Item: ${index} => ${itemAtIndex(index)}`)
+                return `${index}`
+            }
+        }
+
         title: qsTr("File")
 
         Menu {

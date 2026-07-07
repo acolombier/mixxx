@@ -1,0 +1,83 @@
+diff --git a/libs/Core/CMakeLists.txt b/libs/Core/CMakeLists.txt
+index 86d89cc..dd7bd95 100644
+--- a/libs/Core/CMakeLists.txt
++++ b/libs/Core/CMakeLists.txt
+@@ -9,6 +9,13 @@ include(CMakePackageConfigHelpers)
+ #
+ find_package(Threads REQUIRED)
+ find_package(AnyRPC REQUIRED)
++find_package(Qt${SPIX_QT_MAJOR}
++    COMPONENTS
++        Core
++        Gui
++        Quick
++    REQUIRED)
++message("Building Spix QtQuick for Qt ${SPIX_QT_MAJOR}")
+
+ #
+ # Sources
+@@ -101,6 +108,9 @@ target_include_directories(SpixCore
+ target_link_libraries(SpixCore
+     PUBLIC
+         Threads::Threads
++        Qt${SPIX_QT_MAJOR}::Core
++        Qt${SPIX_QT_MAJOR}::Gui
++        Qt${SPIX_QT_MAJOR}::Quick
+     PRIVATE
+         AnyRPC::anyrpc
+ )
+diff --git a/libs/Core/src/Commands/ClickOnItem.cpp b/libs/Core/src/Commands/ClickOnItem.cpp
+index 26810ea..663c98a 100644
+--- a/libs/Core/src/Commands/ClickOnItem.cpp
++++ b/libs/Core/src/Commands/ClickOnItem.cpp
+@@ -7,6 +7,9 @@
+ #include "ClickOnItem.h"
+
+ #include <Spix/Scene/Scene.h>
++#include <QTime>
++#include <QEventLoop>
++#include <QCoreApplication>
+
+ namespace spix {
+ namespace cmd {
+@@ -30,7 +33,11 @@ void ClickOnItem::execute(CommandEnvironment& env)
+
+     auto size = item->size();
+     auto mousePoint = m_position.positionForItemSize(size);
++    qWarning() << "ClickOnItem::ClickOnItem:" << static_cast<int>(m_mouseButton) << static_cast<int>(m_keyModifier);
+     env.scene().events().mouseDown(item.get(), mousePoint, m_mouseButton, m_keyModifier);
++    QTime dieTime= QTime::currentTime().addMSecs(50);
++    while (QTime::currentTime() < dieTime)
++        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+     env.scene().events().mouseUp(item.get(), mousePoint, m_mouseButton, m_keyModifier);
+ }
+
+diff --git a/libs/Scenes/QtQuick/src/QtEvents.cpp b/libs/Scenes/QtQuick/src/QtEvents.cpp
+index fe4b0e9..e54425a 100644
+--- a/libs/Scenes/QtQuick/src/QtEvents.cpp
++++ b/libs/Scenes/QtQuick/src/QtEvents.cpp
+@@ -109,22 +109,15 @@ void QtEvents::mouseDown(Item* item, Point loc, MouseButton button, KeyModifier
+
+ void QtEvents::mouseUp(Item* item, Point loc, MouseButton button, KeyModifier mod)
+ {
+-    QPointF windowLoc;
++   QPointF windowLoc;
+     auto window = getWindowAndPositionForItem(item, loc, windowLoc);
+     if (!window)
+         return;
+
+-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+-    // Qt6 expects the mouse to be down during the event
+-    Qt::MouseButton eventCausingButton = getQtMouseButtonValue(button);
+-    Qt::MouseButtons activeButtons = getQtMouseButtonValue(m_pressedMouseButtons);
+-    m_pressedMouseButtons ^= button;
+-#else
+-    // Qt5 expects the mouse to be up during the event
+     m_pressedMouseButtons ^= button;
+     Qt::MouseButton eventCausingButton = getQtMouseButtonValue(button);
+     Qt::MouseButtons activeButtons = getQtMouseButtonValue(m_pressedMouseButtons);
+-#endif
++
+     auto qtmod = getQtKeyboardModifiers(mod);
+     QMouseEvent* event
+         = new QMouseEvent(QEvent::MouseButtonRelease, windowLoc, eventCausingButton, activeButtons, qtmod);
