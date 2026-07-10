@@ -44,24 +44,7 @@ Rectangle {
     Menu {
         id: columnSelectionMenu
 
-        contentItem: ListView {
-            objectName: "columnPickerMenu"
-            implicitHeight: contentHeight
-            model: columnSelectionMenu.contentModel
-            interactive: Window.window
-                        ? contentHeight + columnSelectionMenu.topPadding + columnSelectionMenu.bottomPadding > columnSelectionMenu.height
-                        : false
-            clip: true
-            currentIndex: columnSelectionMenu.currentIndex
-
-            ScrollIndicator.vertical: ScrollIndicator {}
-
-            function setObjectNameFor(index){
-                itemAtIndex(index).objectName = `${index}`
-                console.warn(`Item: ${index} => ${itemAtIndex(index)}`)
-                return `${index}`
-            }
-        }
+        contentItem.objectName: "columnPickerMenu"
 
         Instantiator {
             model: root.sidebar.tracklist.columns

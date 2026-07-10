@@ -1,9 +1,11 @@
 import os
 import re
 import time
+import socket
 import xmlrpc.client
 from behave import given, when, then
 import profile
+from pathlib import Path
 
 RPC_TIMEOUT = 30
 QT_LEFT_BUTTON = 1
@@ -11,10 +13,15 @@ QT_RIGHT_BUTTON = 2
 
 QT_CONTROL_MODIFIER = 2
 
+QT_KEY_ENTER = 0x01000005
+QT_KEY_DOWN = 0x01000015
+
+
 
 # --- RPC helpers ---
 
 def _rpc():
+    socket.setdefaulttimeout(10)
     return xmlrpc.client.ServerProxy("http://localhost:9000/", allow_none=True)
 
 
@@ -76,10 +83,8 @@ def _right_click(rpc, path):
     rpc.mouseClickWithButton(path, QT_RIGHT_BUTTON, 0)
 
 
-def _long_press(rpc, path, hold_ms=1000):
-    rpc.mouseBeginDrag(path)
-    rpc.wait(hold_ms)
-    rpc.mouseEndDrag(path)
+def _long_press(rpc, path, button=QT_LEFT_BUTTON, hold_ms=1000):
+    rpc.mouseClickAndHold(path, button, 0, hold_ms)
 
 
 def _drag(rpc, source_path, target_path):
@@ -91,21 +96,21 @@ def _drag(rpc, source_path, target_path):
 def _is_visible(rpc, path):
     # try:
     x, y, width, height = rpc.getBoundingBox(path)
-    print(f'getBoundingBox for {path}: {width} {height} -> width:{rpc.getStringProperty(path, "index")}')
+    print(f'getBoundingBox for {path}: {width} {height}')
     return rpc.existsAndVisible(path) and width * height > 0
     # except Exception as e:
     #     print(e)
     #     return False
 
 
-def _is_column_visible(rpc, col):
+def _is_column_visible(rpc, col, stabilize_duration=1):
+    # Letting time for UI to stabilize
+    time.sleep(stabilize_duration)
     columnPath = _column_header_path(col)
     index = rpc.getStringProperty(columnPath, "index")
-    print("Column index for", col, index)
     if not index and index != 0:
         return False
     columnWidth = float(rpc.invokeMethod(TRACK_TABLE_PATH, "columnWidth", [index]) or 0)
-    print(f'columnWidth for {index}: {columnWidth}')
     return rpc.existsAndVisible(columnPath) and columnWidth > 0
 
 
@@ -278,42 +283,51 @@ def step_4decks_enabled(context):
 
 @given("Mixxx is open and ready to operate")
 def step_open_and_ready(context):
-    if _mixxx_running(context):
-        for path, props in PROPERTY_RESET_MAP.items():
-            for prop in props:
-                if prop not in context._default_props.get(path, {}):
-                    continue
-                print("setStringProperty", path, prop, context._default_props.get(path, {}).get(prop))
-                context.mixxx_rpc.setStringProperty(path, prop, context._default_props.get(path, {}).get(prop))
+    if not _mixxx_running(context):
+        binary = os.environ.get("MIXXX_TEST_BINARY", "mixxx-test")
+        if not hasattr(context, "profile_dir"):
+            _ensure_profile(context, "basic")
+        context.mixxx = profile.MixxxProcess(binary, context.profile_dir)
+        context.mixxx.start()
+        context.mixxx_rpc = _rpc()
+        context._session["mixxx"] = context.mixxx
+        context._session["rpc"] = context.mixxx_rpc
+    else:
+        Path('/workspaces/mixxx/res/qml/main.qml').touch()
+        time.sleep(1)
+        # for path, props in PROPERTY_RESET_MAP.items():
+        #     for prop in props:
+        #         if prop not in context._default_props.get(path, {}):
+        #             continue
+        #         print("setStringProperty", path, prop, context._default_props.get(path, {}).get(prop))
+        #         context.mixxx_rpc.setStringProperty(path, prop, context._default_props.get(path, {}).get(prop))
+        # context._column_idx = {
+        #     col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
+        #     for col in KNOWN_COLUMNS
+        # }
+        # # Discard any popup
+        # context.mixxx_rpc.mouseClickWithProportion("mainWindow", 0.01, 0.5)
+
+    _wait_for_visible(context.mixxx_rpc, "mainWindow")
+    _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
+    _wait_for_visible(context.mixxx_rpc, "mainWindow/library")
+
+    if not hasattr(context, "_column_idx"):
         context._column_idx = {
             col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
             for col in KNOWN_COLUMNS
         }
-        return
-    binary = os.environ.get("MIXXX_TEST_BINARY", "mixxx-test")
-    if not hasattr(context, "profile_dir"):
-        _ensure_profile(context, "basic")
-    context.mixxx = profile.MixxxProcess(binary, context.profile_dir)
-    context.mixxx.start()
-    context.mixxx_rpc = _rpc()
-    context._session["mixxx"] = context.mixxx
-    context._session["rpc"] = context.mixxx_rpc
-    _wait_for_visible(context.mixxx_rpc, "mainWindow")
-    _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
-    _wait_for_visible(context.mixxx_rpc, "mainWindow/library")
-    context._column_idx = {
-        col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
-        for col in KNOWN_COLUMNS
-    }
-    context._default_props = {
-        path: {prop: context.mixxx_rpc.getStringProperty(path, prop) for prop in props}
-        for path, props in PROPERTY_RESET_MAP.items()
-    }
-    context._default_props.update({
-        "show4DecksButton": {"checked": "false"},
-        "editDeckButton": {"checked": "false"},
-    })
-    print("_default_props", context._default_props)
+        print("_column_idx", context._column_idx)
+    if not hasattr(context, "_default_props"):
+        context._default_props = {
+            path: {prop: context.mixxx_rpc.getStringProperty(path, prop) for prop in props}
+            for path, props in PROPERTY_RESET_MAP.items()
+        }
+        context._default_props.update({
+            "show4DecksButton": {"checked": "false"},
+            "editDeckButton": {"checked": "false"},
+        })
+        print("_default_props", context._default_props)
 
 @given("the library directory is configured with test tracks")
 def step_configure_library_directory(context):
@@ -388,7 +402,11 @@ def step_toggle_column(context, column):
     index = context._column_idx[column]
     if index != 0 and not index:
         raise KeyError(f'column {column} unknown')
-    s.invokeMethod(COLUMN_PICKER_MENU_PATH, "setObjectNameFor", [index])
+    for i in range(int(index) + 1):
+        s.wait(200)
+        s.enterKey("mainWindow", QT_KEY_DOWN, 0)
+    s.wait(200)
+    s.enterKey("mainWindow", QT_KEY_ENTER, 0)
     _click(s, f"{COLUMN_PICKER_MENU_PATH}/1")
     time.sleep(0.5)
 
@@ -440,12 +458,12 @@ def step_only_columns_shown(context, columns):
     for col in expected:
         if not col:
             continue
-        assert _is_column_visible(s, col), (
+        assert _is_column_visible(s, col, 0), (
             f"Column '{col}' should be visible but is not"
         )
     for col in KNOWN_COLUMNS:
         if col and col not in expected:
-            assert not _is_column_visible(s, col), (
+            assert not _is_column_visible(s, col, 0), (
                 f"Column '{col}' should not be visible but is"
             )
 
@@ -746,8 +764,8 @@ def step_rate_range_changed(context, deck):
 @when("I set the rate of deck {deck:d} to {value:f}")
 def step_set_rate(context, deck, value):
     path = f'{_deck_button_path(deck, "rate")}/handle'
-    # FIXME Can this factor be resolved using getBoundingBox?
-    context.mixxx_rpc.mouseDrag(path, 0, 0, 0, -14.45 * value, 1000)
+    bb = context.mixxx_rpc.getBoundingBox(_deck_button_path(deck, "rate"))
+    context.mixxx_rpc.mouseDrag(path, 0, 0, 0, bb[3] / 4 * -value, 1000)
 
 
 @then("the rate of deck {deck:d} should be near {target}")
@@ -800,12 +818,10 @@ def step_move_component_after(context, component, deck, target):
 
     component_bb = context.mixxx_rpc.getBoundingBox(component_path)
     target_bb = context.mixxx_rpc.getBoundingBox(target_path)
-    delta = target_bb[0] - component_bb[0] - component_bb[2] / 2, target_bb[1] - component_bb[1] - component_bb[3] / 2
-    print(delta)
+    delta = target_bb[0] - component_bb[0], target_bb[1] - component_bb[1]
 
-    context.mixxx_rpc.mouseDrag(component_path, 0.5, 0.5, *delta, 1000)
+    context.mixxx_rpc.mouseDrag(component_path, 0, 0, *delta, 1000)
     time.sleep(2)
-    print(context.mixxx_rpc.getBoundingBox(component_path), context.mixxx_rpc.getBoundingBox(target_path))
 
 
 @when('I move the selected group in deck {deck:d} after the "{target}" component')
@@ -815,13 +831,10 @@ def step_move_component_after(context, deck, target):
 
     component_bb = context.mixxx_rpc.getBoundingBox(component_path)
     target_bb = context.mixxx_rpc.getBoundingBox(target_path)
-    delta = target_bb[0] - component_bb[0] - component_bb[2] / 2, target_bb[1] - component_bb[1] - (target_bb[3] - component_bb[3]) / 2
-    print(component_bb, target_bb, delta)
-    # [2564.0, 232.0, 60.0, 125.0] [3137.0, 225.0, 140.0, 140.0] (543.0, 0)
+    delta = target_bb[0] - component_bb[0], target_bb[1] - component_bb[1]
 
-    context.mixxx_rpc.mouseDrag(component_path, 0, 0, delta[0]/2, delta[1]/2, 1000)
+    context.mixxx_rpc.mouseDrag(component_path, 0, 0, *delta, 1000)
     time.sleep(2)
-    print(context.mixxx_rpc.getBoundingBox(component_path), context.mixxx_rpc.getBoundingBox(target_path))
 
 
 @then('the "{component}" component should appear after the "{target}" component in deck {deck:d}')
@@ -833,7 +846,7 @@ def step_component_order_after(context, component, target, deck):
     )
 
 
-@when('I select the group containing "{component}" in deck {deck:d} with a "{action}"')
+@when('I select the group containing "{component}" in deck {deck:d} with a {action}')
 def step_select_component_group(context, component, deck, action):
     path = _deck_button_path(deck, component)
     if action == "long press":

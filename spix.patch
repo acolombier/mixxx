@@ -95,7 +95,7 @@ index 6916697..311364b 100644
      utils::AddFunctionToAnyRpc<void(std::string)>(methodManager, "mouseEndDrag",
          "End a drag with the mouse | mouseEndDrag(string path)",
 diff --git a/libs/Core/src/Commands/ClickOnItem.cpp b/libs/Core/src/Commands/ClickOnItem.cpp
-index 26810ea..7ad2a64 100644
+index 26810ea..a1ccdba 100644
 --- a/libs/Core/src/Commands/ClickOnItem.cpp
 +++ b/libs/Core/src/Commands/ClickOnItem.cpp
 @@ -7,14 +7,18 @@
@@ -123,10 +123,10 @@ index 26810ea..7ad2a64 100644
      auto size = item->size();
      auto mousePoint = m_position.positionForItemSize(size);
 +    qWarning() << "ClickOnItem::ClickOnItem:" << static_cast<int>(m_mouseButton) << static_cast<int>(m_keyModifier) << mousePoint.x << mousePoint.y;
-+    env.scene().events().mouseMove(item.get(), mousePoint);
-+    QTime dieTime = QTime::currentTime().addMSecs(m_holdTime);
-+    while (QTime::currentTime() < dieTime)
-+        QCoreApplication::processEvents(QEventLoop::AllEvents, m_holdTime);
++    // env.scene().events().mouseMove(item.get(), mousePoint);
++    QTime dieTime = QTime::currentTime().addMSecs(50);
++    // while (QTime::currentTime() < dieTime)
++    //     QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
      env.scene().events().mouseDown(item.get(), mousePoint, m_mouseButton, m_keyModifier);
 +    dieTime = QTime::currentTime().addMSecs(m_holdTime);
 +    while (QTime::currentTime() < dieTime)
@@ -157,10 +157,10 @@ index c434971..2664bc0 100644
  } // namespace cmd
 diff --git a/libs/Core/src/Commands/Drag.cpp b/libs/Core/src/Commands/Drag.cpp
 new file mode 100644
-index 0000000..46fe40f
+index 0000000..ae5d62f
 --- /dev/null
 +++ b/libs/Core/src/Commands/Drag.cpp
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,58 @@
 +/***
 + * Copyright (C) Falko Axmann. All rights reserved.
 + * Licensed under the MIT license.
@@ -204,9 +204,11 @@ index 0000000..46fe40f
 +    while (QTime::currentTime() < dieTime)
 +        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
 +    Point currentMousePoint(0, 0);
-+    for (int i = 0; i < 10; i++) {
-+        currentMousePoint.x +=  m_delta.x / 10;
-+        currentMousePoint.y +=  m_delta.y / 10;
++    for (int i = 0; i <= 10; i++) {
++        if (i < 2) {
++            currentMousePoint.x +=  m_delta.x / 10;
++            currentMousePoint.y +=  m_delta.y / 10;
++        }
 +        env.scene().events().mouseMove(path.get(), currentMousePoint);
 +        dieTime = QTime::currentTime().addMSecs(m_time / 10);
 +        while (QTime::currentTime() < dieTime) {}

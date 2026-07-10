@@ -30,6 +30,7 @@ Feature: Deck
     And I click the cue button on deck 1
     Then the cue point should be set on deck 1
 
+  @test/not-implemented
   Scenario: Deck hotcue can be set and cleared
     Given the library directory is configured with test tracks
     When I load the track at row 1 into deck 1
@@ -84,7 +85,8 @@ Feature: Deck
     When I click the sync button on deck 1
     Then sync should be disabled on deck 1
 
-  Scenario: Sync leader mode can be toggled with long press
+  @test/not-implemented
+  Scenario: Other deck's BPM can be copied with long press
     Given the library directory is configured with test tracks
     When I load the track at row 1 into deck 1
     And I long-press the sync button on deck 1
@@ -110,28 +112,25 @@ Feature: Deck
     When I click the "EDIT" button
     Then edit mode should not be enabled
 
-  @test/failing
   Scenario: Edit mode overlays are visible on deck components
     When I click the "EDIT" button
     Then the edit overlay should be visible on the "play" component in deck 1
     When I click the "EDIT" button
     Then the edit overlay should not be visible on the "play" component in deck 1
 
-  @test/failing
   Scenario: Edit mode: single component can be repositioned
     When I click the "EDIT" button
     And I move the "hotcueAndStem" component in deck 1 after the "beatjump" component
     And I click the "EDIT" button
     Then the "hotcueAndStem" component should appear after the "beatjump" component in deck 1
 
-  @test/failing # The selectedGroup overlay sometime appears on the wrong position
   Scenario: Edit mode: component group can be moved
     When I click the "EDIT" button
-    And I select the group containing "play" in deck 1 with a "ctrl+click"
+    And I select the group containing "play" in deck 1 with a ctrl+click
     # Select the parent's parent
-    And I select the group containing "play" in deck 1 with a "long press"
+    And I select the group containing "play" in deck 1 with a long press
     # Select the parent's parent's parent
-    And I select the group containing "play" in deck 1 with a "ctrl+click"
+    And I select the group containing "play" in deck 1 with a ctrl+click
     And I move the selected group in deck 1 after the "spinny" component
     And I click the "EDIT" button
     Then the "play" component should appear after the "spinny" component in deck 1

@@ -300,7 +300,7 @@ TRACK_CONTEXT_MENU_PATH = "mainWindow/trackContextMenu"
 | `I click the column header "{column}"` | Clicks header at `COLUMN_HEADER_PATH/{column}` |
 | `I drag the column "{column}" before the column "{target}"` | `invokeMethod(trackTableView, "moveColumn", [idx_column, idx_target])` |
 | `I open the column picker menu` | Right-clicks on Title column header, waits for menu |
-| `I toggle the column "{column}" in the column picker` | `invokeMethod(columnPickerMenu, "setObjectNameFor", [index])`, then clicks menu item |
+| `I toggle the column "{column}" in the column picker` | Use the keyboard to choose a the nth item, based on column index |
 | `I click the track at row {row:d}` | Clicks cell at `trackTableView/trackRow_{row}` |
 | `I right-click the track at row {row:d}` | `mouseClickWithButton` with RightButton |
 | `I long-press the track at row {row:d}` | `mouseBeginDrag` + wait 1s + `mouseEndDrag` |

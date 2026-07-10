@@ -92,25 +92,36 @@ def main():
                     "-hide_banner",
                     "-loglevel",
                     "error",
+
                     "-f",
                     "x11grab",
+                    "-draw_mouse",
+                    "0",
                     "-video_size",
                     "1920x1080",
                     "-i",
                     display_num,
-                    "-draw_mouse",
-                    "0",
-                    "-codec:v",
-                    "mpeg4",
+
+                    "-map",
+                    "0:v",
+
                     "-r",
                     "30",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
                     "-b:v",
                     "2000k",
-                    os.path.join(artifacts, video),
+
+                    "-f", "tee",
+                    f"[select=v:f=matroska]{os.path.join(artifacts, video)}|"
+                    f"[select=v:f=mpegts]srt://0.0.0.0:9000\\?mode=listener",
+
                     "-y",
                 ],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
             )
         else:
             print("Xvfb/ffmpeg not found - using offscreen platform")
@@ -127,8 +138,25 @@ def main():
         exit_code = result.returncode
     finally:
         if ffmpeg_proc:
-            ffmpeg_proc.terminate()
-            ffmpeg_proc.wait()
+            ffmpeg_ret = ffmpeg_proc.poll()
+            if ffmpeg_ret is not None:
+                stderr_output = ffmpeg_proc.stderr.read().decode(
+                    "utf-8", errors="replace"
+                )
+                print(
+                    f"\n=== ffmpeg terminated unexpectedly "
+                    f"(exit code: {ffmpeg_ret}) ===",
+                    file=sys.stderr,
+                )
+                if stderr_output:
+                    print(stderr_output, file=sys.stderr)
+                print("=== end ffmpeg output ===\n", file=sys.stderr)
+            else:
+                ffmpeg_proc.terminate()
+                ffmpeg_proc.wait(timeout=3)
+                ffmpeg_proc.terminate(signal.CTRL_C_EVENT)
+                ffmpeg_proc.wait(timeout=3)
+                ffmpeg_proc.kill()
         if xvfb_proc:
             xvfb_proc.terminate()
             xvfb_proc.wait()
