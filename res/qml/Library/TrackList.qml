@@ -12,6 +12,8 @@ import "../Theme"
 Rectangle {
     id: root
 
+    objectName: "trackList"
+
     required property var model
     property var sidebar: model.sidebar()
 
@@ -41,6 +43,8 @@ Rectangle {
     }
     Menu {
         id: columnSelectionMenu
+
+        contentItem.objectName: "columnPickerMenu"
 
         Instantiator {
             model: root.sidebar.tracklist.columns
@@ -104,6 +108,8 @@ Rectangle {
     HorizontalHeaderView {
         id: horizontalHeader
 
+        objectName: "columnHeader"
+
         property int sortingColumn: -1
         property var sortingOrder: Qt.Descending
 
@@ -117,6 +123,8 @@ Rectangle {
 
         delegate: Item {
             id: column
+
+            objectName: display
 
             required property string display
             required property int index
@@ -221,6 +229,8 @@ Rectangle {
     }
     TableView {
         id: view
+
+        objectName: "trackTableView"
 
         onColumnMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
             if (root.movedColumn[newVisualIndex] !== undefined && logicalIndex === newVisualIndex){
@@ -360,6 +370,8 @@ Rectangle {
             }
         }
         selectionModel: ItemSelectionModel {
+            objectName: "selectionModel"
+
             function moveSelectionVertical(value) {
                 if (value == 0)
                     return;
