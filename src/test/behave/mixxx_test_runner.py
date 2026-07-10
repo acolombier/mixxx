@@ -25,8 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description="Mixxx UI test runner")
     parser.add_argument(
         "--headless",
-        type=bool,
-        action="store",
+        action="store_true",
         default=bool(os.environ.get("MIXXX_TEST_HEADLESS")),
         help="Run in headless mode with Xvfb + ffmpeg recording",
     )

@@ -92,6 +92,7 @@ Item {
 
                 Skin.Button {
                     id: show4DecksButton
+                    objectName: "show4DecksButton"
 
                     activeColor: Theme.white
                     checkable: true
@@ -147,6 +148,7 @@ Item {
                 }
                 Skin.Button {
                     id: editDeckButton
+                    objectName: "editDeckButton"
 
                     activeColor: Theme.white
                     checkable: true
@@ -354,6 +356,7 @@ Item {
 
                 Deck {
                     id: deck1
+                    objectName: "deck1"
 
                     editMode: root.editDeck
                     group: "[Channel1]"
@@ -477,6 +480,7 @@ Item {
                 }
                 Deck {
                     id: deck2
+                    objectName: "deck2"
 
                     editMode: root.editDeck
                     group: "[Channel2]"
@@ -515,6 +519,7 @@ Item {
                 }
                 Loader {
                     id: deck3
+                    objectName: "deck3Loader"
 
                     readonly property string group: "[Channel3]"
 
@@ -532,6 +537,7 @@ Item {
                     }
                     sourceComponent: Component {
                         Deck {
+                            objectName: "deck3"
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
                             editMode: root.editDeck
@@ -558,6 +564,7 @@ Item {
                 }
                 Loader {
                     id: deck4
+                    objectName: "deck4Loader"
 
                     readonly property string group: "[Channel4]"
 
@@ -575,8 +582,9 @@ Item {
                     }
                     sourceComponent: Component {
                         Deck {
+                            objectName: "deck4"
                             anchors.bottom: parent.bottom
-                            anchors.right: parent.right
+                            anchors.left: parent.left
                             editMode: root.editDeck
                             group: deck4.group
                             minimized: root.maximizeLibrary

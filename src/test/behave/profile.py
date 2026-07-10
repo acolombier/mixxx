@@ -188,12 +188,12 @@ class MixxxProcess:
 
         args = [
             self.binary,
-            "--settingsPath",
-            self.profile_dir,
             "--serve",
+            "--settings-path",
+            self.profile_dir,
             "--developer",
-            "--logLevel",
-            "warn",
+            "--log-level",
+            "debug",
         ]
         self.process = subprocess.Popen(
             args,

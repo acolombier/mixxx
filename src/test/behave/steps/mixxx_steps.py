@@ -9,6 +9,8 @@ RPC_TIMEOUT = 30
 QT_LEFT_BUTTON = 1
 QT_RIGHT_BUTTON = 2
 
+QT_CONTROL_MODIFIER = 2
+
 
 # --- RPC helpers ---
 
@@ -122,10 +124,26 @@ def _get_property(rpc, path, prop):
     return rpc.getStringProperty(path, prop)
 
 
+def _get_control_value(rpc, group, key):
+    rpc.command("getControlValue", f"{group},{key}")
+    return rpc.getStringProperty("mainWindow", "lastControlValue")
+
+
+def _set_control_value(rpc, group, key, value):
+    rpc.command("setControlValue", f"{group},{key},0")
+    rpc.command("setControlValue", f"{group},{key},{value}")
+
+
+def _load_track(rpc, deck, filepath):
+    rpc.command("loadTrack", f"{deck},{filepath}")
+
+
 # --- Path resolution ---
 
 BUTTON_PATHS = {
     "LIBRARY": "mainWindow/library",
+    "4DECKS": "mainWindow/show4DecksButton",
+    "EDIT": "mainWindow/editDeckButton",
 }
 
 LIBRARY_CONTENT = "mainWindow/libraryContent"
@@ -149,6 +167,53 @@ def _track_row_path(row):
     return f"{TRACK_ROW_PATH}/trackRow_{row}"
 
 
+DECK_PATHS = {
+    1: "mainWindow/deck1",
+    2: "mainWindow/deck2",
+    3: "mainWindow/deck3",
+    4: "mainWindow/deck4",
+}
+
+DECK_GROUPS = {
+    1: "[Channel1]",
+    2: "[Channel2]",
+    3: "[Channel3]",
+    4: "[Channel4]",
+}
+
+DECK_BUTTON_PATHS = {
+    "play": "playButton",
+    "cue": "cueButton",
+    "beatjump_forward": "beatjumpForwardButton",
+    "beatjump_backward": "beatjumpBackwardButton",
+    "loop_in": "loopIn",
+    "loop_out": "loopOut",
+    "rate": "rateSlider",
+    "reloop_toggle": "reloopToggle",
+    "sync": "syncButton",
+    "range": "rangeButton",
+    "loop_halve": "loopHalve",
+    "loop_double": "loopDouble",
+}
+
+
+def _deck_hotcue_path(deck, hotcue_number):
+    return f"{_deck_path(deck)}/hotcue_{hotcue_number}"
+
+
+def _deck_path(deck):
+    return DECK_PATHS.get(deck, f"mainWindow/deck{deck}")
+
+
+def _deck_group(deck):
+    return DECK_GROUPS.get(deck, f"[Channel{deck}]")
+
+
+def _deck_button_path(deck, button):
+    suffix = DECK_BUTTON_PATHS.get(button, button)
+    return f"{_deck_path(deck)}/{suffix}"
+
+
 KNOWN_COLUMNS = [
     "", "Preview", "Title", "Artist", "Album", "AlbumArtist", "Year",
     "Genre", "Composer", "Grouping", "Track Number", "File Type",
@@ -158,6 +223,9 @@ KNOWN_COLUMNS = [
 
 
 # --- Session helpers ---
+PROPERTY_RESET_MAP = {
+    "mainWindow": ["width", "height", "x", "y"],
+}
 
 def _mixxx_running(context):
     mixxx = getattr(context, "mixxx", None)
@@ -201,11 +269,22 @@ def step_basic_profile(context):
     _ensure_profile(context, "basic")
 
 
+@given("the 4 decks view is enabled")
+def step_4decks_enabled(context):
+    s = context.mixxx_rpc
+    _set_property(s, "mainWindow/show4DecksButton", "checked", "true")
+    time.sleep(1)
+
+
 @given("Mixxx is open and ready to operate")
 def step_open_and_ready(context):
     if _mixxx_running(context):
-        for prop, value in context._mainwindow_default_props.items():
-            context.mixxx_rpc.setStringProperty("mainWindow", prop, value)
+        for path, props in PROPERTY_RESET_MAP.items():
+            for prop in props:
+                if prop not in context._default_props.get(path, {}):
+                    continue
+                print("setStringProperty", path, prop, context._default_props.get(path, {}).get(prop))
+                context.mixxx_rpc.setStringProperty(path, prop, context._default_props.get(path, {}).get(prop))
         context._column_idx = {
             col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
             for col in KNOWN_COLUMNS
@@ -226,10 +305,15 @@ def step_open_and_ready(context):
         col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
         for col in KNOWN_COLUMNS
     }
-    context._mainwindow_default_props = {
-        prop: context.mixxx_rpc.getStringProperty("mainWindow", prop)
-        for prop in ["width", "height", "x", "y"]
+    context._default_props = {
+        path: {prop: context.mixxx_rpc.getStringProperty(path, prop) for prop in props}
+        for path, props in PROPERTY_RESET_MAP.items()
     }
+    context._default_props.update({
+        "show4DecksButton": {"checked": "false"},
+        "editDeckButton": {"checked": "false"},
+    })
+    print("_default_props", context._default_props)
 
 @given("the library directory is configured with test tracks")
 def step_configure_library_directory(context):
@@ -237,7 +321,7 @@ def step_configure_library_directory(context):
     if not tracks:
         raise RuntimeError("MIXXX_TEST_TRACKS_DIR not set")
     profile.add_directory_to_db(tracks, context.profile_dir)
-    time.sleep(5)
+    time.sleep(0.5)
 
 
 # --- When: button steps ---
@@ -261,6 +345,14 @@ def step_click_button(context, button):
     s = context.mixxx_rpc
     _click(s, _button_path(button))
     time.sleep(0.5)
+
+
+@when('I turn off "4 decks" mode')
+def step_turn_off_4decks(context):
+    s = context.mixxx_rpc
+    _click(context.mixxx_rpc, "mainWindow/show4DecksButton")
+    time.sleep(0.5)
+
 
 
 # --- When: column steps ---
@@ -407,3 +499,396 @@ def step_track_selected(context, row):
 def step_track_context_menu_visible(context):
     s = context.mixxx_rpc
     assert _is_visible(s, TRACK_CONTEXT_MENU_PATH), "Track context menu is not visible"
+
+
+# --- Deck visibility ---
+
+@then('the deck "{group}" should be visible')
+def step_deck_visible(context, group):
+    DECK_PATH_MAP = {
+        "[Channel1]": "mainWindow/deck1",
+        "[Channel2]": "mainWindow/deck2",
+        "[Channel3]": "mainWindow/deck3",
+        "[Channel4]": "mainWindow/deck4",
+    }
+    _wait_for_visible(context.mixxx_rpc, DECK_PATH_MAP[group])
+
+
+@then('the deck "{group}" should not be visible')
+def step_deck_not_visible(context, group):
+    DECK_PATH_MAP = {
+        "[Channel1]": "mainWindow/deck1",
+        "[Channel2]": "mainWindow/deck2",
+        "[Channel3]": "mainWindow/deck3",
+        "[Channel4]": "mainWindow/deck4",
+    }
+    _wait_for_hidden(context.mixxx_rpc, DECK_PATH_MAP[group])
+
+
+# --- Deck transport ---
+
+@when("I click the play button on deck {deck:d}")
+def step_click_deck_play(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "play"))
+    time.sleep(0.3)
+
+
+@when("I click the cue button on deck {deck:d}")
+def step_click_deck_cue(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "cue"))
+    time.sleep(0.3)
+
+
+@when("I seek to {position:f} in deck {deck:d}")
+def step_seek_in_deck(context, position, deck):
+    group = _deck_group(deck)
+    context.mixxx_rpc.mouseClickWithProportion(_deck_button_path(deck, "overview"), position, 0.5)
+    time.sleep(0.5)
+
+
+@when("I click the beatjump forward button on deck {deck:d}")
+def step_click_deck_beatjump_forward(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "beatjump_forward"))
+    time.sleep(0.3)
+
+
+@then("the play button on deck {deck:d} should be pressed")
+def step_play_pressed(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "play")
+    assert float(value) > 0
+
+
+@then("the play button on deck {deck:d} should be stopped")
+def step_play_stopped(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "play")
+    assert float(value) == 0, (
+        f"Play button on deck {deck} ({group}) is still pressed (value={value})"
+    )
+
+
+@then("the cue point should be set on deck {deck:d}")
+def step_cue_set(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "cue_point")
+    assert float(value) > 0, f"cue_point not set (value={value})"
+
+
+@when("I set hotcue {hotcue:d} on deck {deck:d}")
+def step_set_hotcue(context, hotcue, deck):
+    _click(context.mixxx_rpc, _deck_hotcue_path(deck, hotcue))
+    time.sleep(0.3)
+
+
+@then("hotcue {hotcue:d} should be set on deck {deck:d}")
+def step_hotcue_set(context, hotcue, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, f"hotcue_{hotcue}_status")
+    assert float(value) > 0, f"hotcue_{hotcue} not set (value={value})"
+
+
+@when("I clear hotcue {num:d} on deck {deck:d}")
+def step_clear_hotcue(context, num, deck):
+    _click(context.mixxx_rpc, _deck_hotcue_path(deck, num))
+    time.sleep(0.3)
+
+
+@then("hotcue {num:d} should not be set on deck {deck:d}")
+def step_hotcue_not_set(context, num, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, f"hotcue_{num}_status")
+    assert float(value) == 0, f"hotcue_{num} is still set (value={value})"
+
+
+@when("I click the loop in button on deck {deck:d}")
+def step_click_loop_in(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "loop_in"))
+    time.sleep(0.3)
+
+
+@when("I click the loop out button on deck {deck:d}")
+def step_click_loop_out(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "loop_out"))
+    time.sleep(0.3)
+
+
+@when("I click the reloop toggle button on deck {deck:d}")
+def step_click_reloop_toggle(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "reloop_toggle"))
+    time.sleep(0.3)
+
+
+@when("I halve the beatloop size on deck {deck:d}")
+def step_halve_beatloop(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "loop_halve"))
+    time.sleep(0.3)
+
+
+@when("I double the beatloop size on deck {deck:d}")
+def step_double_beatloop(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "loop_double"))
+    time.sleep(0.3)
+
+
+@then("the loop should be enabled on deck {deck:d}")
+def step_loop_enabled(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "loop_enabled")
+    assert float(value) > 0, (
+        f"Loop on deck {deck} ({group}) is not enabled (loop_enabled={value})"
+    )
+
+
+@then("the loop should not be enabled on deck {deck:d}")
+def step_loop_not_enabled(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "loop_enabled")
+    assert float(value) == 0, (
+        f"Loop on deck {deck} ({group}) is still enabled (loop_enabled={value})"
+    )
+
+
+@when("I remember the beatloop size of deck {deck:d}")
+def step_remember_beatloop_size(context, deck):
+    group = _deck_group(deck)
+    context._saved_beatloop_size = float(
+        _get_control_value(context.mixxx_rpc, group, "beatloop_size")
+    )
+
+
+@then("the beatloop size of deck {deck:d} should have changed")
+def step_beatloop_size_changed(context, deck):
+    group = _deck_group(deck)
+    current = float(_get_control_value(context.mixxx_rpc, group, "beatloop_size"))
+    saved = getattr(context, "_saved_beatloop_size", None)
+    assert saved is not None, "No saved beatloop size (forgot 'I remember' step?)"
+    assert current != saved, (
+        f"Beatloop size did not change on deck {deck} ({group}): "
+        f"was {saved}, is {current}"
+    )
+    context._saved_beatloop_size = current
+
+
+# --- Sync ---
+
+@when("I click the sync button on deck {deck:d}")
+def step_click_sync(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "sync"))
+    time.sleep(0.3)
+
+
+@when("I long-press the sync button on deck {deck:d}")
+def step_long_press_sync(context, deck):
+    rpc = context.mixxx_rpc
+    path = _deck_button_path(deck, "sync")
+    rpc.invokeMethod(path, "toggleLeader", [])
+    time.sleep(0.5)
+
+
+@then("sync should be enabled on deck {deck:d}")
+def step_sync_enabled(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "sync_enabled")
+    assert float(value) > 0, (
+        f"Sync on deck {deck} ({group}) is not enabled (value={value})"
+    )
+
+
+@then("sync should be disabled on deck {deck:d}")
+def step_sync_disabled(context, deck):
+    group = _deck_group(deck)
+    value = _get_control_value(context.mixxx_rpc, group, "sync_enabled")
+    assert float(value) == 0, (
+        f"Sync on deck {deck} ({group}) is still enabled (value={value})"
+    )
+
+
+@then("deck {deck:d} should be the sync leader")
+def step_sync_leader(context, deck):
+    group = _deck_group(deck)
+    leader = _get_control_value(context.mixxx_rpc, group, "sync_leader")
+    assert float(leader) > 0, (
+        f"Deck {deck} ({group}) is not the sync leader (sync_leader={leader})"
+    )
+
+
+# --- Range ---
+
+@when("I click the range button on deck {deck:d}")
+def step_click_range(context, deck):
+    _click(context.mixxx_rpc, _deck_button_path(deck, "range"))
+    time.sleep(0.3)
+
+
+@when("I remember the rate range of deck {deck:d}")
+def step_remember_rate_range(context, deck):
+    group = _deck_group(deck)
+    context._saved_rate_range = float(
+        _get_control_value(context.mixxx_rpc, group, "rateRange")
+    )
+
+
+@then("the rate range of deck {deck:d} should have changed")
+def step_rate_range_changed(context, deck):
+    group = _deck_group(deck)
+    current = float(_get_control_value(context.mixxx_rpc, group, "rateRange"))
+    saved = getattr(context, "_saved_rate_range", None)
+    assert saved is not None, "No saved rate range (forgot 'I remember' step?)"
+    assert current != saved, (
+        f"Rate range did not change on deck {deck} ({group}): "
+        f"was {saved}, is {current}"
+    )
+
+
+# --- Tempo fader ---
+
+@when("I set the rate of deck {deck:d} to {value:f}")
+def step_set_rate(context, deck, value):
+    path = f'{_deck_button_path(deck, "rate")}/handle'
+    # FIXME Can this factor be resolved using getBoundingBox?
+    context.mixxx_rpc.mouseDrag(path, 0, 0, 0, -14.45 * value, 1000)
+
+
+@then("the rate of deck {deck:d} should be near {target}")
+def step_rate_near(context, deck, target):
+    group = _deck_group(deck)
+    actual = float(_get_control_value(context.mixxx_rpc, group, "rate"))
+    tol = 0.01
+    assert abs(actual - float(target)) < tol, (
+        f"Rate on deck {deck} ({group}) is {actual}, expected ~{target}"
+    )
+
+
+@then("the rate ratio of deck {deck:d} should be near {target}")
+def step_rate_ratio_near(context, deck, target):
+    group = _deck_group(deck)
+    actual = float(_get_control_value(context.mixxx_rpc, group, "rate_ratio"))
+    tol = 0.01
+    assert abs(actual - float(target)) < tol, (
+        f"Rate ratio on deck {deck} ({group}) is {actual}, expected ~{target}"
+    )
+
+
+# --- Edit mode ---
+
+@then("edit mode should be enabled")
+def step_edit_mode_enabled(context):
+    checked = _get_property(context.mixxx_rpc, "mainWindow/editDeckButton", "checked")
+    assert checked == "true", f"Edit mode not enabled (checked={checked})"
+
+
+@then("edit mode should not be enabled")
+def step_edit_mode_disabled(context):
+    checked = _get_property(context.mixxx_rpc, "mainWindow/editDeckButton", "checked")
+    assert checked == "false", f"Edit mode still enabled (checked={checked})"
+
+
+@then('the edit overlay should {action} visible on the "{component}" component in deck {deck:d}')
+def step_edit_overlay_visible(context, action, component, deck):
+    path = f"{_deck_button_path(deck, component)}/overlayItem"
+    if action == "be":
+        assert _is_visible(context.mixxx_rpc, path), f"Component '{component}' is not visible"
+    else:
+        assert not _is_visible(context.mixxx_rpc, path), f"Component '{component}' is visible"
+
+
+@when('I move the "{component}" component in deck {deck:d} after the "{target}" component')
+def step_move_component_after(context, component, deck, target):
+    component_path = _deck_button_path(deck, component)
+    target_path = _deck_button_path(deck, target)
+
+    component_bb = context.mixxx_rpc.getBoundingBox(component_path)
+    target_bb = context.mixxx_rpc.getBoundingBox(target_path)
+    delta = target_bb[0] - component_bb[0] - component_bb[2] / 2, target_bb[1] - component_bb[1] - component_bb[3] / 2
+    print(delta)
+
+    context.mixxx_rpc.mouseDrag(component_path, 0.5, 0.5, *delta, 1000)
+    time.sleep(2)
+    print(context.mixxx_rpc.getBoundingBox(component_path), context.mixxx_rpc.getBoundingBox(target_path))
+
+
+@when('I move the selected group in deck {deck:d} after the "{target}" component')
+def step_move_component_after(context, deck, target):
+    component_path = _deck_button_path(deck, "selectedGroupOverlay")
+    target_path = _deck_button_path(deck, target)
+
+    component_bb = context.mixxx_rpc.getBoundingBox(component_path)
+    target_bb = context.mixxx_rpc.getBoundingBox(target_path)
+    delta = target_bb[0] - component_bb[0] - component_bb[2] / 2, target_bb[1] - component_bb[1] - (target_bb[3] - component_bb[3]) / 2
+    print(component_bb, target_bb, delta)
+    # [2564.0, 232.0, 60.0, 125.0] [3137.0, 225.0, 140.0, 140.0] (543.0, 0)
+
+    context.mixxx_rpc.mouseDrag(component_path, 0, 0, delta[0]/2, delta[1]/2, 1000)
+    time.sleep(2)
+    print(context.mixxx_rpc.getBoundingBox(component_path), context.mixxx_rpc.getBoundingBox(target_path))
+
+
+@then('the "{component}" component should appear after the "{target}" component in deck {deck:d}')
+def step_component_order_after(context, component, target, deck):
+    component_bb = context.mixxx_rpc.getBoundingBox(_deck_button_path(deck, component))
+    target_bb = context.mixxx_rpc.getBoundingBox(_deck_button_path(deck, target))
+    assert component_bb[0] > target_bb[0], (
+        f"Component {component} (x={component_bb[0]}) is not after {target} (x={target_bb[0]})"
+    )
+
+
+@when('I select the group containing "{component}" in deck {deck:d} with a "{action}"')
+def step_select_component_group(context, component, deck, action):
+    path = _deck_button_path(deck, component)
+    if action == "long press":
+        context.mixxx_rpc.mouseClickAndHold(path, QT_LEFT_BUTTON, 0, 1000)
+    elif action == "ctrl+click":
+        context.mixxx_rpc.mouseClickWithButton(path, QT_LEFT_BUTTON, QT_CONTROL_MODIFIER)
+    else:
+        raise NotImplementedError(f"Unsupported action '{action}'")
+    time.sleep(0.3)
+
+
+@then('the "{group_name}" group should appear after the "{target}" component in deck {deck:d}')
+def step_group_order_after(context, group_name, target, deck):
+    raise NotImplementedError(
+        "Same approach as component_order_after but operates on groups "
+        f"(LayoutContainer) in {_deck_group(deck)}'s model tree. "
+        "Parse the serialized JSON to verify order."
+    )
+
+
+# --- Hotcues ---
+
+# --- Track loading ---
+
+@when("I load the track at row {row:d} into deck {deck:d}")
+def step_load_track_to_deck(context, row, deck):
+    s = context.mixxx_rpc
+    tracks_dir = os.environ.get("MIXXX_TEST_TRACKS_DIR", "")
+    if not tracks_dir:
+        raise RuntimeError("MIXXX_TEST_TRACKS_DIR not set")
+    track_files = sorted(os.listdir(tracks_dir))
+    if not track_files:
+        raise RuntimeError(f"No track files found in {tracks_dir}")
+    idx = min(row - 1, len(track_files) - 1)
+    filepath = os.path.join(tracks_dir, track_files[idx])
+    _load_track(s, deck, filepath)
+    time.sleep(1)
+
+
+@when("I remember the playback position of deck {deck:d}")
+def step_remember_playposition(context, deck):
+    group = _deck_group(deck)
+    context._saved_playposition = float(
+        _get_control_value(context.mixxx_rpc, group, "playposition")
+    )
+
+
+@then("the playback position of deck {deck:d} should have changed")
+def step_playposition_changed(context, deck):
+    group = _deck_group(deck)
+    current = float(_get_control_value(context.mixxx_rpc, group, "playposition"))
+    saved = getattr(context, "_saved_playposition", None)
+    assert saved is not None, "No saved playback position (forgot 'I remember' step?)"
+    assert current != saved, (
+        f"Playback position did not change on deck {deck} ({group}): "
+        f"was {saved}, is {current}"
+    )
+    context._saved_playposition = current
