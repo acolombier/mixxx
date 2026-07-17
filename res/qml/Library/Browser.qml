@@ -7,7 +7,6 @@ import QtQml.Models
 import QtQuick.Layouts
 import QtQuick.Controls 2.15
 import QtQuick.Shapes 1.12
-import Qt5Compat.GraphicalEffects
 import "../Theme"
 
 Rectangle {
@@ -17,6 +16,7 @@ Rectangle {
     }
     required property var model
 
+    property var currentSelectedIndex: null
     color: Theme.backgroundColor
 
     Component.onCompleted: {
@@ -47,7 +47,19 @@ Rectangle {
                     model: root.model
                     selectionModel: featureSelection
 
+                    Connections {
+                        target: featureSelection
+                        function onSelectionChanged(selected, deselected) {
+                            if (!selected.length) return;
+                            root.currentSelectedIndex = selected[0]
+                        }
+                    }
+
                     delegate: FocusScope {
+                        required property string itemName
+
+                        readonly property bool canCreate: capabilities & Mixxx.LibrarySource.Capability.Create
+                        readonly property bool canAddTrack: capabilities & Mixxx.LibrarySource.Capability.AddTrack
                         required property int column
                         required property bool current
                         required property int depth
@@ -55,9 +67,7 @@ Rectangle {
                         required property int hasChildren
                         required property var icon
                         readonly property real indentation: 40
-                        // FIXME The signature for that function has changed after Qt 6.4.2 (currently shipped on Ubuntu 24.04)
-                        // See https://github.com/mixxxdj/mixxx/pull/14514#issuecomment-2770811094 for further details
-                        readonly property var index: treeView.modelIndex(column, row)
+                        readonly property var index: treeView.index(row, column)
 
                         // Rotate indicator when expanded by the user
                         // (requires TreeView to have a selectionModel)
@@ -89,7 +99,7 @@ Rectangle {
                             id: background
 
                             anchors.fill: parent
-                            color: depth == 0 ? Theme.midGray2 : 'transparent'
+                            color: row == 0 ? Theme.midGray : depth == 0 ? Theme.darkGray2 : 'transparent'
 
                             MouseArea {
                                 id: rowMouseArea
@@ -108,12 +118,15 @@ Rectangle {
                                 }
                             }
                             Rectangle {
+                                color: current ? Theme.midGray : 'transparent'
+                                anchors.fill: parent
+                            }
+                            Item {
                                 anchors.bottom: parent.bottom
                                 anchors.left: parent.left
                                 anchors.leftMargin: 10 + 15 * depth
                                 anchors.right: parent.right
                                 anchors.top: parent.top
-                                color: current ? Theme.midGray : 'transparent'
                                 width: 25
 
                                 Repeater {
@@ -156,10 +169,10 @@ Rectangle {
                                     text: label
                                 }
                                 Item {
+                                    visible: (rowMouseArea.containsMouse || popup.opened) && isTreeNode && canCreate
                                     id: newItem
 
                                     height: parent.height
-                                    visible: rowMouseArea.containsMouse && isTreeNode && hasChildren
 
                                     anchors {
                                         right: parent.right
@@ -229,6 +242,63 @@ Rectangle {
                                                 PathLine {
                                                     x: 8
                                                     y: 6
+                                                }
+                                            }
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onPressed: {
+                                                popup.x = parent.width
+                                                popup.y = parent.height / 2 - popup.height / 2
+                                                popup.open()
+                                                popup.forceActiveFocus(Qt.PopupFocusReason)
+                                            }
+                                            cursorShape: Qt.PointingHandCursor
+                                        }
+                                        Skin.ActionPopup {
+                                            id: popup
+                                            padding: 6
+                                            focus: true
+                                            Text {
+                                                Layout.alignment: Qt.AlignHCenter
+                                                text: qsTr("New %1").arg(itemName)
+                                                font.weight: Font.Bold
+                                                font.pixelSize: 14
+                                                color: Theme.white
+                                            }
+                                            Skin.InputField {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 36
+                                                Layout.margins: 4
+                                                focus: true
+                                                id: newItemName
+                                                input.onAccepted: {
+                                                    if (input.text) {
+                                                        create(input.text)
+                                                    }
+                                                    popup.close()
+                                                }
+                                            }
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Skin.ActionButton {
+                                                    Layout.fillWidth: true
+                                                    label.text: qsTr("Cancel")
+                                                    onPressed: {
+                                                        popup.close()
+                                                    }
+                                                }
+                                                Skin.ActionButton {
+                                                    Layout.fillWidth: true
+                                                    opacity: newItemName.text || newItemName.input.text ? 1 : 0.4
+                                                    category: Skin.ActionButton.Action
+                                                    label.text: qsTr("Create")
+                                                    onPressed: {
+                                                        if (newItemName.text) {
+                                                            create(input.text)
+                                                            popup.close()
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

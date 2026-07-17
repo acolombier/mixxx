@@ -6,6 +6,10 @@
 #include <QThread>
 #include <QtDebug>
 
+#ifdef __STEM__
+#include "track/steminfo.h"
+#endif
+
 #ifdef __SQLITE3__
 #include <sqlite3.h>
 #endif // __SQLITE3__
@@ -176,6 +180,47 @@ TrackId TrackDAO::getTrackIdByLocation(const QString& location) const {
     const auto trackId = TrackId(query.value(query.record().indexOf(LIBRARYTABLE_ID)));
     DEBUG_ASSERT(trackId.isValid());
     return trackId;
+}
+
+CoverInfo TrackDAO::getCoverInfoByTrackLocation(const QString& trackLocation) const {
+    CoverInfo coverInfo;
+    coverInfo.trackLocation = trackLocation;
+    if (trackLocation.isEmpty()) {
+        return coverInfo;
+    }
+    const TrackId trackId = getTrackIdByLocation(trackLocation);
+    if (!trackId.isValid()) {
+        return coverInfo;
+    }
+    QSqlQuery query(m_database);
+    query.prepare(QStringLiteral(
+            "SELECT coverart_source, coverart_type, coverart_location, "
+            "coverart_color, coverart_digest, coverart_hash "
+            "FROM library WHERE id = :id"));
+    query.bindValue(":id", trackId.toString());
+    if (!query.exec()) {
+        LOG_FAILED_QUERY(query);
+        DEBUG_ASSERT(!"Failed query");
+        return coverInfo;
+    }
+    if (!query.next()) {
+        return coverInfo;
+    }
+    coverInfo.source = static_cast<CoverInfo::Source>(
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_SOURCE))
+                    .toInt());
+    coverInfo.type = static_cast<CoverInfo::Type>(
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_TYPE))
+                    .toInt());
+    coverInfo.coverLocation =
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_LOCATION))
+                    .toString();
+    coverInfo.color = mixxx::RgbColor::fromQVariant(
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_COLOR)));
+    coverInfo.setImageDigest(
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_DIGEST)).toByteArray(),
+            query.value(query.record().indexOf(LIBRARYTABLE_COVERART_HASH)).toUInt());
+    return coverInfo;
 }
 
 QList<TrackId> TrackDAO::resolveTrackIds(
@@ -475,6 +520,9 @@ void TrackDAO::addTracksPrepare() {
             "beats_version,"
             "beats_sub_version,"
             "beats,"
+#ifdef __STEM__
+            "stems,"
+#endif
             "bpm_lock,"
             "keys_version,"
             "keys_sub_version,"
@@ -524,6 +572,9 @@ void TrackDAO::addTracksPrepare() {
             ":beats_version,"
             ":beats_sub_version,"
             ":beats,"
+#ifdef __STEM__
+            ":stems,"
+#endif
             ":bpm_lock,"
             ":keys_version,"
             ":keys_sub_version,"
@@ -671,6 +722,14 @@ void bindTrackLibraryValues(
     pTrackLibraryQuery->bindValue(":beats_version", beatsVersion);
     pTrackLibraryQuery->bindValue(":beats_sub_version", beatsSubVersion);
     pTrackLibraryQuery->bindValue(":beats", beatsBlob);
+
+#ifdef __STEM__
+    QByteArray steamInfoBlob;
+    if (trackMetadata.getStemInfo().isValid()) {
+        steamInfoBlob = trackMetadata.getStemInfo().toByteArray();
+    }
+    pTrackLibraryQuery->bindValue(":stems", steamInfoBlob);
+#endif
 
     const Keys keys = track.getKeys();
     QByteArray keysBlob = keys.toByteArray();
@@ -1325,6 +1384,18 @@ void setTrackBpmLock(const QSqlRecord& record, const int column, Track* pTrack) 
     pTrack->setBpmLocked(record.value(column).toBool());
 }
 
+#ifdef __STEM__
+void setTrackStems(const QSqlRecord& record, const int column, Track* pTrack) {
+    QByteArray stemsBlob = record.value(column).toByteArray();
+    if (stemsBlob.isEmpty()) {
+        return;
+    }
+    const auto stemInfo = mixxx::StemInfo::fromByteArray(
+            stemsBlob);
+    pTrack->trySetStemInfo(stemInfo);
+}
+#endif
+
 void setTrackKey(const QSqlRecord& record, const int column, Track* pTrack) {
     QString keyText = record.value(column).toString();
     QString keysVersion = record.value(column + 1).toString();
@@ -1426,6 +1497,10 @@ TrackPointer TrackDAO::getTrackById(TrackId trackId) const {
             {"beats_sub_version", nullptr},
             {"beats", nullptr},
             {"bpm_lock", setTrackBpmLock},
+
+#ifdef __STEM__
+            {"stems", setTrackStems},
+#endif
 
             // Key detection columns are handled by setTrackKey. Do not change the
             // ordering of these columns or put other columns in between them!
@@ -1730,6 +1805,9 @@ bool TrackDAO::updateTrack(const Track& track) const {
             "beats_version=:beats_version,"
             "beats_sub_version=:beats_sub_version,"
             "beats=:beats,"
+#ifdef __STEM__
+            "stems=:stems,"
+#endif
             "bpm_lock=:bpm_lock,"
             "keys_version=:keys_version,"
             "keys_sub_version=:keys_sub_version,"

@@ -84,6 +84,7 @@ Rectangle {
         }
         Skin.ControlButton {
             id: loopInButton
+            objectName: "loopIn"
 
             Layout.fillWidth: true
             Layout.minimumWidth: 28
@@ -96,6 +97,7 @@ Rectangle {
         }
         Skin.ControlButton {
             id: loopOutButton
+            objectName: "loopOut"
 
             Layout.fillWidth: true
             Layout.minimumWidth: 28
@@ -108,6 +110,7 @@ Rectangle {
         }
         Skin.ControlButton {
             id: loopRecallButton
+            objectName: "reloopToggle"
 
             Layout.fillWidth: true
             Layout.minimumWidth: 40
@@ -131,6 +134,7 @@ Rectangle {
         }
         Skin.Button {
             id: loopSizeHalfButton
+            objectName: "loopHalve"
 
             activeColor: root.buttonColor
             implicitHeight: 28
@@ -140,11 +144,13 @@ Rectangle {
                 anchors.fill: parent
 
                 Shape {
+                    property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                     anchors.centerIn: parent
                     antialiasing: true
                     height: 10
-                    layer.enabled: true
-                    layer.samples: 4
+                    layer.enabled: multiSamplingLevel > 1
+                    layer.samples: multiSamplingLevel
                     width: 12
 
                     ShapePath {
@@ -259,6 +265,7 @@ Rectangle {
         }
         Skin.Button {
             id: loopSizeDoubleButton
+            objectName: "loopDouble"
 
             activeColor: root.buttonColor
             implicitHeight: 28
@@ -268,11 +275,13 @@ Rectangle {
                 anchors.fill: parent
 
                 Shape {
+                    property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                     anchors.centerIn: parent
                     antialiasing: true
                     height: 10
-                    layer.enabled: true
-                    layer.samples: 4
+                    layer.enabled: multiSamplingLevel > 1
+                    layer.samples: multiSamplingLevel
                     width: 12
 
                     ShapePath {

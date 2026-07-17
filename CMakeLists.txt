@@ -1220,6 +1220,7 @@ add_library(
   src/controllers/controlpickermenu.cpp
   src/controllers/legacycontrollermappingfilehandler.cpp
   src/controllers/legacycontrollermapping.cpp
+  src/controllers/controllershareddata.cpp
   src/controllers/delegates/controldelegate.cpp
   src/controllers/delegates/midibytedelegate.cpp
   src/controllers/delegates/midichanneldelegate.cpp
@@ -2385,7 +2386,7 @@ if(QT6)
     set_property(
       TARGET mixxx
       PROPERTY
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/packaging/android"
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/android"
     )
     set_target_properties(mixxx PROPERTIES QT_ANDROID_ABIS "${ANDROID_ABI}")
     set_target_properties(mixxx PROPERTIES QT_ANDROID_PACKAGE_NAME "org.mixxx")
@@ -2450,6 +2451,11 @@ if(QT6)
       COMMAND
         ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res
         ${CMAKE_CURRENT_BINARY_DIR}/android-build/assets
+      COMMAND
+        ${CMAKE_COMMAND}
+        -DTEMPLATE_FILE="${CMAKE_SOURCE_DIR}/packaging/android/usb_device_filter.xml.in"
+        -DTARGET_FILE="${CMAKE_CURRENT_BINARY_DIR}/android/res/xml/usb_device_filter.xml"
+        -P ${CMAKE_SOURCE_DIR}/cmake/modules/gen_usb_device_filter.cmake
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_dependencies(mixxx copy-resource-android)
@@ -2765,6 +2771,60 @@ elseif(BUILD_BENCH AND NOT BUILD_TESTING)
   message(FATAL_ERROR "Benchmark needs Unittests (-DBUILD_TESTING=ON)")
 endif()
 
+default_option(BUILD_UI_TEST "Build Mixxx QML UI/E2E tests" "QML")
+if(BUILD_UI_TEST)
+  set(ANYRPC_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib/libanyrpc-install")
+  set(
+    ANYRPC_LIBRARY
+    "lib/${CMAKE_SHARED_LIBRARY_PREFIX}Spix${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  )
+  ExternalProject_Add(
+    libanyrpc
+    GIT_REPOSITORY https://github.com/sgieseking/anyrpc.git
+    GIT_TAG b1949b3d40849229055ae75cf5334b9d08579502
+    INSTALL_DIR ${ANYRPC_INSTALL_DIR}
+    LIST_SEPARATOR "|"
+    CMAKE_ARGS
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBUILD_WITH_LOG4CPLUS=OFF
+      -DCMAKE_INSTALL_PREFIX=${ANYRPC_INSTALL_DIR} -DBUILD_EXAMPLES=OFF
+      -DBUILD_PROTOCOL_MESSAGEPACK=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    BUILD_BYPRODUCTS <INSTALL_DIR>/${ANYRPC_LIBRARY}
+    EXCLUDE_FROM_ALL TRUE
+  )
+  set(SPIX_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib/libspix-install")
+  set(
+    SPIX_QTQUICK_LIBRARY
+    "${CMAKE_STATIC_LIBRARY_PREFIX}SpixCore${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  )
+  set(
+    SPIX_CORE_LIBRARY
+    "${CMAKE_STATIC_LIBRARY_PREFIX}SpixQtQuick${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  )
+  ExternalProject_Add(
+    libspix
+    GIT_REPOSITORY https://github.com/faaxm/spix.git
+    GIT_TAG 73ed4d0880e8434815a82a5ad876d03a51eaa1db
+    INSTALL_DIR ${SPIX_INSTALL_DIR}
+    LIST_SEPARATOR "|"
+    CMAKE_ARGS
+      -DSPIX_BUILD_EXAMPLES=OFF -DSPIX_CMAKE_CONFIG_DIR=${SPIX_INSTALL_DIR}
+      -DSPIX_QT_MAJOR=6 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX=${SPIX_INSTALL_DIR}
+      -DCMAKE_INSTALL_BINDIR=${SPIX_INSTALL_DIR}
+      -DCMAKE_INSTALL_LIBDIR=${SPIX_INSTALL_DIR}
+      -DCMAKE_INSTALL_DATADIR=${SPIX_INSTALL_DIR}
+      -DCMAKE_INSTALL_INCLUDEDIR=${SPIX_INSTALL_DIR}
+      -DAnyRPC_INCLUDE_DIRS=${ANYRPC_INSTALL_DIR}/include
+      -DAnyRPC_LIBRARIES=${ANYRPC_INSTALL_DIR}/lib -DQt6Core_DIR=${Qt6Core_DIR}
+      -DQt6Gui_DIR=${Qt6Gui_DIR} -DQt6_DIR=${Qt6_DIR}
+      -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
+    BUILD_BYPRODUCTS <INSTALL_DIR>/${SPIX_LIBRARY}
+    EXCLUDE_FROM_ALL TRUE
+    PATCH_COMMAND git apply "${CMAKE_CURRENT_LIST_DIR}/spix.patch"
+  )
+  add_dependencies(libspix libanyrpc)
+endif()
+
 # FFmpeg support
 # FFmpeg is multimedia library that can be found http://ffmpeg.org/
 find_package(FFMPEG COMPONENTS libavcodec libavformat libavutil libswresample)
@@ -2881,6 +2941,7 @@ if(BUILD_TESTING)
     src/test/controller_mapping_settings_test.cpp
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
+    src/test/controllershareddata_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -3032,6 +3093,45 @@ if(BUILD_TESTING)
     PRIVATE mixxx-lib mixxx-gitinfostore mixxx-xwax GTest::gtest GTest::gmock
   )
 
+  if(BUILD_UI_TEST)
+    add_compile_definitions(USE_TEST_UI)
+    add_dependencies(mixxx-test libspix)
+    target_sources(
+      mixxx-test
+      PRIVATE src/test/qml/servertest.cpp src/test/qml/basic_test.cpp
+    )
+    target_include_directories(
+      mixxx-test
+      PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/lib/libspix-install/
+    )
+
+    add_library(AnyRpc SHARED IMPORTED)
+    set_target_properties(
+      AnyRpc
+      PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${ANYRPC_INSTALL_DIR}/include"
+        IMPORTED_LOCATION "${ANYRPC_INSTALL_DIR}/lib/libanyrpc.so"
+    )
+
+    add_library(SpixCore STATIC IMPORTED)
+    set_target_properties(
+      SpixCore
+      PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SPIX_INSTALL_DIR}"
+        IMPORTED_LOCATION "${SPIX_INSTALL_DIR}/${SPIX_QTQUICK_LIBRARY}"
+        INTERFACE_LINK_LIBRARIES "AnyRpc"
+    )
+
+    add_library(SpixQtQuick STATIC IMPORTED)
+    set_target_properties(
+      SpixQtQuick
+      PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SPIX_INSTALL_DIR}"
+        IMPORTED_LOCATION "${SPIX_INSTALL_DIR}/${SPIX_CORE_LIBRARY}"
+    )
+
+    target_link_libraries(mixxx-test PRIVATE AnyRpc SpixCore SpixQtQuick)
+  endif()
   if(BUILD_BENCH)
     add_compile_definitions(USE_BENCH)
     target_link_libraries(mixxx-test PRIVATE benchmark::benchmark)
@@ -3072,6 +3172,41 @@ if(BUILD_TESTING)
     TEST_LIST testsuite
     DISCOVERY_MODE PRE_TEST
   )
+
+  if(BUILD_UI_TEST)
+    find_program(PYTHON3_EXECUTABLE python3)
+    if(PYTHON3_EXECUTABLE)
+      execute_process(
+        COMMAND ${PYTHON3_EXECUTABLE} -m behave --version
+        RESULT_VARIABLE BEHAVE_FOUND
+        OUTPUT_QUIET
+        ERROR_QUIET
+      )
+      if(BEHAVE_FOUND EQUAL 0)
+        if(UNIX AND NOT APPLE)
+          file(
+            GLOB BEHAVE_FEATURE_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/test/behave/features/*.feature"
+          )
+          foreach(FEATURE_FILE ${BEHAVE_FEATURE_FILES})
+            get_filename_component(FEATURE_NAME ${FEATURE_FILE} NAME_WE)
+            add_test(
+              NAME "mixxx-behave-${FEATURE_NAME}"
+              COMMAND
+                ${PYTHON3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/test/behave/mixxx_test_runner.py
+                --binary "$<TARGET_FILE:mixxx-test>" ${FEATURE_FILE}
+              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            )
+            set_tests_properties(
+              "mixxx-behave-${FEATURE_NAME}"
+              PROPERTIES LABELS "e2e;ui;qt" TIMEOUT 250 DEPENDS mixxx-test
+            )
+          endforeach()
+        endif()
+      endif()
+    endif()
+  endif()
 
   if(BUILD_BENCH)
     # Benchmarking
@@ -3583,6 +3718,56 @@ if(KEYFINDER)
   target_compile_definitions(mixxx-lib PUBLIC __KEYFINDER__)
 endif()
 
+# SignalSmith
+option(
+  SIGNALSMITH
+  "Enable the SignalSmith Stretch engine for pitch-bending (experimental)"
+  OFF
+)
+if(SIGNALSMITH)
+  set(
+    SIGNALSMITH_INSTALL_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/lib/signalsmith-install"
+  )
+  ExternalProject_Add(
+    signalsmith-stretch
+    GIT_REPOSITORY
+      "https://github.com/Signalsmith-Audio/signalsmith-stretch.git"
+    GIT_TAG "57b93f4e9206a089a45387eaa39bdc9f310d3308"
+    PREFIX "signalsmith-stretch"
+    INSTALL_DIR "${SIGNALSMITH_INSTALL_DIR}"
+    LIST_SEPARATOR "|"
+    CMAKE_ARGS
+      -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DCMAKE_PREFIX_PATH=${PIPE_DELIMITED_CMAKE_PREFIX_PATH}
+      -$<IF:$<BOOL:${CMAKE_TOOLCHAIN_FILE}>,D,U>CMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+      -$<IF:$<BOOL:${CMAKE_OSX_DEPLOYMENT_TARGET}>,D,U>CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      -$<IF:$<BOOL:${CMAKE_OSX_ARCHITECTURES}>,D,U>CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+      -$<IF:$<BOOL:${CMAKE_ANDROID_NDK}>,D,U>CMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK}
+      -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+      -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build .
+    INSTALL_COMMAND true
+    EXCLUDE_FROM_ALL TRUE
+  )
+
+  add_dependencies(mixxx-lib signalsmith-stretch)
+  target_include_directories(
+    mixxx-lib
+    SYSTEM
+    PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch-build/_deps/signalsmith-linear-src/include/"
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch/"
+  )
+  target_sources(
+    mixxx-lib
+    PRIVATE src/engine/bufferscalers/enginebufferscalesignalsmith.cpp
+  )
+  target_compile_definitions(mixxx-lib PUBLIC __SIGNALSMITH__)
+endif()
+
 # FLAC
 find_package(FLAC REQUIRED)
 target_link_libraries(mixxx-lib PRIVATE FLAC::FLAC)
@@ -3987,6 +4172,9 @@ if(QML)
       src/qml/qmlplayermanagerproxy.cpp
       src/qml/qmlplayerproxy.cpp
       src/qml/qmlrecordingproxy.cpp
+      src/qml/qmlcoreservices.cpp
+      src/qml/qmlplaylistproxy.cpp
+      src/qml/qmlcrateproxy.cpp
       src/qml/qmlsidebarmodelproxy.cpp
       src/qml/qmllibrarytracklistcolumn.cpp
       src/qml/qmltrackproxy.cpp
@@ -4031,6 +4219,10 @@ if(QML)
 
   # qt_finalize_target takes care that the resources :/mixxx.org/imports/Mixxx/
   # and :/mixxx.org/imports/Mixxx/Controls are placed into beginning of the binary
+  # Set QT_QML_MODULE_NO_IMPORT_SCAN to avoid warnings about missing QML plugin
+  # targets. The plugins are loaded dynamically at runtime from the system Qt
+  # installation on Linux.
+  set_target_properties(mixxx PROPERTIES QT_QML_MODULE_NO_IMPORT_SCAN ON)
   qt_finalize_target(mixxx)
 
   install(
@@ -4424,6 +4616,14 @@ else()
         COMPONENT applocal
       )
 
+      # qml6-module-qtquick-effects
+      install(
+        DIRECTORY
+          "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt6/qml/QtQuick/Effects"
+        DESTINATION "${MIXXX_INSTALL_DATADIR}/Qt6/qml/Effects"
+        COMPONENT applocal
+      )
+
       # install qml6-module-qt-labs-qmlmodels
       install(
         DIRECTORY
@@ -4788,10 +4988,107 @@ find_package(SoundTouch 2.1.2 REQUIRED)
 target_link_libraries(mixxx-lib PRIVATE SoundTouch::SoundTouch)
 
 # TagLib
-find_package(TagLib 1.11 REQUIRED)
-target_link_libraries(mixxx-lib PUBLIC TagLib::TagLib)
-if(QML)
-  target_link_libraries(mixxx-qml-lib PUBLIC TagLib::TagLib)
+if(STEM)
+  # We don't know yet which version will include the stem support yet, so for not we set it to high irrelevant value
+  set(TAGLIB_VERSION 9.9)
+else()
+  set(TAGLIB_VERSION 1.11)
+endif()
+find_package(TagLib ${TAGLIB_VERSION} EXACT)
+if(NOT TagLib_FOUND)
+  set(TAGLIB_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/lib/taglib-install")
+  set(
+    TAGLIB_LIBRARY
+    "lib/${CMAKE_STATIC_LIBRARY_PREFIX}tag${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  )
+
+  # CMake does not pass lists of paths properly to external projects.
+  # This is worked around by changing the list separator.
+  string(
+    REPLACE
+    ";"
+    "|"
+    PIPE_DELIMITED_CMAKE_PREFIX_PATH
+    "${CMAKE_PREFIX_PATH}"
+  )
+
+  include(ProcessorCount)
+  processorcount(n)
+  # Currently, we fetch the patched version of 2.1.1 including the submitted feature in https://github.com/taglib/taglib/pull/1299
+  ExternalProject_Add(
+    taglib
+    GIT_REPOSITORY "https://github.com/taglib/taglib"
+    GIT_TAG 11e3eb05bd8694976d065f37d62ee1a6811daef3
+    DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/downloads"
+    DOWNLOAD_NAME "taglib-${TAGLIB_VERSION}.tar.gz"
+    PREFIX "taglib-${TAGLIB_VERSION}"
+    INSTALL_DIR ${TAGLIB_INSTALL_DIR}
+    LIST_SEPARATOR "|"
+    GIT_SUBMODULES "3rdparty/utfcpp"
+    GIT_SUBMODULES_RECURSE ON
+    CMAKE_ARGS
+      -DBUILD_SHARED_LIBS=OFF -DENABLE_STATIC_RUNTIME=ON
+      -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DCMAKE_PREFIX_PATH=${PIPE_DELIMITED_CMAKE_PREFIX_PATH}
+      -DCMAKE_INSTALL_LIBDIR:PATH=lib
+      -DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH}
+      -$<IF:$<BOOL:${CMAKE_TOOLCHAIN_FILE}>,D,U>CMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+      -$<IF:$<BOOL:${CMAKE_OSX_DEPLOYMENT_TARGET}>,D,U>CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+      -$<IF:$<BOOL:${CMAKE_OSX_ARCHITECTURES}>,D,U>CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+      -$<IF:$<BOOL:${CMAKE_ANDROID_NDK}>,D,U>CMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK}
+      -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+      -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+      -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
+      -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
+      -DCMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO}
+      -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME} -DBUILD_TESTING=OFF
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . -j${n}
+    BUILD_BYPRODUCTS <INSTALL_DIR>/${TAGLIB_LIBRARY}
+    EXCLUDE_FROM_ALL TRUE
+  )
+
+  # The include folder needs to already exist, otherwise INTERFACE_INCLUDE_DIRECTORIES will not be propagated
+  file(MAKE_DIRECTORY "${TAGLIB_INSTALL_DIR}/include/taglib")
+
+  # Assemble a library based on the external project.
+  add_library(mixxx-taglib STATIC IMPORTED)
+  set_target_properties(
+    mixxx-taglib
+    PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${TAGLIB_INSTALL_DIR}/include/taglib"
+      IMPORTED_LOCATION "${TAGLIB_INSTALL_DIR}/${TAGLIB_LIBRARY}"
+  )
+  add_dependencies(mixxx-taglib taglib)
+  # Add the local include directory explicitly before linking the library
+  # to make sure not the system provided headers are used
+  target_include_directories(
+    mixxx-lib
+    BEFORE
+    PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+  )
+  target_include_directories(
+    mixxx
+    BEFORE
+    PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+  )
+  if(BUILD_TESTING)
+    target_include_directories(
+      mixxx-test
+      BEFORE
+      PRIVATE "${TAGLIB_INSTALL_DIR}/include/taglib"
+    )
+  endif()
+  target_link_libraries(mixxx-lib PUBLIC mixxx-taglib)
+  if(QML)
+    target_link_libraries(mixxx-qml-lib PUBLIC mixxx-taglib)
+  endif()
+else()
+  target_link_libraries(mixxx-lib PUBLIC TagLib::TagLib)
+  if(QML)
+    target_link_libraries(mixxx-qml-lib PUBLIC TagLib::TagLib)
+  endif()
 endif()
 
 # Threads
@@ -5283,9 +5580,6 @@ if(HID)
     )
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __HID__)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __HID__)
-  endif()
 endif()
 
 # USB Bulk controller support
@@ -5313,9 +5607,6 @@ if(BULK)
   endif()
   target_compile_definitions(mixxx-lib PUBLIC __BULK__)
   target_link_libraries(mixxx-lib PRIVATE LibUSB::LibUSB)
-  if(QML)
-    target_compile_definitions(mixxx-qml-lib PUBLIC __BULK__)
-  endif()
 endif()
 
 # Vinyl Control
@@ -5383,6 +5674,13 @@ if(QML)
   target_compile_definitions(mixxx-qml-lib PRIVATE rendergraph=rendergraph_sg)
   target_compile_definitions(mixxx-qml-lib PRIVATE __SCENEGRAPH__)
   target_compile_definitions(mixxx-qml-lib PRIVATE allshader=allshader_sg)
+  target_include_directories(
+    mixxx-qml-lib
+    SYSTEM
+    PUBLIC
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch-build/_deps/signalsmith-linear-src/include/"
+      "${CMAKE_CURRENT_BINARY_DIR}/signalsmith-stretch/src/signalsmith-stretch/"
+  )
 endif()
 
 # WavPack audio file support

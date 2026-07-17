@@ -90,7 +90,7 @@ class PortMidiControllerTest : public MixxxTest {
     }
 
     void openDevice() {
-        m_pController->open({});
+        [[maybe_unused]] auto result = m_pController->open({}, {});
     }
 
     void closeDevice() {
