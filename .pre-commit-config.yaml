@@ -38,6 +38,7 @@ repos:
         exclude: ^.*(\.cbproj|\.groupproj|\.props|\.sln|\.vcxproj|\.vcxproj.filters|UTF-8-BOM.txt)$
       - id: check-case-conflict
       - id: check-json
+        exclude: ^(.devcontainer/devcontainer.json)$ # Contains JSON comment, which isn't supported by the hook
       - id: check-merge-conflict
       - id: check-xml
       - id: check-yaml
@@ -185,7 +186,7 @@ repos:
         language: python
         additional_dependencies:
           - beautifulsoup4==4.12.3
-          - lxml==5.3.0
+          - lxml==6.1.1
           - Markdown==3.7
         types: [text]
         files: ^(CHANGELOG\.md|res/linux/org\.mixxx\.Mixxx\.metainfo.xml)$
@@ -196,7 +197,7 @@ repos:
         require_serial: true
         language: python
         additional_dependencies:
-          - lxml==5.3.0
+          - lxml==6.1.1
         files: ^(res/translations/.*\.ts)$
       - id: check-ui-buddies
         name: check-ui-buddies
