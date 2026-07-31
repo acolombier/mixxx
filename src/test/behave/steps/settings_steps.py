@@ -2,6 +2,13 @@ import json
 import time
 from behave import given, when, then
 
+QT_KEY_ENTER = 0x01000005
+QT_KEY_SPACE = 0x20
+QT_KEY_DOWN = 0x01000015
+QT_KEY_UP = 0x01000013
+QT_KEY_A = 0x41
+QT_CONTROL_MODIFIER = 2
+
 # --- Path constants ---
 
 SETTINGS_POPUP = "mainWindow/settingsPopup"
@@ -10,9 +17,12 @@ CATEGORY_LIST = f"{SETTINGS_POPUP_ITEM}/categoryList"
 TAB_BAR = f"{SETTINGS_POPUP_ITEM}/tabBar"
 SEARCH_SETTING = f"{SETTINGS_POPUP_ITEM}/searchSetting"
 SEARCH_INPUT = f"{SETTINGS_POPUP_ITEM}/searchInput"
+CATEGORIES_ITEM = f"{SETTINGS_POPUP_ITEM}/settingsCategories"
+SHOW_CATEGORIES_BUTTON = f"{SETTINGS_POPUP_ITEM}/showCategoriesButton"
 
-SOUND_SAVE_BUTTON = "mainWindow/soundSaveButton"
-SOUND_CANCEL_BUTTON = "mainWindow/soundCancelButton"
+SETTING_CATEGORY_SLUG = ["sound","library","controller", "interface"]
+CATEGORY_SCROLLBARS_TEMPLATE = "mainWindow/%sSettingsScrollBar"
+ACTION_BUTTON_TEMPLATE = "mainWindow/%s%sButton"
 COMMITTING_OVERLAY = "mainWindow/committingOverlay"
 ENGINE_SECTION = "mainWindow/engineSection"
 DELAYS_SECTION = "mainWindow/delaysSection"
@@ -22,13 +32,110 @@ ROUTER_MODE = "mainWindow/routerMode"
 INPUT_COLUMN = "mainWindow/inputColumn"
 OUTPUT_COLUMN = "mainWindow/outputColumn"
 
-SETTING_CONTROL_MAP = {
-    "Main Mix": "setting_MainMix",
-    "Main Output Mode": "setting_MainOutputMode",
-    "Sound Clock": "setting_SoundClock",
-    "Keylock engine": "setting_KeylockEngine",
-    "Sound API": "setting_SoundAPI",
-    "Sample Rate": "setting_SampleRate",
+# Model of Mixxx.Config.paletteNames(), i.e. PredefinedColorPalettes::kPalettes
+# order. Index in this list == currentIndex of the palette ComboBoxes.
+PALETTE_NAMES = [
+    "Mixxx Hotcue Colors",
+    "Serato DJ Pro Hotcue Colors",
+    "Rekordbox COLD1 Hotcue Colors",
+    "Rekordbox COLD2 Hotcue Colors",
+    "Rekordbox COLORFUL Hotcue Colors",
+    "Mixxx Track Colors",
+    "Rekordbox Track Colors",
+    "Serato DJ Pro Track Colors",
+    "Traktor Pro Track Colors",
+    "VirtualDJ Track Colors",
+    "Mixxx Key Colors",
+    "Traktor Key Colors",
+    "Mixed In Key - Key Colors",
+    "Protanopia / Protanomaly Key Colors",
+    "Deuteranopia / Deuteranomaly Key Colors",
+    "Tritanopia / Tritanomaly Key Colors",
+]
+
+# kinds:
+#   "ratio"   -> RatioChoice: option item `path/<value>`, read `selected`
+#   "combo"   -> ComboBox: open popup and click `path_option_<index>`, read `currentIndex`
+#   "spinbox" -> Settings/SpinBox: write/read `realValue`
+#   "slider"  -> Settings/Slider: write/read `value`
+#   "color"   -> DefaultColorSelector: click `path_color_<index>`, read `currentIndex`
+SETTING_MAP = {
+    # Sound category (RatioChoice)
+    "Main Mix": {"path": "mainWindow/setting_MainMix", "kind": "ratio", "options": ["on", "off"]},
+    "Main Output Mode": {"path": "mainWindow/setting_MainOutputMode", "kind": "ratio", "options": ["mono", "stereo"]},
+    "Sound Clock": {"path": "mainWindow/setting_SoundClock", "kind": "ratio", "options": ["soundcard", "network"]},
+    "Keylock engine": {"path": "mainWindow/setting_KeylockEngine", "kind": "ratio"},
+    "Sound API": {"path": "mainWindow/setting_SoundAPI", "kind": "ratio"},
+    "Sample Rate": {"path": "mainWindow/setting_SampleRate", "kind": "ratio"},
+    # Interface category — theme & color tab
+    "skin": {"path": "mainWindow/setting_skin", "kind": "combo", "model": ["Unnamed"]},
+    "color": {"path": "mainWindow/setting_color", "kind": "combo", "model": ["Dark", "Light"]},
+    "layout": {"path": "mainWindow/setting_layout", "kind": "combo", "model": ["Performance", "Broadcast"]},
+    "tool tips": {"path": "mainWindow/setting_toolTips", "kind": "ratio", "options": ["off", "library", "all"]},
+    "disable screen saver": {"path": "mainWindow/setting_disableScreenSaver", "kind": "ratio", "options": ["no", "while running", "while playing"]},
+    "start in full-screen mode": {"path": "mainWindow/setting_startFullscreen", "kind": "ratio", "options": ["on", "off"]},
+    "auto-hide the menu bar": {"path": "mainWindow/setting_autoHideMenuBar", "kind": "ratio", "options": ["on", "off"]},
+    "search completion": {"path": "mainWindow/setting_searchCompletion", "kind": "ratio", "options": ["on", "off"]},
+    "search history keyboard shortcuts": {"path": "mainWindow/setting_searchHistoryKeyboardShortcuts", "kind": "ratio", "options": ["on", "off"]},
+    "bpm display precision": {"path": "mainWindow/setting_bpmDisplayPrecision", "kind": "spinbox", "precision": 0},
+    "library row height": {"path": "mainWindow/setting_libraryRowHeight", "kind": "slider", "min": 14, "max": 100, "markers": [14, 20, 50, 80]},
+    "track palette": {"path": "mainWindow/setting_trackPalette", "kind": "combo", "model": PALETTE_NAMES},
+    "hotcue palette": {"path": "mainWindow/setting_hotcuePalette", "kind": "combo", "model": PALETTE_NAMES},
+    "key color palette": {"path": "mainWindow/setting_keyColorPalette", "kind": "combo", "model": PALETTE_NAMES},
+    "key color": {"path": "mainWindow/setting_keyColor", "kind": "ratio", "options": ["on", "off"]},
+    "hotcue default color": {"path": "mainWindow/setting_hotcueDefaultColor", "kind": "color"},
+    "loop default color": {"path": "mainWindow/setting_loopDefaultColor", "kind": "color"},
+    # Interface category — decks tab
+    "cue mode": {"path": "mainWindow/setting_cueMode", "kind": "combo", "model": ["Mixxx", "Mixxx (no blinking)", "Pioneer", "Denon", "Numark", "CUP"]},
+    "time format": {"path": "mainWindow/setting_timeFormat", "kind": "combo", "model": ["Traditional", "Traditional (Coarse)", "Seconds", "Seconds (Long)", "Kiloseconds", "Hectoseconds"]},
+    "set intro start to main cue": {"path": "mainWindow/setting_introStartToMainCue", "kind": "ratio", "options": ["on", "off"]},
+    "track time display": {"path": "mainWindow/setting_trackTimeDisplay", "kind": "ratio", "options": ["elapsed", "remaining", "both"]},
+    "double-press load to clone": {"path": "mainWindow/setting_doublePressLoadToClone", "kind": "ratio", "options": ["on", "off"]},
+    "track load point": {"path": "mainWindow/setting_trackLoadPoint", "kind": "combo", "model": ["Main cue", "Beginning of track", "First sound", "Intro start", "First hotcue"]},
+    "loading a track when playing": {"path": "mainWindow/setting_loadingTrackWhenPlaying", "kind": "ratio", "options": ["reject", "allow", "when stopped"]},
+    "reset on track load": {"path": "mainWindow/setting_resetOnTrackLoad", "kind": "ratio", "options": ["none", "key", "both", "tempo"]},
+    "slider range": {"path": "mainWindow/setting_sliderRange", "kind": "combo", "model": ["4%", "6% (semitone)", "8% (Technics SL-1210)", "10%", "16%", "24%", "50%", "90%"]},
+    "sync mode": {"path": "mainWindow/setting_syncMode", "kind": "ratio", "options": ["follow soft leader", "use steady"]},
+    "slider orientation": {"path": "mainWindow/setting_sliderOrientation", "kind": "ratio", "options": ["down", "up"]},
+    "keylock mode": {"path": "mainWindow/setting_keylockMode", "kind": "ratio", "options": ["original key", "current key"]},
+    "keyunlock mode": {"path": "mainWindow/setting_keyunlockMode", "kind": "ratio", "options": ["reset key", "keep key"]},
+    "pitch bend behaviour": {"path": "mainWindow/setting_pitchBendBehaviour", "kind": "ratio", "options": ["abrupt jump", "smooth ramping"]},
+    "temporary coarse adjustment": {"path": "mainWindow/setting_temporaryCoarseAdjustment", "kind": "spinbox", "precision": 2},
+    "temporary fine adjustment": {"path": "mainWindow/setting_temporaryFineAdjustment", "kind": "spinbox", "precision": 2},
+    "permanent coarse adjustment": {"path": "mainWindow/setting_permanentCoarseAdjustment", "kind": "spinbox", "precision": 2},
+    "permanent fine adjustment": {"path": "mainWindow/setting_permanentFineAdjustment", "kind": "spinbox", "precision": 2},
+    "ramping sensitivity": {"path": "mainWindow/setting_rampingSensitivity", "kind": "slider", "min": 100, "max": 2500, "markers": []},
+}
+
+# Config keys written by saveInterface()/saveDeck() (see QmlConfigProxy).
+CONFIG_SAVE_MAP = {
+    "Main Mix": {
+        "group": "[Config]",
+        "key": "InhibitScreensaver",
+        "expected": {"no": "0", "while running": "1", "while playing": "2"},
+    },
+    "disable screen saver": {
+        "group": "[Config]",
+        "key": "InhibitScreensaver",
+        "expected": {"no": "0", "while running": "1", "while playing": "2"},
+    },
+    "slider range": {
+        "group": "[Control]",
+        "key": "RateRangePercent",
+        "expected": lambda value: str(int(float(value.rstrip("%")))),
+    },
+    "slider orientation": {
+        "group": "[Control]",
+        "key": "RateDir",
+        "expected": {"down": "", "up": "0"},
+    },
+    "track palette": {"group": "[Config]", "key": "TrackColorPalette"},
+}
+
+# ControlObject side-effects of saveDeck().
+CONTROL_VALUE_MAP = {
+    "slider range": {"key": "rateRange", "expected": lambda value: float(value.rstrip("%"))/100},
+    "slider orientation": {"key": "rate_dir", "expected": {"down": -1, "up": 1}},
 }
 
 # --- Helpers ---
@@ -49,11 +156,34 @@ def _edge_path(entity, address, channel=0):
     return f"mainWindow/entity_{entity}/edge_{address}{channel}"
 
 
-def _setting_option_path(setting, value):
-    control = SETTING_CONTROL_MAP.get(setting)
-    if not control:
+def _setting_spec(setting):
+    spec = SETTING_MAP.get(setting)
+    if not spec:
         raise ValueError(f"Unknown setting: {setting}")
-    return f"mainWindow/{control}/{value}"
+    return spec
+
+
+def _setting_option_visible(s, path):
+    try:
+        return _is_visible(s, path)
+    except Exception:
+        return False
+
+
+def _active_button(s, button):
+    active_category_idx = s.getStringProperty(SETTINGS_POPUP_ITEM, "activeCategoryIndex")
+    assert active_category_idx, "Cannot resolve the currently active category"
+    active_category_slug = ["sound","library","conteroller", "interface"][int(active_category_idx)]
+    return ACTION_BUTTON_TEMPLATE % (active_category_slug, button.title())
+
+def _get_control_value(s, group, key):
+    s.command("getControlValue", f"{group},{key}")
+    return float(s.getStringProperty("mainWindow", "lastControlValue"))
+
+
+def _get_config_value(s, group, key):
+    s.command("getConfigValue", f"{group},{key}")
+    return s.getStringProperty("mainWindow", "lastConfigValue")
 
 
 def _category_path(label):
@@ -131,13 +261,12 @@ def step_tab_selected(context, tab):
 @given('the "{setting}" setting is "{value}"')
 def step_setting_is(context, setting, value):
     s = _rpc(context)
-    control = SETTING_CONTROL_MAP.get(setting)
-    if not control:
-        raise ValueError(f"Unknown setting: {setting}")
-    s.setStringProperty(f"mainWindow/{control}", "selected", value)
+    spec = _setting_spec(setting)
+    if spec["kind"] != "ratio":
+        raise ValueError(f"Cannot preset non-ratio setting: {setting}")
+    s.setStringProperty(spec["path"], "selected", value)
     time.sleep(0.3)
-    step_click_save(context)
-    time.sleep(1)
+    step_click_action(context, 'save')
     _wait_for_hidden(s, COMMITTING_OVERLAY)
 
 
@@ -159,9 +288,8 @@ def step_saved_connection_exists(context, edge, entity):
     sink_path = _find_first_free_output_edge(s)
     assert sink_path and _wait_for_visible(s, sink_path), "No free output device edge found"
     _click(s, sink_path)
-    time.sleep(0.5)
-    _click(s, SOUND_SAVE_BUTTON)
-    time.sleep(1)
+    time.sleep(0.3)
+    step_click_action(context, 'save')
     _wait_for_hidden(s, COMMITTING_OVERLAY)
 
 
@@ -206,25 +334,103 @@ def step_click_tab(context, tab):
 
 
 @when('I toggle the "{setting}" setting to "{value}"')
-def step_toggle_setting(context, setting, value):
+@when('I set the "{setting}" setting to "{value}"')
+@when('I toggle the "{setting}" setting to "{value}" with {method}')
+@when('I set the "{setting}" setting to "{value}" with {method}')
+def step_set_setting(context, setting, value, method=None):
     s = _rpc(context)
-    option_path = _setting_option_path(setting, value)
-    assert _wait_for_visible(s, option_path), f"Setting '{setting}' option '{value}' not visible"
-    _click(s, option_path)
-    time.sleep(0.3)
+    spec = _setting_spec(setting)
+    path = spec["path"]
+    kind = spec["kind"]
+    if kind == "ratio":
+        options = spec.get("options")
+        if not options:
+            raise ValueError(
+                f"Ratio setting '{setting}' has no options mapping; "
+                "cannot resolve a clickable option"
+            )
+        try:
+            index = options.index(value)
+        except ValueError:
+            raise ValueError(f"Setting '{setting}' has no option '{value}'")
+        option_path = f"{path}/option{index}"
+        if _setting_option_visible(s, option_path):
+            _click(s, option_path)
+        else:
+            # contentSpin (compacted) mode: the options are not individually
+            # clickable, so drive the SpinBox next/prev buttons (real user
+            # input) the needed number of times from the current selection.
+            current = s.getStringProperty(path, "selected")
+            try:
+                current_idx = options.index(current)
+            except ValueError:
+                raise RuntimeError(
+                    f"Setting '{setting}' current '{current}' not in options"
+                )
+            delta = index - current_idx
+            button = f"{path}/nextButton" if delta > 0 else f"{path}/prevButton"
+            assert _wait_for_visible(s, button), (
+                f"Setting '{setting}' next/prev button not visible"
+            )
+            for _ in range(abs(delta)):
+                _click(s, button)
+                time.sleep(0.2)
+    elif kind == "combo":
+        try:
+            index = spec["model"].index(value)
+        except (ValueError, AttributeError):
+            raise ValueError(f"Setting '{setting}' has no option '{value}'")
+        assert _wait_for_visible(s, path), f"Setting '{setting}' control not visible"
+        _click(s, path)
+        option_path = f"{path}_option_{index}"
+        if _wait_for_visible(s, option_path):
+            _click(s, option_path)
+        else:
+            _combo_select_keyboard(s, path, index)
+    elif kind == "spinbox":
+        precision = spec.get("precision", 0)
+        step = 1.0 / (10 ** precision)
+        current = float(s.getStringProperty(path, "realValue"))
+        target = float(value)
+        clicks = int(round((target - current) / step))
+        if clicks == 0:
+            raise ValueError(
+                f"Setting '{setting}' is already '{value}' (current={current})"
+            )
+        button = f"{path}/upButton" if clicks > 0 else f"{path}/downButton"
+        assert _wait_for_visible(s, button), f"Setting '{setting}' button not visible"
+        for _ in range(abs(clicks)):
+            _click(s, button)
+            print("One click!")
+            time.sleep(0.2)
+    elif kind == "slider":
+        method = method or "a drag"
+        if method == "a drag":
+            _drag_slider_handle(s, spec, value)
+        elif method == "the spinbox":
+            assert _wait_for_visible(s, f"{path}/Value"), (
+                f"Setting '{setting}' value field not visible"
+            )
+            _enter_text_value(s, f"{path}/Value", value)
+        else:
+            raise ValueError(f"Unsupported method '{method}' for slider")
+    elif kind == "color":
+        option_path = f"{path}_color_{value}"
+        assert _wait_for_visible(s, option_path), (
+            f"Setting '{setting}' color '{value}' not visible"
+        )
+        _click(s, option_path)
+    else:
+        raise ValueError(f"Unknown setting kind: {kind}")
+    time.sleep(3)
 
 
-@when("I click the save button")
-def step_click_save(context):
+@when("I click the {button} button")
+def step_click_action(context, button):
     s = _rpc(context)
-    _click(s, SOUND_SAVE_BUTTON)
-    time.sleep(0.5)
-
-
-@when("I click the cancel button")
-def step_click_cancel(context):
-    s = _rpc(context)
-    _click(s, SOUND_CANCEL_BUTTON)
+    path = _active_button(s, button)
+    assert _is_visible(s, path), f"{button.title()} ({path}) button not visible"
+    _click(s, path)
     time.sleep(0.5)
 
 
@@ -340,43 +546,109 @@ def step_delays_visible(context):
     s = _rpc(context)
     assert _is_visible(s, DELAYS_SECTION), "Delays section is not visible"
 
-
-@then("the save button should be disabled")
-def step_save_disabled(context):
+@then("the {button} button should {state}")
+def step_button_enabled(context, button, state):
     s = _rpc(context)
-    assert _is_visible(s, SOUND_SAVE_BUTTON), "Save button not visible"
-    enabled = s.getStringProperty(SOUND_SAVE_BUTTON, "enabled")
-    assert enabled == "false", f"Save button should be disabled but enabled={enabled}"
-
-
-@then("the save button should be enabled")
-def step_save_enabled(context):
-    s = _rpc(context)
-    assert _is_visible(s, SOUND_SAVE_BUTTON), "Save button not visible"
-    enabled = s.getStringProperty(SOUND_SAVE_BUTTON, "enabled")
-    assert enabled == "true", f"Save button should be enabled but enabled={enabled}"
-
-
-@then("the cancel button should be visible")
-def step_cancel_visible(context):
-    s = _rpc(context)
-    assert _is_visible(s, SOUND_CANCEL_BUTTON), "Cancel button is not visible"
-
-
-@then("the cancel button should not be visible")
-def step_cancel_not_visible(context):
-    s = _rpc(context)
-    assert not _is_visible(s, SOUND_CANCEL_BUTTON), "Cancel button should not be visible"
-
+    path = _active_button(s, button)
+    expected, prop = " ".join(state.split(" ", 2)[:-1]) == "be", state.split(" ", 2)[-1]
+    value = False
+    if prop == "visible":
+        value = _is_visible(s, path)
+    elif prop == "enabled":
+        value = s.getStringProperty(path, "enabled") == "true"
+    elif prop == "disabled":
+        value = s.getStringProperty(path, "enabled") != "true"
+    else:
+        raise ValueError(f"Unknown property: {prop}")
+    print(repr(button), repr(state), repr(expected), repr(prop), repr(value), path, repr(s.getStringProperty(path, "enabled") ))
+    assert value is expected, f"{button.title()} button is {'' if not state else 'not '}{state}"
 
 @then('the "{setting}" setting should be "{value}"')
 def step_setting_should_be(context, setting, value):
     s = _rpc(context)
-    control = SETTING_CONTROL_MAP.get(setting)
-    if not control:
-        raise ValueError(f"Unknown setting: {setting}")
-    actual = s.getStringProperty(f"mainWindow/{control}", "selected")
-    assert actual == value, f"Setting '{setting}' should be '{value}' but is '{actual}'"
+    spec = _setting_spec(setting)
+    actual = _read_setting_value(s, spec)
+    if spec["kind"] == "combo":
+        try:
+            expected = str(spec["model"].index(value))
+        except (ValueError, AttributeError):
+            raise ValueError(f"Setting '{setting}' has no option '{value}'")
+        assert actual == expected, (
+            f"Setting '{setting}' should be '{value}' but is '{actual}'"
+        )
+    elif spec["kind"] == "slider":
+        tolerance = min(1.0, 0.01 * (spec["max"] - spec["min"]))
+        diff = abs(float(actual) - float(value))
+        assert diff <= tolerance, (
+            f"Setting '{setting}' should be '{value}' but is '{actual}' "
+            f"(diff {diff} > tolerance {tolerance})"
+        )
+    else:
+        assert actual == value, f"Setting '{setting}' should be '{value}' but is '{actual}'"
+
+
+@then('the "{setting}" setting should be enabled')
+def step_setting_should_be_enabled(context, setting):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    actual = s.getStringProperty(spec["path"], "enabled")
+    assert actual == "true", f"Setting '{setting}' should be enabled but enabled={actual}"
+
+
+@then('the "{setting}" setting should be disabled')
+def step_setting_should_be_disabled(context, setting):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    actual = s.getStringProperty(spec["path"], "enabled")
+    assert actual == "false", f"Setting '{setting}' should be disabled but enabled={actual}"
+
+
+@then('the "{setting}" should be saved as "{value}"')
+def step_setting_saved_as(context, setting, value):
+    s = _rpc(context)
+    spec = CONFIG_SAVE_MAP.get(setting)
+    if not spec:
+        raise ValueError(f"No config mapping for setting: {setting}")
+    actual = _get_config_value(s, spec["group"], spec["key"])
+    expected = spec["expected"]
+    if callable(expected):
+        expected = expected(value)
+    elif isinstance(expected, dict):
+        expected = expected[value]
+    assert actual == expected, (
+        f"Config for '{setting}' should be saved as '{value}' but is '{actual}'"
+    )
+
+
+@then('the "{setting}" should be saved')
+def step_setting_saved(context, setting):
+    s = _rpc(context)
+    spec = CONFIG_SAVE_MAP.get(setting)
+    if not spec:
+        raise ValueError(f"No config mapping for setting: {setting}")
+    actual = _get_config_value(s, spec["group"], spec["key"])
+    widget = _setting_spec(setting)
+    current = s.getStringProperty(widget["path"], "currentText")
+    assert actual == current, (
+        f"Config for '{setting}' should be saved as '{current}' but is '{actual}'"
+    )
+
+
+@then('the "{setting}" on deck {deck:d} should be "{value}"')
+def step_setting_control(context, setting, deck, value):
+    s = _rpc(context)
+    spec = CONTROL_VALUE_MAP.get(setting)
+    if not spec:
+        raise ValueError(f"No control mapping for setting: {setting}")
+    actual = _get_control_value(s, f"[Channel{deck}]", spec["key"])
+    expected = spec["expected"]
+    if callable(expected):
+        expected = expected(value)
+    elif isinstance(expected, dict):
+        expected = expected[value]
+    assert abs(actual - expected) < 1e-6, (
+        f"Setting '{setting}' on deck {deck} should be '{value}'({expected}) but is '{actual}'"
+    )
 
 
 @then("the committing overlay should be visible")
@@ -466,14 +738,14 @@ def step_router_matches_saved(context):
 @then('the "{option}" option should be visible')
 def step_option_visible(context, option):
     s = _rpc(context)
-    found = False
-    for path in [
-        f"mainWindow/routerMode/{option}",
-        f"mainWindow/multiSoundcard/{option}",
-    ]:
-        if _is_visible(s, path):
-            found = True
-            break
+    candidates = []
+    idx = _ROUTER_MODE_OPTION_INDEX.get(option)
+    if idx is not None:
+        candidates.append(f"mainWindow/routerMode/option{idx}")
+    idx = _MULTI_SOUNDCARD_OPTION_INDEX.get(option)
+    if idx is not None:
+        candidates.append(f"mainWindow/multiSoundcard/option{idx}")
+    found = any(_is_visible(s, p) for p in candidates)
     assert found, f"Option '{option}' is not visible"
 
 
@@ -482,6 +754,101 @@ def step_search_results_visible(context):
     s = _rpc(context)
     result_list = f"{SETTINGS_POPUP_ITEM}/settingResultList"
     assert _is_visible(s, result_list), "Search results are not visible"
+
+
+# --- Responsiveness steps ---
+
+
+def _active_scrollbar(s):
+    active_category_idx = s.getStringProperty(SETTINGS_POPUP_ITEM, "activeCategoryIndex")
+    assert active_category_idx, "Cannot resolve the currently active category"
+    active_category_slug = SETTING_CATEGORY_SLUG[int(active_category_idx)]
+    return CATEGORY_SCROLLBARS_TEMPLATE % (active_category_slug)
+
+
+@then("the settings categories should {assertion} visible")
+def step_settings_categories_visible(context, assertion):
+    s = _rpc(context)
+    expected = assertion == "be"
+    assert _is_visible(s, CATEGORIES_ITEM) is expected, (
+        f"Settings categories should {assertion} visible"
+    )
+
+
+@then("the button to reveal the categories should {assertion} visible")
+def step_categories_button_visible(context, assertion):
+    s = _rpc(context)
+    expected = assertion == "be"
+    assert _is_visible(s, SHOW_CATEGORIES_BUTTON) is expected, (
+        f"Categories button should {assertion} visible"
+    )
+
+
+@when("I click the button to reveal the categories")
+def step_click_categories_button(context):
+    s = _rpc(context)
+    assert _wait_for_visible(s, SHOW_CATEGORIES_BUTTON), "Categories button is not visible"
+    _click(s, SHOW_CATEGORIES_BUTTON)
+    time.sleep(0.3)
+
+
+@then('the "{setting}" setting should be visible')
+def step_setting_visible(context, setting):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    assert _wait_for_visible(s, spec["path"]), f"Setting '{setting}' is not visible"
+
+
+@then('the "{setting}" setting should be expanded')
+def step_setting_expanded(context, setting):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    assert _wait_for_visible(s, f"{spec['path']}/option0"), (
+        f"Setting '{setting}' should be expanded but its option pills are not visible"
+    )
+
+
+@then('the "{setting}" setting should be compacted')
+def step_setting_compacted(context, setting):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    assert _wait_for_visible(s, f"{spec['path']}/nextButton"), (
+        f"Setting '{setting}' should be compacted but its spinbox buttons are not visible"
+    )
+
+
+@when("I scroll down in the settings")
+def step_scroll_down_settings(context):
+    s = _rpc(context)
+    bar = _active_scrollbar(s)
+    assert _wait_for_visible(s, bar), "The vertical scrollbar is not visible (nothing to scroll)"
+    before = s.getStringProperty(bar, "position")
+    s.mouseClickWithProportion(bar, 0.5, 0.9)
+    time.sleep(0.5)
+    after = s.getStringProperty(bar, "position")
+    if after == before:
+        # The synthetic click did not move the scrollbar; drive it directly.
+        s.setStringProperty(bar, "position", str(1.0 - float(s.getStringProperty(bar, "size"))))
+        time.sleep(0.5)
+
+
+@then('the "{setting}" setting should {assertion} visible on screen')
+def step_setting_on_screen(context, setting, assertion):
+    s = _rpc(context)
+    spec = _setting_spec(setting)
+    expected = assertion == "be"
+    assert _wait_for_visible(s, spec["path"]), f"Setting '{setting}' is not present"
+    setting_bb = s.getBoundingBox(spec["path"])
+    bar = _active_scrollbar(s)
+    bar_bb = s.getBoundingBox(bar) if _is_visible(s, bar) else None
+    on_screen = True
+    if bar_bb and bar_bb[2] > 0 and bar_bb[3] > 0:
+        _, setting_y, _, setting_h = setting_bb
+        _, bar_y, _, bar_h = bar_bb
+        on_screen = setting_y + setting_h > bar_y and setting_y < bar_y + bar_h
+    assert on_screen is expected, (
+        f"Setting '{setting}' should {assertion} visible on screen"
+    )
 
 
 # --- Internal helpers ---
@@ -493,8 +860,18 @@ def _get_router_mode(s):
         return None
 
 
+# routerMode RatioChoice options: ["simple", "advanced"|"advanced (!)", "legacy"]
+# (AudioRouter.qml); multiSoundcard: ["experimental", "default", "disabled"].
+# Index-based option objectNames replaced the former modelData objectNames.
+_ROUTER_MODE_OPTION_INDEX = {"simple": 0, "advanced": 1, "advanced (!)": 1, "legacy": 2}
+_MULTI_SOUNDCARD_OPTION_INDEX = {"experimental": 0, "default": 1, "disabled": 2}
+
+
 def _set_router_mode(s, mode):
-    path = f"{ROUTER_MODE}/{mode}"
+    index = _ROUTER_MODE_OPTION_INDEX.get(mode)
+    if index is None:
+        raise ValueError(f"Unknown router mode option '{mode}'")
+    path = f"{ROUTER_MODE}/option{index}"
     assert _wait_for_visible(s, path), f"Router mode option '{mode}' not visible"
     _click(s, path)
     time.sleep(0.5)
@@ -523,3 +900,95 @@ def _find_first_output_edge(s, only_not_connected=False):
 
 def _find_first_free_output_edge(s):
     return _find_first_output_edge(s, only_not_connected=True)
+
+
+def _value_to_ratio(value, minv, maxv, markers):
+    """Port of Slider.qml valueToRatio (markers-aware inverse mapping)."""
+    if not markers:
+        return (value - minv) / (maxv - minv)
+    m = list(markers)
+    if m[-1] != maxv:
+        m.append(maxv)
+    value_count = len(m) - 1
+    step_idx = 0
+    for step in m:
+        if step >= value:
+            break
+        step_idx += 1
+    step_idx = min(step_idx - 1, value_count - 1)
+    delta = m[step_idx + 1] - m[step_idx]
+    return (step_idx + (value - m[step_idx]) / delta) / value_count
+
+
+def _drag_slider_handle(s, spec, value):
+    """Drag the slider handle (real user input) to set an approximate value.
+
+    Mirrors the deck "component move" drag: begin a drag on the {path}/Handler
+    and drop it at the target ratio position along the {path}/Track. Lands
+    within ~1-2px, so the caller asserts with tolerance.
+    """
+    path = spec["path"]
+    handler = f"{path}/Handler"
+    track = f"{path}/Track"
+    assert _wait_for_visible(s, handler), f"Slider handle not visible at {handler}"
+    assert _wait_for_visible(s, track), f"Slider track not visible at {track}"
+    target_vp = _value_to_ratio(
+        float(value), spec["min"], spec["max"], spec.get("markers", [])
+    )
+    print("_drag_slider_handle")
+    s.mouseBeginDrag(handler, 0.5, 0.5, track, target_vp, 0.5)
+    s.mouseEndDrag(handler)
+    time.sleep(0.5)
+
+
+def _enter_text_value(s, path, value):
+    """Type an exact value into an editable value field (real user input).
+
+    Click to focus, select all, type the value, and commit with Enter. Used by
+    the slider 'with the spinbox' method (the right-hand numeric field).
+    """
+    _click(s, path)
+    time.sleep(0.2)
+    s.enterKey("mainWindow", QT_KEY_A, QT_CONTROL_MODIFIER)
+    s.wait(100)
+    s.inputText(path, value)
+    s.wait(100)
+    s.enterKey("mainWindow", QT_KEY_ENTER, 0)
+    time.sleep(0.3)
+
+
+def _combo_select_keyboard(s, path, index):
+    """Select a combo option via keyboard when its delegate is not rendered.
+
+    The ComboBox popup only creates `popupMaxItem` (6) delegates, so options
+    beyond that index have no objectName path to click. Keyboard events are
+    posted to the window and follow normal Qt focus routing into the open
+    popup (same pattern as the column picker step).
+    """
+    highlighted = int(s.getStringProperty(path, "highlightedIndex"))
+    if highlighted == -1:
+        s.enterKey("mainWindow", QT_KEY_DOWN, 0)
+        s.wait(200)
+        highlighted = int(s.getStringProperty(path, "highlightedIndex"))
+    key = QT_KEY_DOWN if index > highlighted else QT_KEY_UP
+    for _ in range(abs(index - highlighted)):
+        s.enterKey("mainWindow", key, 0)
+        s.wait(200)
+    time.sleep(0.3)
+    s.enterKey("mainWindow", QT_KEY_ENTER, 0)
+    time.sleep(0.3)
+
+
+def _read_setting_value(s, spec):
+    kind = spec["kind"]
+    if kind == "ratio":
+        return s.getStringProperty(spec["path"], "selected")
+    if kind == "combo":
+        return s.getStringProperty(spec["path"], "currentIndex")
+    if kind == "spinbox":
+        return s.getStringProperty(spec["path"], "realValue")
+    if kind == "slider":
+        return s.getStringProperty(spec["path"], "value")
+    if kind == "color":
+        return s.getStringProperty(spec["path"], "currentIndex")
+    raise ValueError(f"Unknown setting kind: {kind}")

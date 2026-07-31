@@ -384,30 +384,25 @@ def step_open_and_ready(context):
         context.mixxx_rpc = RobustRpcProxy()
         context._session["mixxx"] = context.mixxx
         context._session["rpc"] = context.mixxx_rpc
+        _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
         _library_command(context.mixxx_rpc, "addDirectory", tracks_dir, scan=True)
-        time.sleep(1)
 
-    if "_soundMockDevices" not in context or not context._soundMockDevices:
-        context.mixxx_rpc.command("clearMockDevices", "")
-    else:
+    context.mixxx_rpc.command("clearMockDevices", "")
+    if "_soundMockDevices" in context and context._soundMockDevices:
         context.mixxx_rpc.command("registerMockDevices", json.dumps({"devices": context._soundMockDevices}))
-        time.sleep(0.5)
+    time.sleep(0.5)
 
     # FIXME we are forcing the QML reload even on fresh instance because adding a directory on an empty library seems to corrupt the column model on Xcb QP
     context.mixxx_rpc.command("reloadQml", "")
-    time.sleep(1)
+    time.sleep(0.1)
 
-    _wait_for_visible(context.mixxx_rpc, "mainWindow")
-    _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
-    _wait_for_visible(context.mixxx_rpc, "mainWindow/library")
-    context.mixxx_rpc.setStringProperty("mainWindow", "enableDiagnosticClick", "true")
-    time.sleep(0.3)
 
-    if "_column_idx" not in context:
-        context._column_idx = {
-            col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
-            for col in KNOWN_COLUMNS
-        }
+    # if "_column_idx" not in context:
+    #     _wait_for_visible(context.mixxx_rpc, _column_header_path(KNOWN_COLUMNS[0]))
+    #     context._column_idx = {
+    #         col: context.mixxx_rpc.getStringProperty(_column_header_path(col), "index")
+    #         for col in KNOWN_COLUMNS
+    #     }
     # if "_default_props" not in context:
     #     context._default_props = {
     #         "show4DecksButton": {"checked": "false"},
@@ -416,6 +411,10 @@ def step_open_and_ready(context):
     #     }
     if "_remembered" not in context:
         context._remembered = {}
+
+    _wait_for_visible(context.mixxx_rpc, "mainWindow/library")
+    _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
+    context.mixxx_rpc.setStringProperty("mainWindow", "enableDiagnosticClick", "true")
 
 
 # --- When: window/button steps ---
@@ -518,9 +517,24 @@ def step_click_column_header(context, column):
 
 @when('I drag the column "{column}" before the column "{target}"')
 def step_drag_column(context, column, target):
-    s = context.mixxx_rpc
+    # column_path = _column_header_path(column)
+    # target_path = _column_header_path(target)
+
+    # column_bb = context.mixxx_rpc.getBoundingBox(column_path)
+    # target_bb = context.mixxx_rpc.getBoundingBox(target_path)
+    # delta = target_bb[0] - column_bb[0] - 200, target_bb[1] - column_bb[1]
+
+    # print(delta, column_bb, target_bb)
+    # context.mixxx_rpc.mouseDrag(column_path, 0.5, 0.5, *delta, 1000)
+    # time.sleep(2)
+
     # FIXME not working with column, using bare "moveColumn" instead
-    s.invokeMethod(TRACK_TABLE_PATH, "moveColumn", [context._column_idx[column], context._column_idx[target]])
+    s = context.mixxx_rpc
+    column_idx = s.getStringProperty(_column_header_path(column), "index")
+    assert column_idx, f"Column '{column}' cannot be found ({column_idx})"
+    target_idx = s.getStringProperty(_column_header_path(target), "index")
+    assert target_idx, f"Column '{target}' cannot be found ({target_idx})"
+    s.invokeMethod(TRACK_TABLE_PATH, "moveColumn", [column_idx, target_idx])
     time.sleep(0.5)
 
 
@@ -534,10 +548,11 @@ def step_open_column_picker(context):
 @when('I toggle the column "{column}" in the column picker')
 def step_toggle_column(context, column):
     s = context.mixxx_rpc
-    index = context._column_idx[column]
+    # index = context._column_idx[column]
+    index = s.getStringProperty(_column_header_path(column), "index")
     if index != 0 and not index:
         raise KeyError(f'column {column} unknown')
-    _get_current_action = lambda: int(context.mixxx_rpc.getStringProperty(COLUMN_PICKER_MENU_PATH, "currentIndex"))
+    _get_current_action = lambda: int(s.getStringProperty(COLUMN_PICKER_MENU_PATH, "currentIndex"))
     # Needed if QPA == xcb
     # if _get_current_action() == -1:
     #     _click(s, COLUMN_PICKER_MENU_PATH)

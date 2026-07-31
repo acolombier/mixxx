@@ -218,6 +218,7 @@ class MixxxProcess:
             assert self.process is not None
             assert self.process.stdout is not None
             for line in self.process.stdout:
+                # sys.stderr.write(line)
                 output_lines.append(line)
 
         self._log_thread = threading.Thread(target=_pipe_logger, daemon=True)

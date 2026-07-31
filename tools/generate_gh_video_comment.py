@@ -159,6 +159,79 @@ def collapse_errors(attempts):
     )
 
 
+def format_duration(seconds):
+    seconds = int(seconds)
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    if h:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
+
+
+def section_took(attempts):
+    """Wall time from the earliest start to the latest end of the attempts.
+
+    Returns None when any timestamp is missing so callers can omit the
+    duration instead of printing a misleading value.
+    """
+    if not attempts:
+        return None
+    starts = [a.get("start_time") for a in attempts]
+    ends = [a.get("end_time") for a in attempts]
+    if any(s is None for s in starts) or any(e is None for e in ends):
+        return None
+    return max(ends) - min(starts)
+
+
+def counts_suffix(counts, took=None):
+    expected_total = (
+        counts[OutcomeCategory.EXPECTED_FAILURE]
+        + counts[OutcomeCategory.UNEXPECTED_PASS]
+    )
+    parts = [
+        cat.display(counts[cat])
+        for cat in (
+            OutcomeCategory.PASSED,
+            OutcomeCategory.FAILED,
+            OutcomeCategory.ERROR,
+            OutcomeCategory.FLAKY,
+            OutcomeCategory.SKIPPED,
+        )
+        if counts[cat]
+    ]
+    if expected_total:
+        parts.append(
+            f"{expected_total} expected failure"
+            f"{'s' if expected_total > 1 else ''}"
+        )
+    if took is not None:
+        parts.append(f"took {format_duration(took)}")
+    return f" ({', '.join(parts)})" if parts else ""
+
+
+def summarize_counts(scenarios_by_name, seen=None):
+    """Tally the final outcome per scenario (last attempt by start time).
+
+    `seen` is an optional set used to avoid counting the same scenario name
+    twice when names collide across features (e.g. at the platform level).
+    """
+    counts = {cat: 0 for cat in OutcomeCategory}
+    if seen is None:
+        seen = set()
+    for name, attempts in scenarios_by_name.items():
+        sorted_a = sorted(attempts, key=lambda a: a.get("start_time") or 0)
+        last_a = sorted_a[-1]
+        if not last_a or last_a.get("name") in seen:
+            continue
+        seen.add(last_a.get("name"))
+        try:
+            cat = OutcomeCategory(last_a.get("outcome", ""))
+        except ValueError:
+            cat = OutcomeCategory.OTHER
+        counts[cat] += 1
+    return counts, counts_suffix(counts)
+
+
 # ---------------------------------------------------------------------------
 # Data fetching
 # ---------------------------------------------------------------------------
@@ -180,7 +253,7 @@ def fetch_video_urls(repo, run_id, server_url):
     return urls
 
 
-def fetch_job_urls(repo, run_id):
+def fetch_job_urls(repo, run_id, server_url):
     jobs = gh_api_list(f"/repos/{repo}/actions/runs/{run_id}/jobs", "jobs")
     pattern = re.compile(r"^Test e2e \((.+)\)$")
     urls = {}
@@ -188,7 +261,14 @@ def fetch_job_urls(repo, run_id):
         job_name = job.get("name", "") or ""
         m = pattern.match(job_name)
         if m:
-            urls[m.group(1)] = job["html_url"]
+            attempt = job.get("run_attempt") or 1
+            run_url = (
+                f"{server_url}/{repo}/actions/runs/{run_id}/attempts/{attempt}"
+            )
+            urls[m.group(1)] = {
+                "summary": f"{run_url}#summary-{job['id']}",
+                "logs": job["html_url"],
+            }
     return urls
 
 
@@ -295,47 +375,27 @@ def build_comment_body(all_results, job_urls, repo):
         by_feature = by_slug[slug]
         base_slug = re.sub(r"-e2e$", "", slug)
         slug_name = SLUG_NAMES.get(base_slug, slug)
-        job_url = job_urls.get(slug_name)
+        job_info = job_urls.get(slug_name)
+        job_url = job_info.get("logs") if job_info else None
+        summary_url = job_info.get("summary") if job_info else None
 
-        # Per-platform stats (last attempt per scenario)
-        plat_counts = {cat: 0 for cat in OutcomeCategory}
+        # Per-platform stats (last attempt per scenario, deduped across
+        # features) plus total wall time across the platform's scenarios
         plat_seen = set()
+        plat_counts = {cat: 0 for cat in OutcomeCategory}
         for scenarios_by_name in by_feature.values():
-            for name, attempts in scenarios_by_name.items():
-                sorted_a = sorted(
-                    attempts, key=lambda a: a.get("start_time") or 0
-                )
-                last_a = sorted_a[-1]
-                if not last_a or last_a.get("name") in plat_seen:
-                    continue
-                plat_seen.add(last_a.get("name"))
-                try:
-                    cat = OutcomeCategory(last_a.get("outcome", ""))
-                except ValueError:
-                    cat = OutcomeCategory.OTHER
-                plat_counts[cat] += 1
-
-        expected_total = (
-            plat_counts[OutcomeCategory.EXPECTED_FAILURE]
-            + plat_counts[OutcomeCategory.UNEXPECTED_PASS]
+            counts, _ = summarize_counts(scenarios_by_name, plat_seen)
+            for cat, n in counts.items():
+                plat_counts[cat] += n
+        plat_took = section_took(
+            [
+                a
+                for feat_dict in by_feature.values()
+                for att_list in feat_dict.values()
+                for a in att_list
+            ]
         )
-        plat_parts = [
-            cat.display(plat_counts[cat])
-            for cat in (
-                OutcomeCategory.PASSED,
-                OutcomeCategory.FAILED,
-                OutcomeCategory.ERROR,
-                OutcomeCategory.FLAKY,
-                OutcomeCategory.SKIPPED,
-            )
-            if plat_counts[cat]
-        ]
-        if expected_total:
-            plat_parts.append(
-                f"{expected_total} expected failure"
-                f"{'s' if expected_total > 1 else ''}"
-            )
-        stat_suffix = f" ({', '.join(plat_parts)})" if plat_parts else ""
+        stat_suffix = counts_suffix(plat_counts, plat_took)
         title_text = f"{slug_name}{stat_suffix}"
         title_html = (
             f'<a href="{job_url}">{title_text}</a>' if job_url else title_text
@@ -356,8 +416,25 @@ def build_comment_body(all_results, job_urls, repo):
 
         for feature in sorted(by_feature.keys()):
             scenarios_by_name = by_feature[feature]
-            feature_link = f"[{feature}]({job_url})" if job_url else feature
-            feature_lines.append(f"#### {feature_link}")
+            feat_took = section_took(
+                [
+                    a
+                    for att_list in scenarios_by_name.values()
+                    for a in att_list
+                ]
+            )
+            feat_suffix = counts_suffix(
+                summarize_counts(scenarios_by_name)[0], feat_took
+            )
+            if job_url:
+                feat_summary = (
+                    f'<strong>- <a href="{job_url}">{feature}</a>'
+                    f"{feat_suffix}</strong>"
+                )
+            else:
+                feat_summary = f"<strong>- {feature}{feat_suffix}</strong>"
+            feature_lines.append("<details>")
+            feature_lines.append(f"<summary>{feat_summary}</summary>")
             feature_lines.append("")
 
             cols = ["scenario", "status", "error"]
@@ -410,11 +487,20 @@ def build_comment_body(all_results, job_urls, repo):
                     all_attempts, key=lambda a: a.get("start_time") or 0
                 )
                 video_url = latest.get("video_url")
+                parts = []
+                if summary_url:
+                    parts.append(f"[Job summary]({summary_url})")
+                if job_url:
+                    parts.append(f"[Job logs]({job_url})")
                 if video_url:
-                    feature_lines.append(f"[{feature} video]({video_url})")
+                    parts.append(f"[{feature} video]({video_url})")
                 else:
-                    feature_lines.append("*No video available*")
+                    parts.append("*No video available*")
+                feature_lines.append(" \u00b7 ".join(parts))
                 feature_lines.append("")
+
+            feature_lines.append("</details>")
+            feature_lines.append("")
 
         feature_lines.append("</details>")
         feature_lines.append("")
@@ -453,7 +539,7 @@ def main():
         job_urls = {}
     else:
         video_urls = fetch_video_urls(repo, run_id, server_url)
-        job_urls = fetch_job_urls(repo, run_id)
+        job_urls = fetch_job_urls(repo, run_id, server_url)
 
     all_results = read_results(results_dir, video_urls)
     body = build_comment_body(all_results, job_urls, repo)

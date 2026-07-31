@@ -100,15 +100,6 @@ def before_scenario(context, scenario):
 def after_scenario(context, scenario):
     outcome = str(scenario.status).split('.')[1].lower()
 
-    # Clean up any mock devices injected during the scenario
-    session = context._session
-    rpc = session.get("rpc")
-    if rpc is not None:
-        try:
-            rpc.command("clearMockDevices", "")
-        except Exception:
-            pass
-
     failed = scenario.status in [Status.failed, Status.error]
     is_xfail = any(map(lambda t: t.startswith("xfail"), scenario.tags))
     if failed and is_xfail:
