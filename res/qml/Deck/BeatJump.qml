@@ -1,7 +1,7 @@
 import ".." as Skin
 import Mixxx 1.0 as Mixxx
-import Qt5Compat.GraphicalEffects
 import QtQuick 2.12
+import QtQuick.Effects
 import QtQuick.Shapes
 import QtQuick.Controls 2.12
 import "../Theme"
@@ -26,6 +26,14 @@ Rectangle {
         group: root.group
         key: "track_loaded"
     }
+    BeatSizeSpinBoxBehavior {
+        id: beatjumpSize
+
+        decrementKey: "beatjump_size_halve"
+        group: root.group
+        incrementKey: "beatjump_size_double"
+        key: "beatjump_size"
+    }
     Skin.ControlButton {
         id: jumpBackButton
 
@@ -38,11 +46,13 @@ Rectangle {
             anchors.fill: parent
 
             Shape {
+                property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                 anchors.centerIn: parent
                 antialiasing: true
                 height: 14
-                layer.enabled: true
-                layer.samples: 4
+                layer.enabled: multiSamplingLevel > 1
+                layer.samples: multiSamplingLevel
                 width: 21
 
                 ShapePath {
@@ -130,11 +140,13 @@ Rectangle {
             anchors.fill: parent
 
             Shape {
+                property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                 anchors.centerIn: parent
                 antialiasing: true
                 height: 14
-                layer.enabled: true
-                layer.samples: 4
+                layer.enabled: multiSamplingLevel > 1
+                layer.samples: multiSamplingLevel
                 width: 21
 
                 ShapePath {
@@ -202,23 +214,27 @@ Rectangle {
             topMargin: 22
         }
     }
-    Skin.ControlButton {
+    Skin.Button {
         id: jumpSizeHalfButton
 
-        group: root.group
         implicitHeight: 28
         implicitWidth: 22
-        key: "beatjump_size_halve"
+
+        onPressed: {
+            beatjumpSize.step(-1);
+        }
 
         contentItem: Item {
             anchors.fill: parent
 
             Shape {
+                property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                 anchors.centerIn: parent
                 antialiasing: true
                 height: 10
-                layer.enabled: true
-                layer.samples: 4
+                layer.enabled: multiSamplingLevel > 1
+                layer.samples: multiSamplingLevel
                 width: 12
 
                 ShapePath {
@@ -266,77 +282,57 @@ Rectangle {
 
             anchors.fill: parent
             color: '#2B2B2B'
+            border {
+                color: '#353535'
+                width: 1
+            }
         }
-        DropShadow {
+        MultiEffect {
             anchors.fill: backgroundImage
-            color: "#80000000"
-            horizontalOffset: 0
-            radius: 1.0
             source: backgroundImage
-            verticalOffset: 0
-        }
-        InnerShadow {
-            anchors.fill: backgroundImage
-            color: "#353535"
-            horizontalOffset: -0
-            radius: 1
-            samples: 16
-            source: backgroundImage
-            verticalOffset: 0
-        }
-        Mixxx.ControlProxy {
-            id: beatjumpSize
-
-            group: root.group
-            key: "beatjump_size"
+            shadowEnabled: true
+            shadowColor: "#80000000"
+            shadowBlur: 0.05
         }
         TextInput {
             function update() {
                 this.text = Qt.binding(function () {
-                    return beatjumpSize.value < 1 ? `1/${1 / beatjumpSize.value}` : beatjumpSize.value;
+                    return beatjumpSize.valueText;
                 });
             }
 
             anchors.centerIn: backgroundImage
             color: root.buttonColor
-            text: beatjumpSize.value < 1 ? `1/${1 / beatjumpSize.value}` : beatjumpSize.value
+            text: beatjumpSize.valueText
 
             onAccepted: {
+                beatjumpSize.commitText(this.text);
                 this.focus = false;
-                let [numerator, denominator] = this.text.split("/");
-                if (denominator !== undefined) {
-                    denominator = parseInt(denominator);
-                    if (Number.isNaN(denominator)) {
-                        return update();
-                    }
-                } else {
-                    denominator = 1;
-                }
-                numerator = parseInt(numerator);
-                if (Number.isNaN(numerator)) {
-                    return update();
-                }
-                beatjumpSize.value = numerator / denominator;
+                update();
             }
         }
     }
-    Skin.ControlButton {
+    Skin.Button {
         id: jumpSizeDoubleButton
 
-        group: root.group
         implicitHeight: 28
         implicitWidth: 22
-        key: "beatjump_size_double"
+
+        onPressed: {
+            beatjumpSize.step(1);
+        }
 
         contentItem: Item {
             anchors.fill: parent
 
             Shape {
+                property int multiSamplingLevel: Mixxx.Config.multiSamplingLevel
+
                 anchors.centerIn: parent
                 antialiasing: true
                 height: 10
-                layer.enabled: true
-                layer.samples: 4
+                layer.enabled: multiSamplingLevel > 1
+                layer.samples: multiSamplingLevel
                 width: 12
 
                 ShapePath {
