@@ -113,6 +113,12 @@ def _download_file(entry, dest):
                 print(p.returncode)
                 print(p.stdout)
                 print(p.stderr)
+                sys.stdout.write(
+                    f"  ffmpeg failed to mux artwork for {entry['url']}, "
+                    f"falling back to raw MP3\n"
+                )
+                sys.stdout.flush()
+                os.replace(f.name, dest)
         else:
             os.replace(f.name, dest)
 
@@ -139,6 +145,8 @@ def ensure_tracks_downloaded(target_dir=None, nb_tracks=20):
         sys.stdout.flush()
         try:
             _download_file(entry, dest)
+            if not os.path.exists(dest) or os.path.getsize(dest) == 0:
+                raise RuntimeError(f"Download failed, no output at {dest}")
             downloaded.append(dest)
         except Exception as e:
             sys.stdout.write(f"  FAILED: {e}\n")
@@ -194,7 +202,7 @@ class MixxxProcess:
             self.profile_dir,
             "--developer",
             "--log-level",
-            "error",
+            "debug",
         ]
         self.process = subprocess.Popen(
             args,
@@ -204,12 +212,13 @@ class MixxxProcess:
             text=True,
         )
 
+        output_lines = []
+
         def _pipe_logger():
             assert self.process is not None
             assert self.process.stdout is not None
             for line in self.process.stdout:
-                continue
-                # sys.stdout.write(line)
+                output_lines.append(line)
 
         self._log_thread = threading.Thread(target=_pipe_logger, daemon=True)
         self._log_thread.start()
@@ -225,6 +234,9 @@ class MixxxProcess:
             except (OSError, ConnectionRefusedError):
                 pass
             if self.process.poll() is not None:
+                stderr_output = "".join(output_lines)
+                if stderr_output:
+                    print(stderr_output, file=sys.stderr)
                 raise RuntimeError(
                     f"mixxx-test exited early with code {self.process.returncode}"
                 )

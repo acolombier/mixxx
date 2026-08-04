@@ -142,6 +142,12 @@ QList<SoundDevicePointer> SoundManager::getDeviceList(
 }
 
 QList<QString> SoundManager::getHostAPIList() const {
+#ifdef USE_TEST_UI
+    if (m_testMockingMode) {
+        return {"Mock"};
+    }
+#endif
+
     return m_pEnumerator->getAPIs();
 }
 
@@ -269,6 +275,13 @@ QList<mixxx::audio::SampleRate> SoundManager::getSampleRates() const {
 void SoundManager::queryDevices() {
     qDebug() << "SoundManager::queryDevices()";
     m_pEnumerator->initialize();
+
+#ifdef USE_TEST_UI
+    if (m_testMockingMode) {
+        return;
+    }
+#endif
+
     // now tell the prefs that we updated the device list -- bkgood
     emit devicesUpdated();
 }
@@ -668,5 +681,41 @@ void SoundManager::updateDeviceChannels(SoundDevicePointer pDevice) {
 #ifdef __PIPEWIRE__
 bool SoundManager::isPipewireSelected() {
     return CmdlineArgs::Instance().getDeveloper() && m_pConfig->getValue(kPipeWire, false);
+}
+#endif
+
+#ifdef USE_TEST_UI
+#include <QJsonArray>
+#include <QJsonObject>
+
+#include "soundio/sounddevicemock.h"
+
+void SoundManager::registerMockDevices(const QJsonArray& devices) {
+    for (const auto& entry : devices) {
+        QJsonObject obj = entry.toObject();
+        auto pDevice = QSharedPointer<SoundDeviceMock>::create(
+                m_pConfig,
+                this,
+                obj["api"].toString(),
+                obj["name"].toString(),
+                obj["outputChannels"].toInt(0),
+                obj["inputChannels"].toInt(0));
+        m_devices.push_back(pDevice);
+    }
+    m_testMockingMode = true;
+}
+
+void SoundManager::clearMockDevices() {
+    auto it = m_devices.begin();
+    while (it != m_devices.end()) {
+        if (dynamic_cast<SoundDeviceMock*>(it->data()) != nullptr) {
+            qDebug() << "SoundManager::clearMockDevices"
+                     << (*it)->getDisplayName();
+            it = m_devices.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    m_testMockingMode = false;
 }
 #endif
