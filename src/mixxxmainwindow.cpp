@@ -1007,6 +1007,13 @@ void MixxxMainWindow::connectMenuBar() {
                 Qt::UniqueConnection);
     }
 
+    auto pRecordingManager = m_pCoreServices->getRecordingManager();
+    auto startRecord = CmdlineArgs::Instance().getStartRecording();
+    if (pRecordingManager && startRecord.has_value()) {
+        pRecordingManager->startRecording(startRecord.value());
+        qInfo() << "Auto start recording to" << pRecordingManager->getRecordingLocation();
+    }
+
 #ifdef __ENGINEPRIME__
     DEBUG_ASSERT(m_pLibraryExporter);
     connect(m_pMenuBar,
@@ -1262,15 +1269,16 @@ void MixxxMainWindow::slotLibraryScanSummaryDlg(const LibraryScanResultSummary& 
         return;
     }
 
-    QMessageBox msgBox;
-    msgBox.setTextFormat(Qt::RichText); // required to get bold text with <b> tags
-    msgBox.setWindowTitle(tr("Library scan finished"));
+    QMessageBox* pMsg = new QMessageBox();
+    pMsg->setAttribute(Qt::WA_DeleteOnClose);
+    pMsg->setTextFormat(Qt::RichText); // required to get bold text with <b> tags
+    pMsg->setWindowTitle(tr("Library scan finished"));
 
     if (result.noDirectoriesConfigured) {
-        msgBox.setText(tr("No music directories configured for scanning.") +
+        pMsg->setText(tr("No music directories configured for scanning.") +
                 QStringLiteral("<br>") +
                 tr("Add directories in the library preferences."));
-        msgBox.show();
+        pMsg->show();
         return;
     }
 
@@ -1296,7 +1304,8 @@ void MixxxMainWindow::slotLibraryScanSummaryDlg(const LibraryScanResultSummary& 
         if (result.numNewMissingTracks != 0) {
             summary += tr("%n track(s) missing (%1 total)",
                     nullptr,
-                    result.numNewMissingTracks);
+                    result.numNewMissingTracks)
+                               .arg(result.numMissingTracks);
         }
         if (result.numRediscoveredTracks != 0) {
             summary += QStringLiteral("<br>") +
@@ -1309,8 +1318,8 @@ void MixxxMainWindow::slotLibraryScanSummaryDlg(const LibraryScanResultSummary& 
                 QStringLiteral("</b>");
     }
 
-    msgBox.setText(summary);
-    msgBox.show();
+    pMsg->setText(summary);
+    pMsg->show();
 }
 
 void MixxxMainWindow::slotShowKeywheel(bool toggle) {

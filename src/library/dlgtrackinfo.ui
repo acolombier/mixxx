@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>575</width>
-    <height>642</height>
+    <height>713</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -47,11 +47,10 @@
       <attribute name="title">
        <string>Summary</string>
       </attribute>
-      <layout class="QVBoxLayout" name="summary_layout">
+      <layout class="QVBoxLayout" name="summary_layout" stretch="1,0,0">
        <item>
-        <widget class="QGroupBox" name="groupBox">
+        <widget class="QGroupBox" name="metadata_groupBox">
          <layout class="QGridLayout" name="tags_layout" columnstretch="0,10,0,2">
-
           <item row="0" column="0">
            <widget class="QLabel" name="lblTitle">
             <property name="sizePolicy">
@@ -69,7 +68,7 @@
              <string>Title</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -89,7 +88,6 @@
             </property>
            </widget>
           </item>
-
           <item row="0" column="2" rowspan="3" colspan="2">
            <widget class="QWidget" name="coverWidget" native="true">
             <property name="sizePolicy">
@@ -102,13 +100,18 @@
              <property name="spacing">
               <number>0</number>
              </property>
+             <property name="margin">
+              <number>0</number>
+             </property>
              <property name="sizeConstraint">
-              <enum>QLayout::SetDefaultConstraint</enum>
+              <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignVCenter</set>
              </property>
             </layout>
            </widget>
           </item>
-
           <item row="1" column="0">
            <widget class="QLabel" name="lblArtist">
             <property name="sizePolicy">
@@ -121,7 +124,7 @@
              <string>Artist</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -141,7 +144,6 @@
             </property>
            </widget>
           </item>
-
           <item row="2" column="0">
            <widget class="QLabel" name="lblAlbum">
             <property name="sizePolicy">
@@ -154,7 +156,7 @@
              <string>Album</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -174,7 +176,6 @@
             </property>
            </widget>
           </item>
-
           <item row="3" column="0">
            <widget class="QLabel" name="lblAlbumArtist">
             <property name="sizePolicy">
@@ -187,7 +188,7 @@
              <string>Album Artist</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -207,7 +208,6 @@
             </property>
            </widget>
           </item>
-
           <item row="3" column="2" colspan="2">
            <widget class="QWidget" name="verticalWidgetStars" native="true">
             <property name="sizePolicy">
@@ -221,19 +221,18 @@
               <number>0</number>
              </property>
              <property name="sizeConstraint">
-              <enum>QLayout::SetDefaultConstraint</enum>
+              <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
              </property>
             </layout>
            </widget>
           </item>
-
           <item row="4" column="0">
            <widget class="QLabel" name="lblComposer">
             <property name="text">
              <string>Composer</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -253,14 +252,13 @@
             </property>
            </widget>
           </item>
-
           <item row="4" column="2">
            <widget class="QLabel" name="lblYear">
             <property name="text">
              <string>Year</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -274,14 +272,13 @@
             </property>
            </widget>
           </item>
-
           <item row="5" column="0">
            <widget class="QLabel" name="lblGenre">
             <property name="text">
              <string>Genre</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -301,14 +298,13 @@
             </property>
            </widget>
           </item>
-
           <item row="5" column="2">
            <widget class="QLabel" name="lblTrackNumber">
             <property name="text">
              <string>Track #</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -328,14 +324,13 @@
             </property>
            </widget>
           </item>
-
           <item row="6" column="0">
            <widget class="QLabel" name="lblGrouping">
             <property name="text">
              <string>Grouping</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -362,7 +357,7 @@
              <string>Key</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -480,7 +475,7 @@
              <string>Comments</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -498,14 +493,14 @@
              <string>Color</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
           <item row="9" column="1" colspan="3">
            <widget class="QPushButton" name="btnColorPicker">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -516,7 +511,7 @@
           <item row="10" column="0">
            <spacer name="horizontalSpacer_5">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -528,7 +523,7 @@
           </item>
 
           <item row="11" column="0" colspan="4">
-           <layout class="QHBoxLayout" name="meatdata_buttons_layout">
+           <layout class="QHBoxLayout" name="metadata_buttons_layout">
             <item>
              <widget class="QPushButton" name="btnImportMetadataFromMusicBrainz">
               <property name="text">
@@ -545,11 +540,9 @@
             </item>
            </layout>
           </item>
-
          </layout>
         </widget>
        </item>
-
        <item>
         <widget class="QGroupBox" name="properties_groupBox">
          <property name="sizePolicy">
@@ -559,7 +552,6 @@
           </sizepolicy>
          </property>
          <layout class="QGridLayout" name="properties_layout" rowstretch="0,0,0,0,0,0" columnstretch="0,1,0,1">
-
           <item row="0" column="0">
            <widget class="QLabel" name="lblDuration">
             <property name="text">
@@ -571,7 +563,6 @@
            <widget class="QLabel" name="txtDuration">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -579,11 +570,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="0" column="2">
            <widget class="QLabel" name="lblType">
             <property name="text">
@@ -595,7 +585,6 @@
            <widget class="QLabel" name="txtType">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -603,11 +592,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="1" column="0">
            <widget class="QLabel" name="lblBpm">
             <property name="text">
@@ -619,7 +607,6 @@
            <widget class="QLabel" name="txtBpm">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -627,11 +614,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="1" column="2">
            <widget class="QLabel" name="lblBitrate">
             <property name="text">
@@ -643,7 +629,6 @@
            <widget class="QLabel" name="txtBitrate">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -651,11 +636,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="2" column="0">
            <widget class="QLabel" name="lblReplayGain">
             <property name="text">
@@ -667,7 +651,6 @@
            <widget class="QLabel" name="txtReplayGain">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -675,11 +658,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="2" column="2">
            <widget class="QLabel" name="lblSamplerate">
             <property name="text">
@@ -691,16 +673,17 @@
            <widget class="QLabel" name="txtSamplerate">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
             <property name="text">
              <string/>
             </property>
+            <property name="textInteractionFlags">
+             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+            </property>
            </widget>
           </item>
-
           <item row="3" column="0">
            <widget class="QLabel" name="lblDateAdded">
             <property name="text">
@@ -712,7 +695,6 @@
            <widget class="QLabel" name="txtDateAdded">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -720,11 +702,10 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="3" column="2">
            <widget class="QLabel" name="lblFileSize">
             <property name="text">
@@ -736,7 +717,6 @@
            <widget class="QLabel" name="txtFileSize">
             <property name="font">
              <font>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -744,18 +724,17 @@
              <string/>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="4" column="0">
            <widget class="QLabel" name="lblLocation">
             <property name="text">
              <string>Location:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+             <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
             </property>
            </widget>
           </item>
@@ -768,11 +747,10 @@
              <bool>true</bool>
             </property>
             <property name="textInteractionFlags">
-             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+             <set>Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
-
           <item row="5" column="1" colspan="3">
            <layout class="QHBoxLayout" name="openFileBrowser_layout">
             <item>
@@ -785,7 +763,7 @@
             <item>
              <spacer name="horizontalSpacer_6">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -797,17 +775,16 @@
             </item>
            </layout>
           </item>
-
          </layout>
         </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Orientation::Vertical</enum>
          </property>
          <property name="sizeType">
-          <enum>QSizePolicy::MinimumExpanding</enum>
+          <enum>QSizePolicy::Policy::MinimumExpanding</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -819,7 +796,6 @@
        </item>
       </layout>
      </widget>
-
      <widget class="QWidget" name="tabBPM">
       <attribute name="title">
        <string>BPM</string>
@@ -984,7 +960,7 @@ Often results in higher quality beatgrids, but will not do well on tracks that h
        <item>
         <widget class="Line" name="line">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
         </widget>
        </item>
@@ -1005,12 +981,148 @@ Often results in higher quality beatgrids, but will not do well on tracks that h
        <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Orientation::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
            <width>0</width>
            <height>200</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabStem">
+      <attribute name="title">
+       <string>Stem</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QGroupBox" name="properties_groupBox_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,2">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="btnFirstStemColorPicker">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="txtFirstStemTitle">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" rowspan="2">
+           <widget class="QPushButton" name="btnSecondStemColorPicker">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="txtSecondStemTitle">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" rowspan="2">
+           <widget class="QLineEdit" name="txtThirdStemTitle">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QPushButton" name="btnThirdStemColorPicker">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QPushButton" name="btnFourthStemColorPicker">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="txtFourthStemTitle">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>17</width>
+           <height>428</height>
           </size>
          </property>
         </spacer>
@@ -1062,7 +1174,7 @@ Often results in higher quality beatgrids, but will not do well on tracks that h
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -1164,6 +1276,14 @@ Often results in higher quality beatgrids, but will not do well on tracks that h
   <tabstop>bpmFourFifths</tabstop>
   <tabstop>bpmFiveFourths</tabstop>
   <tabstop>bpmClear</tabstop>
+  <tabstop>btnFirstStemColorPicker</tabstop>
+  <tabstop>btnSecondStemColorPicker</tabstop>
+  <tabstop>btnThirdStemColorPicker</tabstop>
+  <tabstop>btnFourthStemColorPicker</tabstop>
+  <tabstop>txtFirstStemTitle</tabstop>
+  <tabstop>txtSecondStemTitle</tabstop>
+  <tabstop>txtThirdStemTitle</tabstop>
+  <tabstop>txtFourthStemTitle</tabstop>
   <tabstop>btnPrev</tabstop>
   <tabstop>btnNext</tabstop>
   <tabstop>btnCancel</tabstop>
