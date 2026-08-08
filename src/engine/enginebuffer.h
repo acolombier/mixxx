@@ -94,8 +94,8 @@ class EngineBuffer : public EngineObject {
         RubberBandR3ShortWindow = 3,
 #endif
 #ifdef __SIGNALSMITH__
-        SignalSmithDefault = 3,
-        SignalSmithCheaper = 4,
+        SignalSmithDefault = 4,
+        SignalSmithCheaper = 5,
 #endif
     };
     Q_ENUM(KeylockEngine);
