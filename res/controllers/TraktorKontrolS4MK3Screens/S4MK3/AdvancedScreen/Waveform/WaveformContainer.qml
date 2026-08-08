@@ -133,6 +133,7 @@ Item {
 
         Mixxx.WaveformRendererStem {
             gainAll: 1.5
+            splitStemTracks: true
         }
 
         Mixxx.WaveformRendererBeat {
