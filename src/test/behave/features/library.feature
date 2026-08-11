@@ -1,7 +1,7 @@
 Feature: Library
 
   Background:
-    Given a new empty profile
+    Given a new library-ready profile
     And Mixxx is open and ready to operate
 
   Scenario: Library toggle button is visible
