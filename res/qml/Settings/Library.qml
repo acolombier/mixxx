@@ -92,7 +92,7 @@ Category {
         root.dirty = false;
         errorMessage.text = "";
     }
-function addSourceFromFolder(folderUrl) {
+    function addSourceFromFolder(folderUrl) {
         let path = folderUrl.toString().replace(/^file:\/{2,3}/, ""); // FIXME does this work on Windows ?
         let model = sourceListView.model;
         model.push({
@@ -103,15 +103,18 @@ function addSourceFromFolder(folderUrl) {
     }
     function loadSources() {
         let rootDirs = [];
-        for (let source of Object.values(Mixxx.Library.sources)) {
+        const sourceCount = Mixxx.Library.sources.length;
+        for (let i = 0; i < sourceCount; i++) {
+            const source = Mixxx.Library.sources[i];
             rootDirs.push({
                 path: source.path,
                 trackCount: source.trackCount,
                 totalMinute: Math.round(source.totalSecond / 60)
             });
         }
-        print(`loadSources: ${JSON.stringify(rootDirs)}`)
+        print(`loadSources: ${JSON.stringify(rootDirs)}`);
         sourceListView.model = rootDirs;
+        root.dirty = false;
     }
     function reset() {
     }
@@ -123,13 +126,13 @@ function addSourceFromFolder(folderUrl) {
             let result;
             if (source.trackCount === undefined) {
                 // Handle addition
-                result = Mixxx.Library.addSource(source.path);
+                result = Mixxx.Library.addSource("file://" + source.path);
             } else if (source.deleting !== undefined) {
                 // Handle removal
-                result = Mixxx.Library.removeSource(source.path, source.deleting);
+                result = Mixxx.Library.removeSource("file://" + source.path, source.deleting);
             } else if (source.relink) {
                 // Handle relinking
-                result = Mixxx.Library.relinkSource(source.path, source.relink);
+                result = Mixxx.Library.relinkSource("file://" + source.path, "file://" + source.relink);
             } else {
                 continue;
             }
@@ -277,6 +280,28 @@ function addSourceFromFolder(folderUrl) {
                             ListView {
                                 id: sourceListView
 
+                                function markDirty() {
+                                    root.dirty = true;
+                                }
+                                function removeSourceAt(index) {
+                                    let model = sourceListView.model;
+                                    model[index].deleting = Mixxx.Library.PurgeTracks;
+                                    root.dirty = true;
+                                    sourceListView.model = model;
+                                }
+                                function removeSourceWithMode(index, mode) {
+                                    let model = sourceListView.model;
+                                    model[index].deleting = mode;
+                                    root.dirty = true;
+                                    sourceListView.model = model;
+                                }
+                                function relinkSourceAt(index, path) {
+                                    let model = sourceListView.model;
+                                    model[index].relink = path;
+                                    root.dirty = true;
+                                    sourceListView.model = model;
+                                }
+
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 240
                                 clip: true
@@ -343,11 +368,8 @@ function addSourceFromFolder(folderUrl) {
                                                 title: qsTr("Relink music directory to new location")
 
                                                 onAccepted: {
-                                                    let model = sourceListView.model;
                                                     let path = selectedFolder.toString().replace(/^(file:\/\/)/, ""); // FIXME does this work on Windows ?
-                                                    model[mouse.index].relink = decodeURIComponent(path);
-                                                    root.dirty = true;
-                                                    sourceListView.model = model;
+                                                    sourceListView.relinkSourceAt(mouse.index, decodeURIComponent(path));
                                                 }
                                             }
                                             Skin.FormButton {
@@ -392,10 +414,7 @@ function addSourceFromFolder(folderUrl) {
 
                                                     onPressed: {
                                                         if (modelData.trackCount == 0) {
-                                                            let model = sourceListView.model;
-                                                            model[mouse.index].deleting = Mixxx.Library.PurgeTracks;
-                                                            root.dirty = true;
-                                                            sourceListView.model = model;
+                                                            sourceListView.removeSourceAt(mouse.index);
                                                         } else {
                                                             removeButton.confirming = !removeButton.confirming;
                                                         }
@@ -413,24 +432,24 @@ function addSourceFromFolder(folderUrl) {
                                                     visible: removeButton.confirming
 
                                                     onSelectedChanged: {
-                                                        if (!removeButton.confirming) return;
-                                                        let model = sourceListView.model;
+                                                        if (!removeButton.confirming)
+                                                            return;
+                                                        let mode;
                                                         switch (options.indexOf(selected)) {
                                                         case 0:
-                                                            model[mouse.index].deleting = Mixxx.Library.KeepTracks;
+                                                            mode = Mixxx.Library.KeepTracks;
                                                             break;
                                                         case 1:
-                                                            model[mouse.index].deleting = Mixxx.Library.HideTracks;
+                                                            mode = Mixxx.Library.HideTracks;
                                                             break;
                                                         case 2:
-                                                            model[mouse.index].deleting = Mixxx.Library.PurgeTracks;
+                                                            mode = Mixxx.Library.PurgeTracks;
                                                             break;
                                                         default:
                                                             console.warn(`unknown value deletion mode ${selected}. Ignoring.`);
                                                             return;
                                                         }
-                                                        root.dirty = true;
-                                                        sourceListView.model = model;
+                                                        sourceListView.removeSourceWithMode(mouse.index, mode);
                                                     }
                                                 }
                                             }
@@ -529,10 +548,16 @@ function addSourceFromFolder(folderUrl) {
                                     id: integrationRepeater
 
                                     RowLayout {
+                                        property bool initialized: false
                                         property alias enabled: integrationEnabled.enabled
+                                        required property int index
                                         required property var modelData
 
                                         Layout.preferredWidth: sourcePane.width * 0.5
+
+                                        Component.onCompleted: {
+                                            initialized = true;
+                                        }
 
                                         Mixxx.SettingParameter {
                                             Layout.fillWidth: true
@@ -559,7 +584,14 @@ function addSourceFromFolder(folderUrl) {
                                             options: ["on", "off"]
                                             selected: modelData.enabled ? "on" : "off"
 
-                                            onSelectedChanged: root.dirty = true
+                                            onSelectedChanged: {
+                                                // Ignore the programmatic initial
+                                                // assignment while the delegate is
+                                                // being created.
+                                                if (initialized) {
+                                                    root.dirty = true;
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1047,7 +1079,7 @@ function addSourceFromFolder(folderUrl) {
                 }
             }
         }
-    }
+     }
     Connections {
         function onRunningChanged(running) {
             if (!Mixxx.Library.scanner.running) {
