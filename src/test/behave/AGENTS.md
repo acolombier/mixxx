@@ -113,6 +113,9 @@ MIXXX_BEHAVE_RETRY=5 ctest -R mixxx-behave- --output-on-failure
   lifecycle hooks (ffmpeg is still used for chapter muxing on both backends).
 - **Session reuse**: scenarios sharing the same `Background` profile type reuse
   the same `mixxx-test` process — only the first scenario pays startup cost.
+  `a fresh ... profile` opts out: it force-kills the running process and
+  spawns a new genuinely empty (no config, no DB, no tracks) or library-ready profile every
+  scenario.
 - After editing QML or `main.cpp`, rebuild:
   `cmake --build build --target mixxx-test -j$(nproc)`
 - After editing Python (`steps/`, `environment.py`, `profile.py`, runner), no
@@ -400,6 +403,8 @@ LOOP_BUTTONS = {
 | Pattern | Implementation |
 | --- | --- |
 | `a new empty profile` | `_ensure_profile(context, "empty")` |
+| `a [fresh] new empty profile` | `_ensure_profile(context, "empty", force=..)` — kills the running process and respawns a genuinely empty profile |
+| `a [fresh] new library-ready profile` | `_ensure_profile(context, "library-ready", force=..)` — populated with the tracks dir (`addDirectory` runs at open/ready) |
 | `Mixxx is open and ready to operate` | Starts Mixxx, waits for mainWindow, waits for splash to hide, caches `_column_idx` and `_default_props` |
 | `the 4 decks view is enabled` | Sets `show4DecksButton.checked = true` |
 | `a track is loaded on deck {deck:d}` | Picks random track from `MIXXX_TEST_TRACKS_DIR`, calls `loadTrack` C++ command |

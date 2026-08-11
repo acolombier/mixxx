@@ -10,10 +10,12 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQuickWindow>
+#include <QSqlQuery>
 #include <QThread>
 
 #include "control/controlobject.h"
 #include "coreservices.h"
+#include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "mixer/playermanager.h"
 #include "mixxxapplication.h"
@@ -234,6 +236,42 @@ int runServeMode(int argc, char** argv) {
                          << "scan=" << scan;
             } else {
                 qWarning() << "library: unknown action" << action;
+            }
+        } else if (command == "getLibraryState") {
+            auto* pCollection =
+                    pCoreServices->getTrackCollectionManager()->internalCollection();
+
+            QJsonArray sources;
+            const auto rootDirectories = pCollection->getRootDirectories();
+            for (const auto& dirInfo : rootDirectories) {
+                QJsonObject source;
+                source["path"] = dirInfo.path;
+                source["trackCount"] = static_cast<int>(dirInfo.trackCount);
+                source["totalSecond"] = static_cast<int>(dirInfo.totalSecond);
+                sources.append(source);
+            }
+
+            auto countTracks = [pCollection](bool hidden) {
+                QSqlQuery query(pCollection->database());
+                query.prepare(
+                        "SELECT COUNT(*) FROM library WHERE mixxx_deleted = :hidden");
+                query.bindValue(":hidden", hidden ? 1 : 0);
+                query.exec();
+                return query.next() ? query.value(0).toInt() : 0;
+            };
+
+            QJsonObject state;
+            state["sources"] = sources;
+            state["visibleTrackCount"] = countTracks(false);
+            state["hiddenTrackCount"] = countTracks(true);
+
+            QString json = QString::fromUtf8(
+                    QJsonDocument(state).toJson(QJsonDocument::Compact));
+            qDebug() << "getLibraryState:" << json;
+
+            auto windows = QGuiApplication::topLevelWindows();
+            for (auto* w : std::as_const(windows)) {
+                w->setProperty("lastLibraryState", json);
             }
         } else if (command == "registerMockDevices") {
             QJsonDocument doc =

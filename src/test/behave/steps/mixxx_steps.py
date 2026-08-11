@@ -345,9 +345,9 @@ def _mixxx_running(context):
     return False
 
 
-def _ensure_profile(context, profile_type):
+def _ensure_profile(context, profile_type, force=False):
     session = context._session
-    if session.get("active_profile_type") == profile_type and _mixxx_running(context):
+    if not force and session.get("active_profile_type") == profile_type and _mixxx_running(context):
         return
     if _mixxx_running(context):
         try:
@@ -368,9 +368,9 @@ def _ensure_profile(context, profile_type):
 
 # --- Given steps ---
 
-@given("a new empty profile")
-def step_new_empty_profile(context):
-    _ensure_profile(context, "empty")
+@given("a {profile_type} profile")
+def step_new_empty_profile(context, profile_type):
+    _ensure_profile(context, profile_type.split(' ')[-1], force=profile_type.startswith("a fresh"))
 
 
 @given("Mixxx is open and ready to operate")
@@ -389,7 +389,8 @@ def step_open_and_ready(context):
         context._session["mixxx"] = context.mixxx
         context._session["rpc"] = context.mixxx_rpc
         _wait_for_hidden(context.mixxx_rpc, "mainWindow/splashScreen")
-        _library_command(context.mixxx_rpc, "addDirectory", tracks_dir, scan=True)
+        if context.active_profile_type == "library-ready":
+            _library_command(context.mixxx_rpc, "addDirectory", tracks_dir, scan=True)
 
     context.mixxx_rpc.command("clearMockDevices", "")
     if "_soundMockDevices" in context and context._soundMockDevices:

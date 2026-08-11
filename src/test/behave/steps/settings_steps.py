@@ -1,6 +1,11 @@
+import glob
 import json
+import os
+import re
+import shutil
 import time
 from behave import given, when, then
+from mixxx_steps import _library_command
 
 QT_KEY_ENTER = 0x01000005
 QT_KEY_SPACE = 0x20
@@ -23,6 +28,19 @@ SHOW_CATEGORIES_BUTTON = f"{SETTINGS_POPUP_ITEM}/showCategoriesButton"
 SETTING_CATEGORY_SLUG = ["sound","library","controller", "interface"]
 CATEGORY_SCROLLBARS_TEMPLATE = "mainWindow/%sSettingsScrollBar"
 ACTION_BUTTON_TEMPLATE = "mainWindow/%s%sButton"
+CATEGORY_SCROLLBARS = {
+    index: CATEGORY_SCROLLBARS_TEMPLATE % slug
+    for index, slug in enumerate(SETTING_CATEGORY_SLUG)
+}
+MUSIC_DIRECTORY_LIST = "mainWindow/librarySourceList"
+MUSIC_DIRECTORY_ROW = "mainWindow/sourceRow_%d"
+SOURCE_REMOVE_BUTTON = "mainWindow/sourceRemoveButton_%d"
+SOURCE_REMOVE_MODE_SELECTOR = "mainWindow/sourceRemoveModeSelector_%d"
+SOURCE_REMOVE_MODE_OPTIONS = ["keep", "hide", "purge"]
+SOURCE_RELINK_BUTTON = "mainWindow/sourceRelinkButton_%d"
+ADD_SOURCE_BUTTON = "mainWindow/addSourceButton"
+ADD_FOLDER_DIALOG_TEST = "mainWindow/addFolderDialogTest"
+MUSIC_DIRECTORY_DEFAULT_TRACK_COUNT = 1
 COMMITTING_OVERLAY = "mainWindow/committingOverlay"
 ENGINE_SECTION = "mainWindow/engineSection"
 DELAYS_SECTION = "mainWindow/delaysSection"
@@ -105,6 +123,25 @@ SETTING_MAP = {
     "permanent coarse adjustment": {"path": "mainWindow/setting_permanentCoarseAdjustment", "kind": "spinbox", "precision": 2},
     "permanent fine adjustment": {"path": "mainWindow/setting_permanentFineAdjustment", "kind": "spinbox", "precision": 2},
     "ramping sensitivity": {"path": "mainWindow/setting_rampingSensitivity", "kind": "slider", "min": 100, "max": 2500, "markers": []},
+    # Library category — sources & integrations
+    "Rhythmbox integration": {"path": "mainWindow/setting_integration0", "kind": "ratio", "options": ["on", "off"]},
+    "Banshee integration": {"path": "mainWindow/setting_integration1", "kind": "ratio", "options": ["on", "off"]},
+    "iTunes integration": {"path": "mainWindow/setting_integration2", "kind": "ratio", "options": ["on", "off"]},
+    "Traktor integration": {"path": "mainWindow/setting_integration3", "kind": "ratio", "options": ["on", "off"]},
+    "Rekordbox integration": {"path": "mainWindow/setting_integration4", "kind": "ratio", "options": ["on", "off"]},
+    "Serato integration": {"path": "mainWindow/setting_integration5", "kind": "ratio", "options": ["on", "off"]},
+    # Library category — metadata
+    "synchronise metadata with file": {"path": "mainWindow/setting_metadataSync", "kind": "ratio", "options": ["on", "off"]},
+    "synchronise metadata with Serato library": {"path": "mainWindow/setting_seratoMetadataSync", "kind": "ratio", "options": ["on", "off"]},
+    "prefer relative path on playlist export": {"path": "mainWindow/setting_relativePathOnExport", "kind": "ratio", "options": ["on", "off"]},
+    # Library category — history
+    "track duplicate distance": {"path": "mainWindow/setting_historyDuplicateDistance", "kind": "spinbox", "precision": 0},
+    "delete history playlist with less than": {"path": "mainWindow/setting_historyMinTracksToKeep", "kind": "spinbox", "precision": 0},
+    # Library category — search
+    "library search completion": {"path": "mainWindow/setting_librarySearchCompletion", "kind": "ratio", "options": ["on", "off"]},
+    "library search history keyboard shortcuts": {"path": "mainWindow/setting_librarySearchHistoryShortcuts", "kind": "ratio", "options": ["on", "off"]},
+    "search-as-you-type timeout": {"path": "mainWindow/setting_searchTimeout", "kind": "slider", "min": 0.1, "max": 10, "markers": [0.1, 0.5, 1, 5, 10]},
+    "pitch slider for fuzz BPM search": {"path": "mainWindow/setting_searchFuzzBpm", "kind": "slider", "min": 0, "max": 100, "markers": [0, 25, 50, 75, 100]},
 }
 
 # Config keys written by saveInterface()/saveDeck() (see QmlConfigProxy).
@@ -130,6 +167,13 @@ CONFIG_SAVE_MAP = {
         "expected": {"down": "", "up": "0"},
     },
     "track palette": {"group": "[Config]", "key": "TrackColorPalette"},
+    # Library category — see Library.qml save() and QmlConfigProxy
+    "Serato integration": {"group": "[Library]", "key": "ShowSeratoLibrary", "expected": {"on": "1", "off": "0"}},
+    "synchronise metadata with file": {"group": "[Library]", "key": "SyncTrackMetadataExport", "expected": {"on": "1", "off": "0"}},
+    "prefer relative path on playlist export": {"group": "[Library]", "key": "UseRelativePathOnExport", "expected": {"on": "1", "off": "0"}},
+    "track duplicate distance": {"group": "[Library]", "key": "history_track_duplicate_distance", "expected": lambda value: str(int(float(value)))},
+    "delete history playlist with less than": {"group": "[Library]", "key": "history_min_tracks_to_keep", "expected": lambda value: str(int(float(value)))},
+    "search-as-you-type timeout": {"group": "[Library]", "key": "SearchDebouncingTimeoutMillis", "expected": lambda value: str(int(float(value) * 1000))},
 }
 
 # ControlObject side-effects of saveDeck().
@@ -173,7 +217,7 @@ def _setting_option_visible(s, path):
 def _active_button(s, button):
     active_category_idx = s.getStringProperty(SETTINGS_POPUP_ITEM, "activeCategoryIndex")
     assert active_category_idx, "Cannot resolve the currently active category"
-    active_category_slug = ["sound","library","conteroller", "interface"][int(active_category_idx)]
+    active_category_slug = SETTING_CATEGORY_SLUG[int(active_category_idx)]
     return ACTION_BUTTON_TEMPLATE % (active_category_slug, button.title())
 
 def _get_control_value(s, group, key):
@@ -184,6 +228,71 @@ def _get_control_value(s, group, key):
 def _get_config_value(s, group, key):
     s.command("getConfigValue", f"{group},{key}")
     return s.getStringProperty("mainWindow", "lastConfigValue")
+
+
+def _get_library_state(s):
+    s.command("getLibraryState", "")
+    return json.loads(s.getStringProperty("mainWindow", "lastLibraryState"))
+
+
+def _wait_for_music_directory_count(rpc, expected, timeout=10):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            if _is_visible(rpc, MUSIC_DIRECTORY_LIST):
+                actual = int(rpc.getStringProperty(MUSIC_DIRECTORY_LIST, "count"))
+                if actual == expected:
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.3)
+    return False
+
+
+def _parse_library_state_expectation(value):
+    value = value.strip()
+    match = re.match(r"([<>]=?|!=|=)\s*(-?\d+)", value)
+    if match:
+        return {"op": match.group(1), "num": int(match.group(2))}
+    return {"op": "=", "num": int(value)}
+
+
+def _expectation_matches(actual, expectation):
+    op, num = expectation["op"], expectation["num"]
+    if op == "=":
+        return actual == num
+    if op == "!=":
+        return actual != num
+    if op == ">":
+        return actual > num
+    if op == ">=":
+        return actual >= num
+    if op == "<":
+        return actual < num
+    if op == "<=":
+        return actual <= num
+    return False
+
+
+def _wait_for_library_state(rpc, expected, timeout=30):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            state = _get_library_state(rpc)
+            matched = True
+            for key, expectation in expected.items():
+                actual = state.get(key)
+                if key == "sources" and isinstance(actual, list):
+                    actual = len(actual)
+                if not _expectation_matches(actual, expectation):
+                    matched = False
+                    break
+            if matched:
+                return True
+        except Exception:
+            pass
+        time.sleep(0.3)
+    return False
 
 
 def _category_path(label):
@@ -305,6 +414,71 @@ def step_register_mock_devices(context):
         })
 
 
+def _create_music_directory(context, dir_id, tracks, permission, dirname):
+    """Create a folder under the profile's Music dir and register it."""
+    parent = os.path.join(context.profile_dir, "Music")
+    path = os.path.join(parent, dirname)
+    os.makedirs(path, exist_ok=True)
+    if permission == "no-read":
+        os.chmod(path, 0o000)
+    elif permission != "read":
+        raise ValueError(f"Unknown directory permission '{permission}'")
+    if tracks:
+        tracks_dir = context.config.userdata["tracks_dir"]
+        sources = glob.glob(os.path.join(tracks_dir, "*.mp3"))
+        if len(sources) < tracks:
+            raise RuntimeError(
+                f"Not enough tracks in tracks_dir: need {tracks}, have {len(sources)}"
+            )
+        for track in sources[:tracks]:
+            shutil.copy2(track, path)
+    context.music_dirs[dir_id] = path
+    context.current_music_dir = path
+
+
+@given("a music directory")
+@given("the following music directories")
+def step_create_music_directory(context):
+    context.music_dirs = {}
+    if context.table:
+        for row in context.table:
+            _create_music_directory(
+                context,
+                row["id"],
+                int(row.get("tracks", MUSIC_DIRECTORY_DEFAULT_TRACK_COUNT)),
+                row.get("permission", "read"),
+                row.get("dir", f"MusicDir{row['id']}"),
+            )
+    else:
+        _create_music_directory(
+            context, "0", MUSIC_DIRECTORY_DEFAULT_TRACK_COUNT, "read", "MusicDir0"
+        )
+
+
+@given("the library contains {count:d} music directories")
+def step_library_contains_music_directories(context, count):
+    s = _rpc(context)
+    assert count >= 0, "A library cannot contain a negative number of music directories"
+    if count == 0:
+        return
+    parent = os.path.join(context.profile_dir, "Music")
+    os.makedirs(parent, exist_ok=True)
+    for index in range(count):
+        path = os.path.join(parent, f"MusicDir{index + 1}")
+        os.makedirs(path, exist_ok=True)
+        # The last add runs a blocking scan, which also refreshes the sources
+        # list in the already-open settings popup via the scanner's
+        # onRunningChanged -> loadSources() connection.
+        _library_command(s, "addDirectory", path, scan=(index == count - 1))
+
+
+@given("the tracks directory is in the library")
+def step_tracks_directory_in_library(context):
+    s = _rpc(context)
+    tracks_dir = context.config.userdata["tracks_dir"]
+    _library_command(s, "addDirectory", tracks_dir, scan=True)
+
+
 # --- When steps ---
 
 @when("I click the settings close button")
@@ -341,6 +515,7 @@ def step_set_setting(context, setting, value, method=None):
     s = _rpc(context)
     spec = _setting_spec(setting)
     path = spec["path"]
+    _scroll_setting_into_view(s, path)
     kind = spec["kind"]
     if kind == "ratio":
         options = spec.get("options")
@@ -374,7 +549,7 @@ def step_set_setting(context, setting, value, method=None):
             )
             for _ in range(abs(delta)):
                 _click(s, button)
-                time.sleep(0.2)
+                time.sleep(0.4)
     elif kind == "combo":
         try:
             index = spec["model"].index(value)
@@ -432,6 +607,66 @@ def step_click_action(context, button):
     assert _is_visible(s, path), f"{button.title()} ({path}) button not visible"
     _click(s, path)
     time.sleep(0.5)
+
+
+@when("I select the music directory at row {row:d}")
+def step_select_music_directory(context, row):
+    s = _rpc(context)
+    path = MUSIC_DIRECTORY_ROW % row
+    assert _wait_for_visible(s, path), f"Music directory row {row} is not visible"
+    _click(s, path)
+    time.sleep(0.3)
+
+
+@when("I click the remove button for the music directory at row {row:d}")
+def step_click_remove_music_directory(context, row):
+    s = _rpc(context)
+    path = SOURCE_REMOVE_BUTTON % row
+    assert _wait_for_visible(s, path), (
+        f"Remove button for music directory row {row} is not visible"
+    )
+    _click(s, path)
+    time.sleep(0.5)
+
+
+@when("I choose to {action} the tracks of the music directory at row {row:d}")
+def step_choose_track_handling(context, action, row):
+    s = _rpc(context)
+    try:
+        option_index = SOURCE_REMOVE_MODE_OPTIONS.index(action)
+    except ValueError:
+        raise ValueError(f"Unknown track handling action '{action}'")
+    path = f"{SOURCE_REMOVE_MODE_SELECTOR % row}/option{option_index}"
+    assert _wait_for_visible(s, path), (
+        f"Track handling option '{action}' for music directory row {row} is not visible"
+    )
+    _click(s, path)
+    time.sleep(0.3)
+
+
+@when("I add the test music directory {directory_id}")
+def step_add_test_music_directory(context, directory_id):
+    s = _rpc(context)
+    path = context.music_dirs[directory_id]
+    before = int(s.getStringProperty(MUSIC_DIRECTORY_LIST, "count"))
+    # Route the "Add" button to the test dialog mock and inject the folder,
+    # emulating a real folder picker selection.
+    s.setStringProperty(ADD_FOLDER_DIALOG_TEST, "testMode", "true")
+    s.setStringProperty(ADD_FOLDER_DIALOG_TEST, "selectedFolder", "file://" + path)
+    _click(s, ADD_SOURCE_BUTTON)
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        try:
+            if int(s.getStringProperty(ADD_FOLDER_DIALOG_TEST, "openCount")) >= 1:
+                break
+        except Exception:
+            pass
+        time.sleep(0.3)
+    else:
+        raise AssertionError("The Add button did not open the dialog")
+    assert _wait_for_music_directory_count(s, before + 1), (
+        f"Music directory '{directory_id}' did not appear in the list"
+    )
 
 
 @when('I set the router mode to "{mode}"')
@@ -766,6 +1001,32 @@ def _active_scrollbar(s):
     return bar
 
 
+def _scroll_setting_into_view(s, path):
+    """Scroll the active settings category so that the item at ``path`` is
+    fully inside the visible scroll viewport, mirroring a user scrolling to
+    reach a below-the-fold setting."""
+    bar = _active_scrollbar(s)
+    try:
+        size = float(s.getStringProperty(bar, "size") or 0)
+    except ValueError:
+        size = 0
+    if size >= 1.0:
+        return
+    max_value = 1.0 - size
+    deadline = time.time() + 8
+    while time.time() < deadline:
+        try:
+            x, y, w, h = s.getBoundingBox(path)
+            bx, by, bw, bh = s.getBoundingBox(bar)
+        except Exception:
+            return
+        if y >= by and y + h <= by + bh:
+            return
+        target = max_value if y + h > by + bh else 0.0
+        s.setStringProperty(bar, "value", str(target))
+        time.sleep(0.3)
+
+
 @then("the settings categories should {assertion} visible")
 def step_settings_categories_visible(context, assertion):
     s = _rpc(context)
@@ -805,6 +1066,62 @@ def step_setting_expanded(context, setting):
     spec = _setting_spec(setting)
     assert _wait_for_visible(s, f"{spec['path']}/option0"), (
         f"Setting '{setting}' should be expanded but its option pills are not visible"
+    )
+
+
+LIBRARY_GRIDS = {
+    "sources": "mainWindow/librarySourcesGrid",
+    "metadata": "mainWindow/libraryMetadataGrid",
+    "history": "mainWindow/libraryHistoryGrid",
+}
+
+
+@then('the "{grid}" grid should be displayed in {columns:d} columns')
+@then('the "{grid}" grid should be displayed in {columns:d} column')
+def step_grid_columns(context, grid, columns):
+    s = _rpc(context)
+    path = LIBRARY_GRIDS.get(grid, f"mainWindow/{grid}")
+    assert _wait_for_visible(s, path), f"Grid '{grid}' is not visible"
+    actual = int(s.getStringProperty(path, "columns"))
+    assert actual == columns, (
+        f"Grid '{grid}' should be displayed in {columns} columns but has {actual}"
+    )
+
+
+@then("the music directory list should be empty")
+def step_music_directory_list_empty(context):
+    s = _rpc(context)
+    assert _wait_for_music_directory_count(s, 0), (
+        "The music directory list should be empty but is not"
+    )
+
+
+@then("the music directory list should contain {count:d} source")
+@then("the music directory list should contain {count:d} sources")
+def step_music_directory_list_count(context, count):
+    s = _rpc(context)
+    assert _wait_for_music_directory_count(s, count), (
+        f"The music directory list should contain {count} sources but does not"
+    )
+
+
+@then("the library state should match the following")
+def step_library_state_matches(context):
+    s = _rpc(context)
+    expected = {}
+    for row in context.table:
+        expected[row["key"]] = _parse_library_state_expectation(row["value"])
+    assert _wait_for_library_state(s, expected), (
+        f"The library state should match {expected} but does not"
+    )
+
+
+@then("the {button} button of the music directory at row {row:d} should be visible")
+def step_source_button_visible(context, button, row):
+    s = _rpc(context)
+    path = SOURCE_REMOVE_BUTTON % row if button == "remove" else SOURCE_RELINK_BUTTON % row
+    assert _wait_for_visible(s, path), (
+        f"The {button} button for music directory row {row} is not visible"
     )
 
 
