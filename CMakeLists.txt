@@ -5948,6 +5948,20 @@ if(APPLOCAL_COMPONENT_DEFINED)
     COMMENT
       "Install applocal components to allow Mixxx to be run from the build directory."
   )
+
+  if(BUILD_UI_TEST)
+    # In order to run mixxx-test from the build directory install applocal components
+    add_custom_command(
+      TARGET mixxx-test
+      POST_BUILD
+      COMMAND
+        "${CMAKE_COMMAND}" -DCOMPONENT=applocal
+        -DCMAKE_INSTALL_PREFIX="${CMAKE_CURRENT_BINARY_DIR}" -P
+        cmake_install.cmake
+      COMMENT
+        "Install applocal components to allow mixxx-test to be run from the build directory."
+    )
+  endif()
 endif()
 
 if(APPLE AND MACOS_BUNDLE)
