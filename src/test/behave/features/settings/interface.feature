@@ -55,6 +55,7 @@ Feature: Interface Settings
 
   Scenario: Save and cancel enable when setting changes
     When I toggle the "tool tips" setting to "off"
+    And I click the save button
     Then the save button should be enabled
     And the cancel button should be enabled
 
@@ -88,10 +89,13 @@ Feature: Interface Settings
 
   Scenario: Tool tips can be switched between all levels
     When I toggle the "tool tips" setting to "off"
+    And I click the save button
     Then the "tool tips" setting should be "off"
     When I toggle the "tool tips" setting to "library"
+    And I click the save button
     Then the "tool tips" setting should be "library"
     When I toggle the "tool tips" setting to "all"
+    And I click the save button
     Then the "tool tips" setting should be "all"
 
   Scenario: Screen saver can be disabled
@@ -102,24 +106,29 @@ Feature: Interface Settings
 
   Scenario: Screen saver can be limited to playback
     When I toggle the "disable screen saver" setting to "while playing"
+    And I click the save button
     Then the "disable screen saver" setting should be "while playing"
 
   Scenario: Start in full-screen mode can be enabled
     When I toggle the "start in full-screen mode" setting to "on"
+    And I click the save button
     Then the "start in full-screen mode" setting should be "on"
 
   Scenario: Auto-hide the menu bar can be enabled
     When I toggle the "auto-hide the menu bar" setting to "on"
+    And I click the save button
     Then the "auto-hide the menu bar" setting should be "on"
 
   # --- Theme & color tab: library ----------------------------------------------
 
   Scenario: Search completion can be disabled
     When I toggle the "search completion" setting to "off"
+    And I click the save button
     Then the "search completion" setting should be "off"
 
   Scenario: Search history keyboard shortcuts can be disabled
     When I toggle the "search history keyboard shortcuts" setting to "off"
+    And I click the save button
     Then the "search history keyboard shortcuts" setting should be "off"
 
   Scenario: BPM display precision can be changed
@@ -139,8 +148,10 @@ Feature: Interface Settings
   Scenario: Key color palette is disabled when key color is off
     # Component state: keyPaletteComboBox.enabled is bound to key color == "on"
     When I toggle the "key color" setting to "off"
+    And I click the save button
     Then the "key color palette" setting should be disabled
     When I toggle the "key color" setting to "on"
+    And I click the save button
     Then the "key color palette" setting should be enabled
 
   Scenario Outline: Track palette can be changed
@@ -191,11 +202,13 @@ Feature: Interface Settings
   Scenario: Intro start can be set to the main cue when analyzing
     Given the "decks" tab is selected
     When I toggle the "set intro start to main cue" setting to "off"
+    And I click the save button
     Then the "set intro start to main cue" setting should be "off"
 
   Scenario: Track time display can be changed
     Given the "decks" tab is selected
     When I toggle the "track time display" setting to "remaining"
+    And I click the save button
     Then the "track time display" setting should be "remaining"
 
   Scenario: Time format can be changed
@@ -206,6 +219,7 @@ Feature: Interface Settings
   Scenario: Double-press load to clone can be disabled
     Given the "decks" tab is selected
     When I toggle the "double-press load to clone" setting to "off"
+    And I click the save button
     Then the "double-press load to clone" setting should be "off"
 
   Scenario: Track load point can be changed
@@ -216,31 +230,37 @@ Feature: Interface Settings
   Scenario: Loading a track when playing can be allowed
     Given the "decks" tab is selected
     When I toggle the "loading a track when playing" setting to "allow"
+    And I click the save button
     Then the "loading a track when playing" setting should be "allow"
 
   Scenario: Speed reset on track load can be changed
     Given the "decks" tab is selected
     When I toggle the "reset on track load" setting to "tempo"
+    And I click the save button
     Then the "reset on track load" setting should be "tempo"
 
   Scenario: Sync mode can be changed
     Given the "decks" tab is selected
     When I toggle the "sync mode" setting to "use steady"
+    And I click the save button
     Then the "sync mode" setting should be "use steady"
 
   Scenario: Keylock mode can be changed
     Given the "decks" tab is selected
     When I toggle the "keylock mode" setting to "current key"
+    And I click the save button
     Then the "keylock mode" setting should be "current key"
 
   Scenario: Keyunlock mode can be changed
     Given the "decks" tab is selected
     When I toggle the "keyunlock mode" setting to "keep key"
+    And I click the save button
     Then the "keyunlock mode" setting should be "keep key"
 
   Scenario: Pitch bend behaviour can be changed
     Given the "decks" tab is selected
     When I toggle the "pitch bend behaviour" setting to "smooth ramping"
+    And I click the save button
     Then the "pitch bend behaviour" setting should be "smooth ramping"
 
   Scenario: Adjustment button ranges can be changed
