@@ -236,6 +236,7 @@ Category {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.minimumWidth: sourcePane.implicitWidth
+                        objectName: "librarySourcePane"
                         color: '#0E0E0E'
                         implicitHeight: sourcePane.implicitHeight + 20
 
@@ -537,6 +538,7 @@ Category {
                             GridLayout {
                                 id: integrationPane
 
+                                objectName: "libraryIntegrationsGrid"
                                 anchors.bottomMargin: 10
                                 anchors.fill: parent
                                 anchors.leftMargin: 17

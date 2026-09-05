@@ -577,7 +577,7 @@ def step_set_setting(context, setting, value, method=None):
         for _ in range(abs(clicks)):
             _click(s, button)
             print("One click!")
-            time.sleep(0.2)
+            time.sleep(0.4)
     elif kind == "slider":
         method = method or "a drag"
         if method == "a drag":
@@ -1023,7 +1023,7 @@ def _scroll_setting_into_view(s, path):
         if y >= by and y + h <= by + bh:
             return
         target = max_value if y + h > by + bh else 0.0
-        s.setStringProperty(bar, "value", str(target))
+        s.setStringProperty(bar, "position", str(target))
         time.sleep(0.3)
 
 
@@ -1071,6 +1071,7 @@ def step_setting_expanded(context, setting):
 
 LIBRARY_GRIDS = {
     "sources": "mainWindow/librarySourcesGrid",
+    "integrations": "mainWindow/libraryIntegrationsGrid",
     "metadata": "mainWindow/libraryMetadataGrid",
     "history": "mainWindow/libraryHistoryGrid",
 }
@@ -1085,6 +1086,36 @@ def step_grid_columns(context, grid, columns):
     actual = int(s.getStringProperty(path, "columns"))
     assert actual == columns, (
         f"Grid '{grid}' should be displayed in {columns} columns but has {actual}"
+    )
+
+
+SPATIAL_ITEM_PATHS = {
+    "integrations grid": "mainWindow/libraryIntegrationsGrid",
+    "library source pane": "mainWindow/librarySourcePane",
+}
+
+
+@then('the "{item}" should be below the "{target}"')
+def step_below(context, item, target):
+    s = _rpc(context)
+    item_bb = s.getBoundingBox(SPATIAL_ITEM_PATHS[item])
+    target_bb = s.getBoundingBox(SPATIAL_ITEM_PATHS[target])
+    assert item_bb[1] >= target_bb[1] + target_bb[3], (
+        f"'{item}' is not below '{target}' "
+        f"(item_top={item_bb[1]}, target_bottom={target_bb[1] + target_bb[3]})"
+    )
+
+
+@then('the "{item}" should not overlap the "{target}"')
+def step_not_overlap(context, item, target):
+    s = _rpc(context)
+    a = s.getBoundingBox(SPATIAL_ITEM_PATHS[item])
+    b = s.getBoundingBox(SPATIAL_ITEM_PATHS[target])
+    overlap_x = a[0] < b[0] + b[2] and a[0] + a[2] > b[0]
+    overlap_y = a[1] < b[1] + b[3] and a[1] + a[3] > b[1]
+    assert not (overlap_x and overlap_y), (
+        f"'{item}' overlaps '{target}' "
+        f"(item=({a[0]},{a[1]},{a[2]},{a[3]}), target=({b[0]},{b[1]},{b[2]},{b[3]}))"
     )
 
 

@@ -169,6 +169,54 @@ def _get_bb(rpc, path):
     return bb
 
 
+def _scroll_tableview_to_row(rpc, row):
+    """Scroll the track TableView so that ``row`` lies inside the visible viewport.
+
+    The TableView recycles its delegates (``reuseItems: true``) and each
+    item is a per-column cell named ``trackRow_<row>`` (see Cell.qml). Rows that
+    are not currently on screen are never instantiated, so a click targeted at
+    ``trackRow_<row>`` resolves to a stale pooled cell or fails outright
+    ("Item not found") — the missed click this helper prevents. Driving the
+    flickable ``contentY`` scrolls the list the way a user would.
+    """
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        try:
+            y = float(rpc.getStringProperty(TRACK_TABLE_PATH, "contentY"))
+            height = float(rpc.getStringProperty(TRACK_TABLE_PATH, "contentHeight"))
+            viewport = float(rpc.getStringProperty(TRACK_TABLE_PATH, "height")) or 0
+        except Exception:
+            return
+        if viewport <= 0 or height <= viewport:
+            return
+        target = row * _ROW_HEIGHT
+        if y <= target and y + viewport >= target + _ROW_HEIGHT:
+            return
+        new_y = target if target < y else target + _ROW_HEIGHT - viewport
+        new_y = max(0.0, min(new_y, height - viewport))
+        rpc.setStringProperty(TRACK_TABLE_PATH, "contentY", str(new_y))
+        time.sleep(0.3)
+
+
+_ROW_HEIGHT = 30
+
+
+def _track_row_is_on_screen(rpc, row):
+    """True when ``row`` is inside the visible TableView viewport.
+
+    Reliable against delegate recycling: derived from the flickable geometry
+    rather than a specific delegate instance (whose ``isVisible()`` is flaky
+    for table cells).
+    """
+    y = float(rpc.getStringProperty(TRACK_TABLE_PATH, "contentY"))
+    height = float(rpc.getStringProperty(TRACK_TABLE_PATH, "contentHeight"))
+    viewport = float(rpc.getStringProperty(TRACK_TABLE_PATH, "height")) or 0
+    if viewport <= 0 or height <= viewport:
+        return True
+    target = row * _ROW_HEIGHT
+    return y <= target and y + viewport >= target + _ROW_HEIGHT
+
+
 def _set_property(rpc, path, prop, value):
     rpc.setStringProperty(path, prop, str(value))
 
@@ -605,6 +653,8 @@ def step_toggle_column(context, column):
 
 @when("I {action} the track at row {row:d}")
 def step_track_action(context, action, row):
+    _scroll_tableview_to_row(context.mixxx_rpc, row)
+    time.sleep(0.5)
     TRACK_ACTIONS[action](context.mixxx_rpc, _track_row_path(row))
     time.sleep(0.3)
 
@@ -797,6 +847,14 @@ def step_track_selected(context, row):
     path = _track_row_path(row)
     selected = _get_property(s, path, "selected")
     assert selected == "true", f"Track at row {row} is not selected (selected={selected})"
+
+
+@then("the track at row {row:d} should be visible on screen")
+def step_track_on_screen(context, row):
+    s = context.mixxx_rpc
+    assert _track_row_is_on_screen(s, row), (
+        f"Track at row {row} was not scrolled into the visible viewport"
+    )
 
 
 @then("the track context menu should be visible")

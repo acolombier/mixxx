@@ -46,6 +46,11 @@ Feature: Library
     When I click the track at row 1
     Then the track at row 1 should be selected
 
+  Scenario: Track below the fold can be scrolled into view
+    Given the window's height is 500px
+    When I click the track at row 40
+    Then the track at row 40 should be visible on screen
+
   Scenario: Track context menu can be shown on right click
     When I right-click the track at row 1
     Then the track context menu should be visible

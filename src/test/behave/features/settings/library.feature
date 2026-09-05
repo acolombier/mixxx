@@ -67,10 +67,12 @@ Feature: Library Settings
 
   Scenario: Search completion can be disabled
     When I toggle the "library search completion" setting to "off"
+    And I click the save button
     Then the "library search completion" setting should be "off"
 
   Scenario: Search history keyboard shortcuts can be disabled
     When I toggle the "library search history keyboard shortcuts" setting to "off"
+    And I click the save button
     Then the "library search history keyboard shortcuts" setting should be "off"
 
   Scenario: Search-as-you-type timeout can be changed
@@ -215,12 +217,10 @@ Feature: Library Settings
 
   @category/responsiveness
   Scenario: Integration options compact when the row is narrow
-    # Depends on RatioChoice maxWidth = row width * 0.5; verify the exact
-    # widths that flip expanded/compacted on the first run.
     Given the window's width is 1792px
-    Then the "Rhythmbox integration" setting should be expanded
+    Then the "integrations" grid should be displayed in 1 column
     When I resize the window's width to 700px
-    Then the "Rhythmbox integration" setting should be compacted
-    When I toggle the "Rhythmbox integration" setting to "on"
-    Then the "Rhythmbox integration" setting should be "on"
+    Then the "integrations" grid should be displayed in 2 columns
+    And the "integrations grid" should be below the "library source pane"
+    And the "integrations grid" should not overlap the "library source pane"
     When I resize the window's width to 1792px
