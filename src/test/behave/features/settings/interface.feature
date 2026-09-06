@@ -54,8 +54,8 @@ Feature: Interface Settings
     And the cancel button should be disabled
 
   Scenario: Save and cancel enable when setting changes
+    Given the "tool tips" setting is "all"
     When I toggle the "tool tips" setting to "off"
-    And I click the save button
     Then the save button should be enabled
     And the cancel button should be enabled
 

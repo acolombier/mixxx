@@ -42,6 +42,7 @@ Feature: Settings
     And I have the following sound devices
       | name           | api  | outputChannels | inputChannels |
       | Built-in Audio | Mock | 4              | 4             |
+    And the "Main Mix" setting is "on"
     When I toggle the "Main Mix" setting to "off"
     Then the save button should be enabled
     And the cancel button should be visible
