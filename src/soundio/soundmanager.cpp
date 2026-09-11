@@ -283,10 +283,10 @@ void SoundManager::queryDevices() {
     }
 #endif
 
-    // for (auto& device : m_pNetworkEnumerator->queryDevices()) {
-    //     m_devices.push_back(device);
-    //     qDebug() << "m_devices.push_back " << device->getDisplayName();
-    // }
+    // The network device is Mixxx's fallback clock: when no output device is
+    // configured it becomes the clock reference so the engine keeps processing.
+    m_devices.push_back(m_pNetworkDevice);
+    qDebug() << "m_devices.push_back " << m_pNetworkDevice->getDisplayName();
 
     // now tell the prefs that we updated the device list -- bkgood
     emit devicesUpdated();
